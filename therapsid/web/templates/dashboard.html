@@ -4,79 +4,42 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Therapsid Node - Red Federada Latinoamericana</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/png" href="/static/img/icon.png">
     <style>
-        /* THERAPSID - Tema Futurista Rosa/Verde/Neon */
         :root {
-            /* Tema OSCURO (default) - Futurista Neon */
-            --bg-primary: #0d0d0d;
-            --bg-secondary: #141414;
-            --bg-tertiary: #1a0a1a;
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: #1a1a2e;
             --text-primary: #ffffff;
-            --text-secondary: #a0a0a0;
+            --text-secondary: #8892b0;
             --accent: #ff006e;
-            --accent-hover: #ff4081;
             --accent-glow: rgba(255, 0, 110, 0.3);
             --success: #00ff88;
             --success-glow: rgba(0, 255, 136, 0.3);
             --warning: #ffbe0b;
-            --danger: #ff006e;
-            --info: #00d4ff;
-            --border: #2a2a2a;
-            --card-bg: rgba(20, 20, 20, 0.8);
-            --glass: rgba(255, 255, 255, 0.05);
+            --danger: #ff3366;
+            --border: #2d2d44;
+            --gradient-1: #ff006e;
+            --gradient-2: #8338ec;
         }
 
-        /* Tema CLARO - Toggle con clase .light-mode */
-        body.light-mode {
-            --bg-primary: #fafafa;
-            --bg-secondary: #ffffff;
-            --bg-tertiary: #f0f0f5;
-            --text-primary: #0d0d0d;
-            --text-secondary: #555555;
-            --accent: #d9048e;
-            --accent-hover: #ff006e;
-            --accent-glow: rgba(217, 4, 142, 0.2);
-            --success: #00c853;
-            --success-glow: rgba(0, 200, 83, 0.2);
-            --warning: #ffab00;
-            --danger: #d9048e;
-            --info: #0091ea;
-            --border: #e0e0e0;
-            --card-bg: rgba(255, 255, 255, 0.9);
-            --glass: rgba(0, 0, 0, 0.03);
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-family: 'Inter', sans-serif;
             background: var(--bg-primary);
             color: var(--text-primary);
             line-height: 1.6;
             min-height: 100vh;
-            transition: background 0.3s, color 0.3s;
         }
 
-        /* Header - Glassmorphism */
         .header {
-            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-card) 100%);
             border-bottom: 2px solid var(--accent);
-            padding: 15px 30px;
+            padding: 20px 30px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            backdrop-filter: blur(10px);
-            position: sticky;
-            top: 0;
-            z-index: 100;
         }
 
         .header-logo {
@@ -103,36 +66,12 @@
 
         .header-title p {
             font-size: 0.8rem;
-            font-weight: 400;
             color: var(--text-secondary);
             margin: 0;
-            margin-top: 2px;
         }
 
-        /* Toggle Theme Button */
-        .theme-toggle {
-            background: var(--glass);
-            border: 1px solid var(--border);
-            color: var(--text-secondary);
-            padding: 8px 16px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-family: 'Inter', sans-serif;
-            font-size: 0.85rem;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .theme-toggle:hover {
-            border-color: var(--accent);
-            color: var(--accent);
-        }
-
-        /* Boton Salir */
         .btn-exit {
-            background: linear-gradient(135deg, var(--danger), #ff4081);
+            background: linear-gradient(135deg, var(--danger), #ff006e);
             color: white;
             border: none;
             padding: 10px 20px;
@@ -141,19 +80,15 @@
             font-family: 'Inter', sans-serif;
             font-size: 0.9rem;
             font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
             transition: all 0.3s;
-            box-shadow: 0 0 15px rgba(255, 0, 110, 0.3);
+            box-shadow: 0 0 15px rgba(255, 51, 102, 0.3);
         }
 
         .btn-exit:hover {
             transform: translateY(-2px);
-            box-shadow: 0 0 25px rgba(255, 0, 110, 0.5);
+            box-shadow: 0 0 25px rgba(255, 51, 102, 0.5);
         }
 
-        /* Tabs - Neon style */
         .tabs {
             display: flex;
             gap: 5px;
@@ -161,7 +96,6 @@
             border-bottom: 2px solid var(--border);
             padding: 0 30px;
             background: var(--bg-secondary);
-            overflow-x: auto;
         }
 
         .tab-btn {
@@ -175,12 +109,9 @@
             font-weight: 500;
             position: relative;
             transition: all 0.3s;
-            white-space: nowrap;
         }
 
-        .tab-btn:hover {
-            color: var(--accent);
-        }
+        .tab-btn:hover { color: var(--text-primary); }
 
         .tab-btn.active {
             color: var(--accent);
@@ -194,36 +125,32 @@
             left: 20%;
             right: 20%;
             height: 3px;
-            background: var(--accent);
+            background: linear-gradient(90deg, var(--gradient-1), var(--gradient-2));
             border-radius: 3px;
             box-shadow: 0 0 10px var(--accent-glow);
         }
 
-        /* Container */
         .container {
             max-width: 1200px;
             margin: 0 auto;
             padding: 30px;
         }
 
-        /* Cards - Glassmorphism */
         .card {
-            background: var(--card-bg);
+            background: var(--bg-card);
             border: 1px solid var(--border);
             border-radius: 16px;
             padding: 25px;
             margin-bottom: 20px;
-            backdrop-filter: blur(10px);
             transition: all 0.3s;
         }
 
         .card:hover {
             border-color: var(--accent);
-            box-shadow: 0 0 20px var(--accent-glow);
+            box-shadow: 0 0 20px rgba(255, 0, 110, 0.1);
         }
 
         .card h3 {
-            font-family: 'Inter', sans-serif;
             font-size: 1.1rem;
             font-weight: 600;
             color: var(--accent);
@@ -233,23 +160,22 @@
             gap: 10px;
         }
 
-        /* Stats Grid - Futuristic */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
             gap: 20px;
             margin-bottom: 30px;
         }
 
         .stat-card {
-            background: var(--card-bg);
+            background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-secondary) 100%);
             border: 1px solid var(--border);
             border-radius: 16px;
             padding: 25px;
             text-align: center;
-            transition: all 0.3s;
             position: relative;
             overflow: hidden;
+            transition: all 0.3s;
         }
 
         .stat-card::before {
@@ -259,26 +185,23 @@
             left: 0;
             right: 0;
             height: 3px;
-            background: linear-gradient(90deg, var(--accent), var(--success));
+            background: linear-gradient(90deg, var(--gradient-1), var(--gradient-2));
             opacity: 0;
             transition: opacity 0.3s;
         }
 
-        .stat-card:hover::before {
-            opacity: 1;
-        }
+        .stat-card:hover::before { opacity: 1; }
 
         .stat-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            border-color: var(--accent);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
         }
 
         .stat-card .number {
             font-family: 'JetBrains Mono', monospace;
             font-size: 2.2rem;
             font-weight: 700;
-            background: linear-gradient(135deg, var(--accent), var(--success));
+            background: linear-gradient(135deg, var(--gradient-1), var(--gradient-2));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -286,12 +209,11 @@
 
         .stat-card .label {
             font-size: 0.85rem;
-            font-weight: 500;
             color: var(--text-secondary);
             margin-top: 8px;
+            font-weight: 500;
         }
 
-        /* Status indicators */
         .status-indicator {
             display: inline-flex;
             align-items: center;
@@ -309,12 +231,11 @@
         }
 
         .status-offline {
-            background: rgba(255, 0, 110, 0.1);
+            background: rgba(255, 51, 102, 0.1);
             color: var(--danger);
-            border: 1px solid rgba(255, 0, 110, 0.3);
+            border: 1px solid rgba(255, 51, 102, 0.3);
         }
 
-        /* Tables - Futuristic */
         table {
             width: 100%;
             border-collapse: separate;
@@ -324,13 +245,12 @@
         }
 
         th {
-            background: var(--bg-tertiary);
+            background: var(--bg-secondary);
             color: var(--accent);
             padding: 14px;
             text-align: left;
             font-weight: 600;
             border-bottom: 2px solid var(--accent);
-            font-family: 'Inter', sans-serif;
         }
 
         td {
@@ -340,12 +260,27 @@
         }
 
         tr:hover td {
-            background: var(--glass);
+            background: rgba(255, 0, 110, 0.05);
         }
 
-        /* Buttons - Neon glow */
+        .resource-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--bg-secondary);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .resource-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--gradient-1), var(--gradient-2));
+            border-radius: 4px;
+            transition: width 0.5s;
+        }
+
         .btn {
-            background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+            background: linear-gradient(135deg, var(--gradient-1), var(--gradient-2));
             color: white;
             border: none;
             padding: 12px 24px;
@@ -365,19 +300,6 @@
             box-shadow: 0 5px 20px var(--accent-glow);
         }
 
-        /* Update notification */
-        #update-notification {
-            display: none;
-            background: rgba(255, 0, 110, 0.1);
-            border: 1px solid var(--accent);
-            padding: 10px 20px;
-            border-radius: 25px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--accent);
-        }
-
-        /* Footer */
         .footer {
             text-align: center;
             padding: 30px;
@@ -387,83 +309,57 @@
             margin-top: 40px;
         }
 
-        .footer a {
-            color: var(--accent);
-            text-decoration: none;
-        }
-
-        /* Responsive */
         @media (max-width: 768px) {
-            .header {
-                flex-direction: column;
-                gap: 15px;
-                text-align: center;
-            }
-
-            .tabs {
-                flex-wrap: wrap;
-                padding: 0 15px;
-            }
-
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .container {
-                padding: 15px;
-            }
+            .header { flex-direction: column; gap: 15px; text-align: center; }
+            .tabs { flex-wrap: wrap; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .container { padding: 15px; }
         }
     </style>
 </head>
 <body>
     <header class="header">
         <div class="header-logo">
-            <img src="/static/img/icon.png" alt="Therapsid">
+            <div style="width: 45px; height: 45px; background: linear-gradient(135deg, #ff006e, #8338ec); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.2rem;">T</div>
             <div class="header-title">
                 <h1>THERAPSID</h1>
-                <p>Primera Red Federada Latinoamericana · Datos Críticos</p>
+                <p>Red Federada Latinoamericana · Datos Críticos</p>
             </div>
         </div>
         <div style="display: flex; gap: 10px; align-items: center;">
-            <button class="theme-toggle" onclick="toggleTheme()">
-                🌓 Modo
-            </button>
-            <div id="update-notification">
-                🔄 v<span id="new-version"></span> disponible
-                <button onclick="updateApp()" style="margin-left: 10px; background: var(--accent); color: white; border: none; padding: 6px 16px; border-radius: 20px; cursor: pointer; font-family: 'Inter', sans-serif; font-weight: 600;">Actualizar</button>
-            </div>
-            <button class="btn-exit" onclick="shutdownNode()">
-                🛑 Salir
-            </button>
+            <span id="admin-status" class="status-indicator status-offline">● Admin Offline</span>
+            <button class="btn-exit" onclick="shutdownNode()">🛑 Salir</button>
         </div>
     </header>
     
     <div class="tabs">
-        <button class="tab-btn active" onclick="showTab('overview', this)">📊 Vision General</button>
-        <button class="tab-btn" onclick="showTab('network', this)">🌐 Red P2P</button>
-        <button class="tab-btn" onclick="showTab('sinapsid', this)">🏥 Sinapsid</button>
-        <button class="tab-btn" onclick="showTab('sync', this)">🔄 Sincronizacion</button>
+        <button class="tab-btn active" onclick="showTab('overview', this)">📊 Recursos</button>
+        <button class="tab-btn" onclick="showTab('network', this)">🌐 Red</button>
+        <button class="tab-btn" onclick="showTab('governance', this)">⚖️ Gobernanza</button>
     </div>
     
     <div class="container">
-        <!-- TAB: OVERVIEW -->
+        <!-- TAB: RESOURCES -->
         <div id="tab-overview" class="tab-content" style="display: block;">
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="number" id="peers-count">0</div>
-                    <div class="label">Nodos Conectados</div>
+                    <div class="number" id="cpu-percent">--%</div>
+                    <div class="label">CPU Usada</div>
+                    <div class="resource-bar"><div class="resource-bar-fill" id="cpu-bar" style="width: 0%"></div></div>
                 </div>
                 <div class="stat-card">
-                    <div class="number" id="node-uptime">0m</div>
-                    <div class="label">Tiempo Activo</div>
+                    <div class="number" id="ram-percent">--%</div>
+                    <div class="label">RAM Usada</div>
+                    <div class="resource-bar"><div class="resource-bar-fill" id="ram-bar" style="width: 0%"></div></div>
                 </div>
                 <div class="stat-card">
-                    <div class="number" id="version-display">{{VERSION}}</div>
-                    <div class="label">Version</div>
+                    <div class="number" id="disk-percent">--%</div>
+                    <div class="label">Disco Usado</div>
+                    <div class="resource-bar"><div class="resource-bar-fill" id="disk-bar" style="width: 0%"></div></div>
                 </div>
                 <div class="stat-card">
-                    <div class="number" id="sync-status">✓</div>
-                    <div class="label">Estado Sync</div>
+                    <div class="number" id="network-rx">-- MB</div>
+                    <div class="label">Red Recibida</div>
                 </div>
             </div>
             
@@ -471,79 +367,60 @@
                 <h3>📡 Informacion del Nodo</h3>
                 <table>
                     <tr><td><strong>ID</strong></td><td id="node-id">Cargando...</td></tr>
-                    <tr><td><strong>Nombre</strong></td><td id="node-name">Cargando...</td></tr>
                     <tr><td><strong>Region</strong></td><td id="node-region">Cargando...</td></tr>
                     <tr><td><strong>Tipo</strong></td><td id="node-type">Cargando...</td></tr>
-                    <tr><td><strong>Puerto P2P</strong></td><td>8765</td></tr>
                     <tr><td><strong>Puerto HTTP</strong></td><td>8767</td></tr>
+                    <tr><td><strong>Admin Conectado</strong></td><td id="admin-connected">Cargando...</td></tr>
                 </table>
+            </div>
+            
+            <div class="card">
+                <h3>🏥 Sinapsid Federado</h3>
+                <table>
+                    <tr><td><strong>URL</strong></td><td><a href="http://100.127.123.55:5002" target="_blank" style="color: var(--accent);">100.127.123.55:5002</a></td></tr>
+                    <tr><td><strong>Pacientes</strong></td><td id="patients-count">-</td></tr>
+                    <tr><td><strong>Evoluciones</strong></td><td id="evolutions-count">-</td></tr>
+                    <tr><td><strong>Peso en Red</strong></td><td id="node-weight">-</td></tr>
+                </table>
+                <div style="margin-top: 1rem;">
+                    <a href="http://100.127.123.55:5002" class="btn" target="_blank">Abrir Sinapsid →</a>
+                </div>
             </div>
         </div>
         
         <!-- TAB: NETWORK -->
         <div id="tab-network" class="tab-content" style="display: none;">
             <div class="card">
-                <h3>🌐 Nodos en la Red</h3>
-                <div id="peers-list">
-                    <p style="text-align: center; color: var(--text-secondary); padding: 2rem;">No hay nodos conectados. Tu eres el primero en la red. 🚀</p>
+                <h3>🌐 Estado de la Red</h3>
+                <div id="network-status">
+                    <p style="text-align: center; color: var(--text-secondary); padding: 2rem;">Cargando estado de red...</p>
                 </div>
             </div>
         </div>
         
-        <!-- TAB: SINAPSID -->
-        <div id="tab-sinapsid" class="tab-content" style="display: none;">
+        <!-- TAB: GOVERNANCE -->
+        <div id="tab-governance" class="tab-content" style="display: none;">
             <div class="card">
-                <h3>🏥 Sinapsid Local</h3>
+                <h3>⚖️ Gobernanza PoP</h3>
                 <table>
-                    <tr><td><strong>Estado</strong></td><td id="sinapsid-status">Cargando...</td></tr>
-                    <tr><td><strong>URL</strong></td><td><a href="http://localhost:8766" target="_blank" style="color: var(--accent);">localhost:8766</a></td></tr>
-                    <tr><td><strong>Pacientes</strong></td><td id="sinapsid-patients">-</td></tr>
-                    <tr><td><strong>Evoluciones</strong></td><td id="sinapsid-evolutions">-</td></tr>
-                </table>
-                <div style="margin-top: 1rem;">
-                    <a href="http://localhost:8766" class="btn" target="_blank">Abrir Sinapsid →</a>
-                </div>
-            </div>
-        </div>
-        
-        <!-- TAB: SYNC -->
-        <div id="tab-sync" class="tab-content" style="display: none;">
-            <div class="card">
-                <h3>🔄 Sincronizacion</h3>
-                <table>
-                    <tr><td><strong>Estado</strong></td><td><span class="status-indicator status-online">●</span> Activa</td></tr>
-                    <tr><td><strong>Paquetes Enviados</strong></td><td id="packets-sent">0</td></tr>
-                    <tr><td><strong>Paquetes Recibidos</strong></td><td id="packets-received">0</td></tr>
-                    <tr><td><strong>Ultimo Sync</strong></td><td id="last-sync">Nunca</td></tr>
+                    <tr><td><strong>Lider Actual</strong></td><td id="leader-id">Cargando...</td></tr>
+                    <tr><td><strong>Eres Lider</strong></td><td id="is-leader">No</td></tr>
+                    <tr><td><strong>Nodos en Red</strong></td><td id="nodes-count">1</td></tr>
+                    <tr><td><strong>Ultima Eleccion</strong></td><td id="last-election">Nunca</td></tr>
                 </table>
             </div>
         </div>
         
         <div class="footer">
-            <p><strong>THERAPSID</strong> · Primera Red Federada de Datos Críticos de LATAM · AGPL-3.0</p>
+            <p><strong>THERAPSID v2.0</strong> · Red Federada de Datos Críticos · AGPL-3.0</p>
             <p style="font-size: 0.8rem; margin-top: 0.5rem;">
                 <a href="https://github.com/drpablohospital/therapsid">GitHub</a> · 
-                <a href="https://med.dogma.tools">Demo</a> · 
-                v1.0.1
+                Admin: 100.127.123.55:5002
             </p>
         </div>
     </div>
     
     <script>
-        // Toggle tema claro/oscuro
-        function toggleTheme() {
-            document.body.classList.toggle('light-mode');
-            const isLight = document.body.classList.contains('light-mode');
-            localStorage.setItem('therapsid-theme', isLight ? 'light' : 'dark');
-        }
-
-        // Cargar tema guardado
-        if (localStorage.getItem('therapsid-theme') === 'light') {
-            document.body.classList.add('light-mode');
-        }
-
-        const CURRENT_VERSION = '{{VERSION}}';
-        
         function showTab(tab, btn) {
             document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -556,32 +433,56 @@
                 const resp = await fetch('/api/v1/node/info');
                 const data = await resp.json();
                 
+                // Actualizar info del nodo
                 document.getElementById('node-id').textContent = data.node?.id?.substring(0, 20) + '...' || 'N/A';
-                document.getElementById('node-name').textContent = data.node?.name || 'N/A';
                 document.getElementById('node-region').textContent = data.node?.region || 'N/A';
                 document.getElementById('node-type').textContent = data.node?.type || 'N/A';
-                document.getElementById('peers-count').textContent = data.network?.peers_count || 0;
+                
+                // Recursos
+                const res = data.resources || {};
+                const ramPercent = res.ram_total_mb ? Math.round((res.ram_used_mb / res.ram_total_mb) * 100) : 0;
+                const diskPercent = res.disk_total_gb ? Math.round((res.disk_used_gb / res.disk_total_gb) * 100) : 0;
+                
+                document.getElementById('cpu-percent').textContent = (res.cpu_percent || 0).toFixed(1) + '%';
+                document.getElementById('cpu-bar').style.width = (res.cpu_percent || 0) + '%';
+                
+                document.getElementById('ram-percent').textContent = ramPercent + '%';
+                document.getElementById('ram-bar').style.width = ramPercent + '%';
+                
+                document.getElementById('disk-percent').textContent = diskPercent + '%';
+                document.getElementById('disk-bar').style.width = diskPercent + '%';
+                
+                document.getElementById('network-rx').textContent = (res.network_rx_mb || 0) + ' MB';
+                
+                // Admin status
+                const adminConnected = data.network?.connected_to_admin || false;
+                const adminStatus = document.getElementById('admin-status');
+                if (adminConnected) {
+                    adminStatus.className = 'status-indicator status-online';
+                    adminStatus.textContent = '● Admin Online';
+                } else {
+                    adminStatus.className = 'status-indicator status-offline';
+                    adminStatus.textContent = '● Admin Offline';
+                }
+                
+                document.getElementById('admin-connected').textContent = adminConnected ? '✅ Conectado' : '❌ Desconectado';
+                document.getElementById('patients-count').textContent = data.network?.patients_count || 0;
+                document.getElementById('evolutions-count').textContent = data.network?.evolutions_count || 0;
+                document.getElementById('node-weight').textContent = data.network?.node_weight || 0;
+                
+                // Gobernanza
+                const gov = data.governance || {};
+                document.getElementById('leader-id').textContent = gov.leader_id || 'xiu-home';
+                document.getElementById('is-leader').textContent = gov.is_leader ? '✅ Si' : 'No';
+                document.getElementById('nodes-count').textContent = gov.nodes_count || 1;
+                
             } catch(e) {
                 console.error('Error:', e);
             }
         }
         
-        async function checkUpdates() {
-            try {
-                const resp = await fetch('/api/v1/updater/check');
-                const data = await resp.json();
-                
-                if (data.has_update) {
-                    document.getElementById('new-version').textContent = data.latest_version;
-                    document.getElementById('update-notification').style.display = 'block';
-                }
-            } catch(e) {
-                console.log('Updater check failed:', e);
-            }
-        }
-        
         function shutdownNode() {
-            if (confirm('¿Detener Therapsid? Se cerraran todas las conexiones P2P.')) {
+            if (confirm('¿Detener Therapsid? Se cerraran todas las conexiones.')) {
                 fetch('/api/v1/node/shutdown', {method: 'POST'})
                     .then(() => {
                         alert('Therapsid detenido.');
@@ -593,17 +494,8 @@
             }
         }
         
-        function updateApp() {
-            if (confirm('¿Descargar e instalar actualizacion?')) {
-                window.open('https://github.com/drpablohospital/therapsid/releases', '_blank');
-            }
-        }
-        
         updateDashboard();
         setInterval(updateDashboard, 5000);
-        
-        checkUpdates();
-        setInterval(checkUpdates, 300000);
     </script>
 </body>
 </html>
