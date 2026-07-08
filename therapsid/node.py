@@ -17,7 +17,12 @@ from typing import Dict, List, Optional, Any
 import aiohttp
 from aiohttp import web
 
-from .config import NodeConfig, THERAPSID_HOME
+# Buscar directorio de instalación correcto
+THERAPSID_CODE_DIR = Path('/opt/therapsid') if Path('/opt/therapsid').exists() else Path(__file__).parent
+
+# THERAPSID_HOME es la config ( ~/.therapsid/ )
+# THERAPSID_CODE_DIR es el código ( /opt/therapsid/ )
+from .config import THERAPSID_HOME
 
 logger = logging.getLogger("therapsid")
 
@@ -237,7 +242,7 @@ class GovernanceManager:
 
 class TherapsidNode:
     """
-    Nodo P2P principal
+    Nodo P2P principal con auth distribuida
     """
     
     def __init__(self, config: NodeConfig):
@@ -245,12 +250,20 @@ class TherapsidNode:
         self.metrics = ResourceMetrics()
         self.connector = SinapsidConnector(config)
         self.governance = GovernanceManager(config)
+        self.auth = None  # Se inicializa en start()
         self.running = False
         self.app = web.Application()
         self.setup_routes()
     
     def setup_routes(self):
         """Configurar rutas HTTP"""
+        # Auth endpoints
+        self.app.router.add_post('/api/v1/auth/register', self._auth_register)
+        self.app.router.add_post('/api/v1/auth/login', self._auth_login)
+        self.app.router.add_post('/api/v1/auth/logout', self._auth_logout)
+        self.app.router.add_get('/api/v1/auth/me', self._auth_me)
+        
+        # Resto de endpoints
         self.app.router.add_get('/', self._index)
         self.app.router.add_get('/dashboard', self._index)
         self.app.router.add_get('/api/v1/health', self._health)
@@ -265,9 +278,9 @@ class TherapsidNode:
         
         # Static files - buscar en múltiples ubicaciones
         static_paths = [
-            THERAPSID_HOME / 'web' / 'static',
+            THERAPSID_CODE_DIR / 'therapsid' / 'web' / 'static',
+            THERAPSID_CODE_DIR / 'web' / 'static',
             Path(__file__).parent / 'web' / 'static',
-            Path('/opt/therapsid/therapsid/web/static'),
         ]
         
         for static_path in static_paths:
@@ -283,9 +296,9 @@ class TherapsidNode:
     async def _index(self, request):
         """Dashboard HTML - buscar en múltiples ubicaciones"""
         template_paths = [
-            THERAPSID_HOME / 'web' / 'templates' / 'dashboard.html',
+            THERAPSID_CODE_DIR / 'therapsid' / 'web' / 'templates' / 'dashboard.html',
+            THERAPSID_CODE_DIR / 'web' / 'templates' / 'dashboard.html',
             Path(__file__).parent / 'web' / 'templates' / 'dashboard.html',
-            Path('/opt/therapsid/therapsid/web/templates/dashboard.html'),
         ]
         
         for dashboard_path in template_paths:
@@ -463,10 +476,98 @@ class TherapsidNode:
         asyncio.create_task(self.stop())
         return web.json_response({"status": "shutting_down"})
     
+    # === AUTH DISTRIBUIDO ===
+    
+    async def _auth_register(self, request):
+        """Registrar nuevo usuario"""
+        try:
+            data = await request.json()
+            success, message = self.auth.register_user(
+                email=data.get('email'),
+                password=data.get('password'),
+                name=data.get('name'),
+                role=data.get('role', 'user'),
+                hospital=data.get('hospital'),
+                node_id=self.config.node_id
+            )
+            return web.json_response({"success": success, "message": message})
+        except Exception as e:
+            return web.json_response({"success": False, "error": str(e)}, status=400)
+    
+    async def _auth_login(self, request):
+        """Login y emitir token JWT"""
+        try:
+            data = await request.json()
+            success, token, user_data = self.auth.authenticate(
+                email=data.get('email'),
+                password=data.get('password')
+            )
+            
+            if success:
+                return web.json_response({
+                    "success": True,
+                    "token": token,
+                    "user": user_data,
+                    "node": self.config.node_id
+                })
+            else:
+                return web.json_response({
+                    "success": False,
+                    "error": "Credenciales invalidas"
+                }, status=401)
+        except Exception as e:
+            return web.json_response({"success": False, "error": str(e)}, status=400)
+    
+    async def _auth_logout(self, request):
+        """Logout y revocar token"""
+        try:
+            auth_header = request.headers.get('Authorization', '')
+            if auth_header.startswith('Bearer '):
+                token = auth_header[7:]
+                self.auth.revoke_token(token)
+            return web.json_response({"success": True, "message": "Sesion cerrada"})
+        except Exception as e:
+            return web.json_response({"success": False, "error": str(e)}, status=400)
+    
+    async def _auth_me(self, request):
+        """Obtener info del usuario autenticado"""
+        try:
+            auth_header = request.headers.get('Authorization', '')
+            if not auth_header.startswith('Bearer '):
+                return web.json_response({"error": "No autenticado"}, status=401)
+            
+            token = auth_header[7:]
+            valid, payload = self.auth.validate_token(token)
+            
+            if not valid:
+                return web.json_response({"error": "Token invalido"}, status=401)
+            
+            return web.json_response({
+                "user": {
+                    "id": payload.get('sub'),
+                    "email": payload.get('email'),
+                    "name": payload.get('name'),
+                    "role": payload.get('role'),
+                    "hospital": payload.get('hospital'),
+                    "node": payload.get('node_id')
+                }
+            })
+        except Exception as e:
+            return web.json_response({"error": str(e)}, status=400)
+        """Detener nodo"""
+        self.running = False
+        asyncio.create_task(self.stop())
+        return web.json_response({"status": "shutting_down"})
+    
     async def start(self):
         """Iniciar nodo"""
         self.running = True
         self.start_time = time.time()
+        
+        # Inicializar auth distribuido
+        from .auth_distributed import DistributedAuth
+        self.auth = DistributedAuth(THERAPSID_HOME / 'auth.db')
+        self.auth.create_demo_user()
         
         logger.info("=" * 50)
         logger.info("  THERAPSID v2.0 - Nodo P2P")
