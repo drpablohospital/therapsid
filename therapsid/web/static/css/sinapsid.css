@@ -1,0 +1,335 @@
+/**
+ * SINAPSID - Estilos adicionales
+ * Incluye estilos para campos calculados automáticamente
+ */
+
+/* ============================================
+   CAMPOS CALCULADOS - Visual distintivo
+   ============================================ */
+
+/* Modo oscuro (default) - campos calculados */
+.calculated-field {
+    background-color: #2d3b55 !important;
+    border-color: #4a90d9 !important;
+    color: #a8d4ff !important;
+    position: relative;
+}
+
+.calculated-field:focus {
+    background-color: #344866 !important;
+    border-color: #6ab3ff !important;
+    box-shadow: 0 0 0 3px rgba(74, 144, 217, 0.3) !important;
+}
+
+/* Modo claro - campos calculados */
+body.light-mode .calculated-field {
+    background-color: #e3f2fd !important;
+    border-color: #1976d2 !important;
+    color: #0d47a1 !important;
+}
+
+body.light-mode .calculated-field:focus {
+    background-color: #bbdefb !important;
+    border-color: #1565c0 !important;
+    box-shadow: 0 0 0 3px rgba(25, 118, 210, 0.2) !important;
+}
+
+/* Indicador de campo calculado */
+.calculated-field-wrapper {
+    position: relative;
+    display: block;
+}
+
+.calculated-field-wrapper::after {
+    content: "⚡";
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.calculated-field-wrapper input,
+.calculated-field-wrapper select {
+    padding-right: 30px;
+}
+
+/* Label para campos calculados */
+label.calculated-label {
+    color: #6ab3ff !important;
+    position: relative;
+}
+
+label.calculated-label::after {
+    content: " (auto)";
+    font-size: 0.75em;
+    opacity: 0.7;
+    font-style: italic;
+}
+
+/* Tooltip para campos calculados */
+.calculated-field[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1a2332;
+    color: #6ab3ff;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 1000;
+    border: 1px solid #4a90d9;
+}
+
+/* ============================================
+   INDICADORES DE CÁLCULO
+   ============================================ */
+
+.calculation-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.75rem;
+    color: #6ab3ff;
+    margin-left: 5px;
+}
+
+.calculation-indicator::before {
+    content: "⚡";
+}
+
+/* Spinner de cálculo */
+.calculating {
+    position: relative;
+}
+
+.calculating::after {
+    content: "";
+    position: absolute;
+    right: 30px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    border: 2px solid #4a90d9;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: translateY(-50%) rotate(360deg);
+    }
+}
+
+/* ============================================
+   SECCIONES DE ESCALAS (SOFA, APACHE, etc)
+   ============================================ */
+
+.scales-section {
+    background: linear-gradient(135deg, #1a2332 0%, #2d3b55 100%);
+    border: 1px solid #4a90d9;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.scales-section .section-title {
+    color: #6ab3ff;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.scales-section .section-title::before {
+    content: "📊";
+}
+
+.scale-result {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 15px;
+    background: #252f42;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    border-left: 4px solid #4a90d9;
+}
+
+.scale-result .scale-name {
+    font-weight: 600;
+    color: #e0e0e0;
+}
+
+.scale-result .scale-value {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #6ab3ff;
+}
+
+.scale-result .scale-value.calculating-value {
+    opacity: 0.5;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
+/* Botón calcular escalas */
+.btn-calculate-scales {
+    background: linear-gradient(135deg, #4a90d9 0%, #357abd 100%);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-calculate-scales:hover {
+    background: linear-gradient(135deg, #5aa0e9 0%, #458acd 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(74, 144, 217, 0.3);
+}
+
+.btn-calculate-scales:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-calculate-scales .spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+/* ============================================
+   VALIDACIÓN Y ERRORES
+   ============================================ */
+
+.field-error {
+    border-color: #ff6b6b !important;
+    background-color: rgba(255, 107, 107, 0.1) !important;
+}
+
+.field-error:focus {
+    box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.3) !important;
+}
+
+.validation-message {
+    color: #ff6b6b;
+    font-size: 0.8rem;
+    margin-top: 5px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.validation-message::before {
+    content: "⚠️";
+}
+
+/* ============================================
+   TOAST NOTIFICATIONS MEJORADOS
+   ============================================ */
+
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.toast {
+    padding: 15px 25px;
+    border-radius: 6px;
+    font-weight: 500;
+    animation: slideIn 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 250px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.toast-success {
+    background: #4ade80;
+    color: #000;
+}
+
+.toast-error {
+    background: #ff6b6b;
+    color: #fff;
+}
+
+.toast-info {
+    background: #4a90d9;
+    color: #fff;
+}
+
+.toast-warning {
+    background: #fbbf24;
+    color: #000;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideOut {
+    from {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 768px) {
+    .calculated-field-wrapper::after {
+        right: 8px;
+    }
+    
+    .scales-section {
+        padding: 15px;
+    }
+    
+    .scale-result {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+}

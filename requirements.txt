@@ -1,0 +1,23 @@
+# Therapsid - Dependencias Core
+# Instalar con: pip install -r requirements.txt
+
+# Red P2P
+websockets>=11.0
+aiohttp>=3.8
+
+# Cifrado
+cryptography>=40.0
+
+# Web UI (dashboard)
+flask>=2.3
+
+# Federated Learning
+flwr>=1.5
+torch>=2.0
+
+# Base de datos
+psycopg2-binary>=2.9
+sqlite3  # Built-in Python
+
+# Utilidades
+requests>=2.28
