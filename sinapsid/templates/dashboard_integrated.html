@@ -1,0 +1,495 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard UCI{% endblock %}
+
+{% block content %}
+<style>
+.accordion-section {
+    margin-bottom: 15px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+}
+.accordion-header {
+    background: var(--bg-tertiary);
+    padding: 12px 15px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.2s;
+}
+.accordion-header:hover {
+    background: var(--border);
+}
+.accordion-header h3 {
+    margin: 0;
+    font-size: 1.1em;
+    color: var(--text-primary);
+}
+.accordion-icon {
+    font-size: 1.2em;
+    transition: transform 0.2s;
+    color: var(--accent);
+}
+.accordion-section.active .accordion-icon {
+    transform: rotate(180deg);
+}
+.accordion-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+    background: var(--bg-secondary);
+}
+.accordion-section.active .accordion-content {
+    max-height: 5000px;
+    transition: max-height 0.5s ease-in;
+}
+.accordion-inner {
+    padding: 15px;
+}
+</style>
+
+<script>
+function toggleAccordion(element) {
+    const section = element.parentElement;
+    section.classList.toggle('active');
+}
+
+// Inicializar acordeones (todos abiertos por defecto)
+document.addEventListener('DOMContentLoaded', function() {
+    const sections = document.querySelectorAll('.accordion-section');
+    sections.forEach(section => section.classList.add('active'));
+});
+</script>
+<div class="container" style="padding: 20px;">
+    
+    <!-- Header -->
+    <div style="background: var(--bg-secondary); border: 1px solid var(--border); padding: 20px; border-radius: 10px; margin-bottom: 20px;">
+        <h1 style="margin: 0; font-size: 1.8em; color: var(--text-primary);">🌍 Dashboard UCI</h1>
+        <p style="margin: 5px 0 0 0; color: var(--text-secondary);">KPIs y métricas de la unidad</p>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card" style="background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+        <h3 style="color: var(--text-primary); margin-bottom: 15px;">Filtros de Análisis</h3>
+        <form id="filterForm" style="display: flex; gap: 15px; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 150px;">
+                <label style="color: var(--text-secondary); display: block; margin-bottom: 5px;">Fecha Inicio</label>
+                <input type="date" id="startDate" name="start_date" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-tertiary); color: var(--text-primary);">
+            </div>
+            <div style="flex: 1; min-width: 150px;">
+                <label style="color: var(--text-secondary); display: block; margin-bottom: 5px;">Fecha Fin</label>
+                <input type="date" id="endDate" name="end_date" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-tertiary); color: var(--text-primary);">
+            </div>
+            <div style="flex: 1; min-width: 150px;">
+                <label style="color: var(--text-secondary); display: block; margin-bottom: 5px;">Hospital (Procedencia)</label>
+                <select id="procedencia" name="procedencia" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-tertiary); color: var(--text-primary);">
+                    <option value="">Todos</option>
+                    <option value="HGSJDR">HGSJDR</option>
+                </select>
+            </div>
+            <div style="flex: 1; min-width: 150px;">
+                <label style="color: var(--text-secondary); display: block; margin-bottom: 5px;">N° Camas UCI</label>
+                <input type="number" id="totalBeds" name="total_beds" value="20" min="1" max="100" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-tertiary); color: var(--text-primary);">
+            </div>
+            <div style="display: flex; align-items: flex-end;">
+                <button type="submit" class="btn btn-primary" style="padding: 10px 20px; border-radius: 5px;">🔄 Actualizar</button>
+                
+            </div>
+        </form>
+    </div>
+
+    <!-- Export Section -->
+<div class="card" style="background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+    <div style="padding: 15px; border-bottom: 1px solid var(--border);">
+        <h3 style="margin: 0; font-size: 1.2em; color: var(--text-primary);">📤 Exportar Datos</h3>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+        <div class="text-center" style="padding: 15px; border: 1px solid var(--border); border-radius: 8px;">
+            <div style="font-size: 2.5em; margin-bottom: 10px;">📋</div>
+            <h4 style="color: var(--text-primary); margin-bottom: 10px;">Censo Institucional</h4>
+            <p style="color: var(--text-secondary); font-size: 0.9em; margin-bottom: 15px;">
+                Genera documento Word con censo de pacientes activos (estado=Ingreso).<br>
+                Incluye diagnósticos, scores, labs, cultivos y pendientes.
+            </p>
+            <button type="button" onclick="exportCenso()" class="btn btn-info" style="padding: 12px 25px; border-radius: 8px; font-size: 1.1em;">
+                📋 Descargar Censo (.docx)
+            </button>
+        </div>
+        
+        <div class="text-center" style="padding: 15px; border: 1px solid var(--border); border-radius: 8px;">
+            <div style="font-size: 2.5em; margin-bottom: 10px;">📥</div>
+            <h4 style="color: var(--text-primary); margin-bottom: 10px;">Dataset Completo</h4>
+            <p style="color: var(--text-secondary); font-size: 0.9em; margin-bottom: 15px;">
+                Exporta TODOS los datos en formato Tidy Data (estándar de investigación).<br>
+                Incluye pacientes, evoluciones, cultivos, labs, medicamentos, etc.
+            </p>
+            <button type="button" onclick="exportToCSV()" class="btn btn-success" style="padding: 12px 25px; border-radius: 8px; font-size: 1.1em;">
+                📥 Descargar Dataset (.csv)
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- KPIs PRINCIPALES -->
+    <h3 style="color: var(--text-primary); margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">📊 Indicadores Principales</h3>
+    <div id="kpiSection" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+        
+        <div class="card" style="background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; padding: 15px; text-align: center;">
+            <div style="font-size: 2em; margin-bottom: 5px;">👥</div>
+            <div id="totalPatients" style="font-size: 1.8em; font-weight: bold; color: var(--accent);">-</div>
+            <div style="color: var(--text-secondary); font-size: 0.9em;">Total Atendidos</div>
+        </div>
+        
+        <div class="card" style="background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; padding: 15px; text-align: center;">
+            <div style="font-size: 2em; margin-bottom: 5px;">🏥</div>
+            <div id="activePatients" style="font-size: 1.8em; font-weight: bold; color: var(--success);">-</div>
+            <div style="color: var(--text-secondary); font-size: 0.9em;">Pacientes Activos</div>
+        </div>
+        
+        <div class="card" style="background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; padding: 15px; text-align: center;">
+            <div style="font-size: 2em; margin-bottom: 5px;">🛏️</div>
+            <div id="occupancyRate" style="font-size: 1.8em; font-weight: bold; color: var(--warning);">-</div>
+            <div style="color: var(--text-secondary); font-size: 0.9em;">Ocupación UCI</div>
+            <div style="margin-top: 8px; background: var(--bg-tertiary); border-radius: 5px; height: 6px; overflow: hidden;">
+                <div id="occupancyProgress" style="height: 100%; background: var(--success); transition: width 0.3s;"></div>
+            </div>
+        </div>
+        
+        <div class="card" style="background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; padding: 15px; text-align: center;">
+            <div style="font-size: 2em; margin-bottom: 5px;">📅</div>
+            <div id="avgStay" style="font-size: 1.8em; font-weight: bold; color: var(--info);">-</div>
+            <div style="color: var(--text-secondary); font-size: 0.9em;">Estancia Prom. (días)</div>
+        </div>
+        
+        <div class="card" style="background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; padding: 15px; text-align: center;">
+            <div style="font-size: 2em; margin-bottom: 5px;">⏱️</div>
+            <div id="medianStay" style="font-size: 1.8em; font-weight: bold; color: var(--info);">-</div>
+            <div style="color: var(--text-secondary); font-size: 0.9em;">Mediana Estancia</div>
+        </div>
+        
+        <div class="card" style="background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; padding: 15px; text-align: center;">
+            <div style="font-size: 2em; margin-bottom: 5px;">💔</div>
+            <div id="mortalityRate" style="font-size: 1.8em; font-weight: bold; color: var(--danger);">-</div>
+            <div style="color: var(--text-secondary); font-size: 0.9em;">Mortalidad (%)</div>
+        </div>
+    </div>
+
+    <!-- ESTANCIA PROLONGADA -->
+    <div class="card" style="background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+        <h3 style="color: var(--text-primary); margin-bottom: 15px;">📈 Estancia Prolongada (Benchmarking)</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+            <div style="background: var(--bg-tertiary); border-radius: 8px; padding: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: var(--text-secondary);">>7 días (benchmark NHSN)</span>
+                    <span id="longStayRate" style="font-size: 1.5em; font-weight: bold; color: var(--warning);">-</span>
+                </div>
+                <div id="longStayCount" style="color: var(--text-secondary); font-size: 0.9em;">-</div>
+            </div>
+            
+            <div style="background: var(--bg-tertiary); border-radius: 8px; padding: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: var(--text-secondary);">>14 días (estancia crítica)</span>
+                    <span id="veryLongStayRate" style="font-size: 1.5em; font-weight: bold; color: var(--danger);">-</span>
+                </div>
+                <div id="veryLongStayCount" style="color: var(--text-secondary); font-size: 0.9em;">-</div>
+            </div>
+            
+            <div style="background: var(--bg-tertiary); border-radius: 8px; padding: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: var(--text-secondary);">Readmisiones UCI</span>
+                    <span id="readmissionRate" style="font-size: 1.5em; font-weight: bold; color: var(--accent);">-</span>
+                </div>
+                <div id="readmissionCount" style="color: var(--text-secondary); font-size: 0.9em;">-</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SEVERIDAD CLÍNICA -->
+    <div class="card" style="background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+        <h3 style="color: var(--text-primary); margin-bottom: 15px;">🩺 Severidad y Scores de Gravedad</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+            <div style="text-align: center; padding: 15px; background: var(--bg-tertiary); border-radius: 8px;">
+                <div style="font-size: 1.2em; color: var(--accent);"><span id="avgSofa">-</span></div>
+                <div style="color: var(--text-secondary); font-size: 0.9em;">SOFA2 Promedio</div>
+            </div>
+            
+            <div style="text-align: center; padding: 15px; background: var(--bg-tertiary); border-radius: 8px;">
+                <div style="font-size: 1.2em; color: var(--accent);"><span id="avgApache">-</span></div>
+                <div style="color: var(--text-secondary); font-size: 0.9em;">APACHE II Promedio</div>
+            </div>
+            
+            <div style="text-align: center; padding: 15px; background: var(--bg-tertiary); border-radius: 8px;">
+                <div style="font-size: 1.2em; color: var(--info);"><span id="avgGlasgow">-</span></div>
+                <div style="color: var(--text-secondary); font-size: 0.9em;">Glasgow Promedio</div>
+            </div>
+            
+            <div style="text-align: center; padding: 15px; background: var(--bg-tertiary); border-radius: 8px;">
+                <div style="font-size: 1.2em; color: var(--success);"><span id="avgEdad">-</span> años</div>
+                <div style="color: var(--text-secondary); font-size: 0.9em;">Edad Promedio</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MÉTRICAS CLÍNICAS -->
+    <div class="card" style="background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+        <h3 style="color: var(--text-primary); margin-bottom: 15px;">🔬 Métricas Clínicas</h3>
+        <div id="clinicalMetrics" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;">
+            <!-- Se llenará dinámicamente -->
+        </div>
+    </div>
+
+    <!-- INFECCIONES ASOCIADAS A DISPOSITIVOS (NHSN) -->
+    <div class="card" style="background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+        <h3 style="color: var(--text-primary); margin-bottom: 15px;">🦠 Infecciones Asociadas a Dispositivos (por 1000 días-dispositivo)</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+            <div style="background: var(--bg-tertiary); border-radius: 8px; padding: 15px; text-align: center;">
+                <div style="font-size: 1.5em; color: var(--danger);"><span id="clabsiRate">-</span></div>
+                <div style="color: var(--text-secondary); font-size: 0.9em;">CLABSI</div>
+                <div style="font-size: 0.8em; color: var(--text-secondary); margin-top: 5px;">Meta: <2.0/1000 días CVC</div>
+            </div>
+            
+            <div style="background: var(--bg-tertiary); border-radius: 8px; padding: 15px; text-align: center;">
+                <div style="font-size: 1.5em; color: var(--danger);"><span id="cautiRate">-</span></div>
+                <div style="color: var(--text-secondary); font-size: 0.9em;">CAUTI</div>
+                <div style="font-size: 0.8em; color: var(--text-secondary); margin-top: 5px;">Meta: <2.0/1000 días sonda</div>
+            </div>
+            
+            <div style="background: var(--bg-tertiary); border-radius: 8px; padding: 15px; text-align: center;">
+                <div style="font-size: 1.5em; color: var(--danger);"><span id="vapiRate">-</span></div>
+                <div style="color: var(--text-secondary); font-size: 0.9em;">VAP</div>
+                <div style="font-size: 0.8em; color: var(--text-secondary); margin-top: 5px;">Meta: <2.0/1000 días VM</div>
+            </div>
+        </div>
+        <div style="margin-top: 15px; color: var(--text-secondary); font-size: 0.9em;">
+            <p>📊 Días-dispositivo totales: CVC=<span id="totalCvcDays">-</span> | ETT=<span id="totalEttDays">-</span> | Sonda Urinaria=<span id="totalUrinaryDays">-</span></p>
+        </div>
+    </div>
+
+    <!-- CULTIVOS -->
+    <div class="card" style="background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+        <h3 style="color: var(--text-primary); margin-bottom: 15px;">🧫 Resultados de Cultivos</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+            <div style="text-align: center; padding: 15px; background: var(--bg-tertiary); border-radius: 8px;">
+                <div style="font-size: 1.5em; color: var(--danger);"><span id="positiveCultivos">-</span></div>
+                <div style="color: var(--text-secondary);">Positivos</div>
+            </div>
+            
+            <div style="text-align: center; padding: 15px; background: var(--bg-tertiary); border-radius: 8px;">
+                <div style="font-size: 1.5em; color: var(--success);"><span id="negativeCultivos">-</span></div>
+                <div style="color: var(--text-secondary);">Negativos</div>
+            </div>
+            
+            <div style="text-align: center; padding: 15px; background: var(--bg-tertiary); border-radius: 8px;">
+                <div style="font-size: 1.5em; color: var(--warning);"><span id="pendingCultivos">-</span></div>
+                <div style="color: var(--text-secondary);">Pendientes</div>
+            </div>
+        </div>
+        <div style="margin-top: 15px;">
+            <div style="color: var(--text-secondary);">Tasa Positividad: <span id="positiveRate" style="color: var(--accent); font-weight: bold;">-</span></div>
+        </div>
+    </div>
+
+    <!-- MICROORGANISMOS Y RESISTENCIAS -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 20px;">
+        
+        <div class="card" style="background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; padding: 20px;">
+            <h3 style="color: var(--text-primary); margin-bottom: 15px;">🦠 Microorganismos Más Frecuentes</h3>
+            <div id="microorganismList" style="max-height: 300px; overflow-y: auto;">
+                <p style="color: var(--text-secondary); text-align: center;">Cargando datos...</p>
+            </div>
+        </div>
+        
+        <div class="card" style="background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; padding: 20px;">
+            <h3 style="color: var(--text-primary); margin-bottom: 15px;">🛡️ Resistencias Antimicrobianas</h3>
+            <div id="resistanceList" style="max-height: 300px; overflow-y: auto;">
+                <p style="color: var(--text-secondary); text-align: center;">Cargando datos...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const today = new Date();
+    const thirtyDaysAgo = new Date(today - (30 * 24 * 60 * 60 * 1000));
+    document.getElementById('endDate').value = today.toISOString().split('T')[0];
+    document.getElementById('startDate').value = thirtyDaysAgo.toISOString().split('T')[0];
+
+    async function exportCenso() {
+        try {
+            const response = await fetch('/uci-dashboard/censo');
+            if (!response.ok) throw new Error("Error generando censo");
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `censo_uci_${new Date().toISOString().split("T")[0]}.docx`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } catch (error) {
+            console.error("Error exportando censo:", error);
+            alert("Error generando censo institucional");
+        }
+    }
+
+    async function exportToCSV() {
+        const form = document.getElementById("filterForm");
+        const formData = new FormData(form);
+        const params = new URLSearchParams(formData);
+        try {
+            const response = await fetch(`/uci-dashboard/export?${params}`);
+            if (!response.ok) throw new Error("Error en exportación");
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `sinapsid_uci_tidy_${new Date().toISOString().split("T")[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        } catch (error) {
+            console.error("Error exportando:", error);
+            alert("Error exportando datos");
+        }
+    }
+
+    async function loadDashboard() {
+        const form = document.getElementById('filterForm');
+        const totalBeds = document.getElementById('totalBeds').value;
+        const formData = new FormData(form);
+        const params = new URLSearchParams(formData);
+        params.append('total_beds', totalBeds);
+        try {
+            const response = await fetch(`/uci-dashboard/data?${params}`);
+            const data = await response.json();
+            updateDashboard(data);
+        } catch (error) {
+            console.error('Error cargando dashboard:', error);
+            alert('Error cargando datos del dashboard');
+        }
+    }
+
+    function updateDashboard(data) {
+        // KPIs Principales
+        document.getElementById('totalPatients').textContent = data.total_patients || 0;
+        document.getElementById('activePatients').textContent = data.active_patients || 0;
+        document.getElementById('occupancyRate').textContent = (data.occupancy_rate || 0) + '%';
+        document.getElementById('avgStay').textContent = (data.avg_dias_estancia || 0);
+        document.getElementById('medianStay').textContent = (data.median_dias_estancia || 0);
+        document.getElementById('mortalityRate').textContent = (data.mortality_rate || 0) + '%';
+        
+        // Barra de ocupación
+        const occupancyBar = document.getElementById('occupancyProgress');
+        occupancyBar.style.width = (data.occupancy_rate || 0) + '%';
+        if (data.occupancy_rate > 90) occupancyBar.style.background = 'var(--danger)';
+        else if (data.occupancy_rate > 75) occupancyBar.style.background = 'var(--warning)';
+        else occupancyBar.style.background = 'var(--success)';
+        
+        // Estancia prolongada
+        document.getElementById('longStayRate').textContent = (data.long_stay_rate || 0) + '%';
+        document.getElementById('longStayCount').textContent = `${data.long_stay_count || 0} pacientes`;
+        document.getElementById('veryLongStayRate').textContent = (data.very_long_stay_rate || 0) + '%';
+        document.getElementById('veryLongStayCount').textContent = `${data.very_long_stay_count || 0} pacientes`;
+        document.getElementById('readmissionRate').textContent = (data.readmission_rate || 0) + '%';
+        document.getElementById('readmissionCount').textContent = `${data.readmissions || 0} pacientes`;
+        
+        // Scores de severidad
+        document.getElementById('avgSofa').textContent = (data.avg_sofa || 0);
+        document.getElementById('avgApache').textContent = (data.avg_apache || 0);
+        document.getElementById('avgGlasgow').textContent = (data.avg_glasgow || 0);
+        document.getElementById('avgEdad').textContent = (data.avg_edad || 0);
+        
+        // Métricas clínicas
+        const clinicalMetrics = document.getElementById('clinicalMetrics');
+        clinicalMetrics.innerHTML = `
+            <div style="text-align: center; padding: 10px; background: var(--bg-tertiary); border-radius: 8px;">
+                <div style="font-size: 1.2em; color: var(--accent);">${data.vm_rate || 0}%</div>
+                <div style="color: var(--text-secondary); font-size: 0.9em;">VM (${data.vm_count || 0})</div>
+            </div>
+            <div style="text-align: center; padding: 10px; background: var(--bg-tertiary); border-radius: 8px;">
+                <div style="font-size: 1.2em; color: var(--danger);">${data.shock_rate || 0}%</div>
+                <div style="color: var(--text-secondary); font-size: 0.9em;">Shock (${data.shock_count || 0})</div>
+            </div>
+            <div style="text-align: center; padding: 10px; background: var(--bg-tertiary); border-radius: 8px;">
+                <div style="font-size: 1.2em; color: var(--warning);">${data.sepsis_rate || 0}%</div>
+                <div style="color: var(--text-secondary); font-size: 0.9em;">Sepsis (${data.sepsis_count || 0})</div>
+            </div>
+            <div style="text-align: center; padding: 10px; background: var(--bg-tertiary); border-radius: 8px;">
+                <div style="font-size: 1.2em; color: var(--info);">${data.sdr_rate || 0}%</div>
+                <div style="color: var(--text-secondary); font-size: 0.9em;">SDRA (${data.sdr_count || 0})</div>
+            </div>
+            <div style="text-align: center; padding: 10px; background: var(--bg-tertiary); border-radius: 8px;">
+                <div style="font-size: 1.2em; color: var(--text-primary);">${data.lra_rate || 0}%</div>
+                <div style="color: var(--text-secondary); font-size: 0.9em;">LRA (${data.lra_count || 0})</div>
+            </div>
+            <div style="text-align: center; padding: 10px; background: var(--bg-tertiary); border-radius: 8px;">
+                <div style="font-size: 1.2em; color: var(--text-primary);">${data.coma_rate || 0}%</div>
+                <div style="color: var(--text-secondary); font-size: 0.9em;">Coma (${data.coma_count || 0})</div>
+            </div>
+        `;
+        
+        // Infecciones asociadas a dispositivos
+        document.getElementById('clabsiRate').textContent = (data.clabsi_rate || 0).toFixed(2);
+        document.getElementById('cautiRate').textContent = (data.cauti_rate || 0).toFixed(2);
+        document.getElementById('vapiRate').textContent = (data.vapi_rate || 0).toFixed(2);
+        document.getElementById('totalCvcDays').textContent = (data.total_cvc_days || 0);
+        document.getElementById('totalEttDays').textContent = (data.total_ett_days || 0);
+        document.getElementById('totalUrinaryDays').textContent = (data.total_urinary_days || 0);
+        
+        // Cultivos
+        document.getElementById('positiveCultivos').textContent = data.positive_cultivos || 0;
+        document.getElementById('negativeCultivos').textContent = data.negative_cultivos || 0;
+        document.getElementById('pendingCultivos').textContent = data.pending_cultivos || 0;
+        document.getElementById('positiveRate').textContent = (data.positive_cultivo_rate || 0) + '%';
+        
+        // Microorganismos y resistencias
+        updateMicroorganismList(data.top_microorganismos || []);
+        updateResistanceList(data.top_resistencias || []);
+    }
+
+    function updateMicroorganismList(microorganismos) {
+        const list = document.getElementById('microorganismList');
+        if (!microorganismos || microorganismos.length === 0) {
+            list.innerHTML = '<p style="color: var(--text-secondary); text-align: center;">No hay datos de microorganismos</p>';
+            return;
+        }
+        list.innerHTML = microorganismos.map(m => `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid var(--border);">
+                <span style="color: var(--text-primary);">${m.name}</span>
+                <span>
+                    <span style="background: var(--accent); color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.8em;">${m.count}</span>
+                    <span style="color: var(--text-secondary); font-size: 0.8em;">${m.percentage}%</span>
+                </span>
+            </div>
+        `).join('');
+    }
+
+    function updateResistanceList(resistencias) {
+        const list = document.getElementById('resistanceList');
+        if (!resistencias || resistencias.length === 0) {
+            list.innerHTML = '<p style="color: var(--text-secondary); text-align: center;">No hay datos de resistencias</p>';
+            return;
+        }
+        list.innerHTML = resistencias.map(r => `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid var(--border);">
+                <span style="color: var(--text-primary);">${r.antibiotic}</span>
+                <span>
+                    <span style="background: var(--danger); color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.8em;">${r.count}</span>
+                    <span style="color: var(--text-secondary); font-size: 0.8em;">${r.percentage}%</span>
+                </span>
+            </div>
+        `).join('');
+    }
+
+    document.getElementById('filterForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        loadDashboard();
+    });
+
+    loadDashboard();
+</script>
+{% endblock %}

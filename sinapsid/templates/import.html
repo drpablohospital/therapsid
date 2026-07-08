@@ -1,0 +1,936 @@
+{% extends "base.html" %}
+
+{% block title %}Importar Datos{% endblock %}
+
+{% block extra_css %}
+<style>
+    .import-container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    .step-section {
+        display: none;
+        animation: fadeIn 0.3s ease-in;
+    }
+    .step-section.active {
+        display: block;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .step-indicator {
+        display: flex;
+        justify-content: center;
+        gap: 40px;
+        margin-bottom: 30px;
+        padding: 20px 0;
+    }
+    .step-item {
+        text-align: center;
+    }
+    .step-number {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: var(--bg-tertiary);
+        border: 2px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        font-size: 1.2rem;
+        margin: 0 auto 8px;
+        transition: all 0.3s;
+    }
+    .step-number.active {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: #000;
+    }
+    .step-number.completed {
+        background: var(--success);
+        border-color: var(--success);
+        color: #000;
+    }
+    .step-label {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .import-textarea {
+        width: 100%;
+        min-height: 350px;
+        background: var(--bg-primary);
+        border: 2px solid var(--border);
+        border-radius: 4px;
+        padding: 20px;
+        color: var(--text-primary);
+        font-family: 'Consolas', 'Monaco', monospace;
+        font-size: 0.9rem;
+        line-height: 1.6;
+        resize: vertical;
+    }
+    .import-textarea:focus {
+        outline: none;
+        border-color: var(--accent);
+    }
+    .type-selector {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 15px;
+        margin: 20px 0;
+    }
+    .type-card {
+        background: var(--bg-tertiary);
+        border: 2px solid var(--border);
+        border-radius: 8px;
+        padding: 25px 15px;
+        cursor: pointer;
+        transition: all 0.3s;
+        text-align: center;
+    }
+    .type-card:hover {
+        border-color: var(--accent);
+        transform: translateY(-2px);
+    }
+    .type-card.selected {
+        border-color: var(--accent);
+        background: rgba(255, 107, 53, 0.1);
+    }
+    .type-card .icon {
+        font-size: 2rem;
+        margin-bottom: 10px;
+    }
+    .type-card .title {
+        font-size: 0.9rem;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .btn-import {
+        background: var(--accent);
+        color: #000;
+        border: none;
+        padding: 15px 50px;
+        font-size: 1rem;
+        font-weight: bold;
+        border-radius: 4px;
+        cursor: pointer;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        transition: all 0.3s;
+    }
+    .btn-import:hover {
+        background: var(--accent-hover);
+        transform: translateY(-2px);
+    }
+    .btn-import:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+    }
+    .btn-secondary {
+        background: var(--bg-tertiary);
+        color: var(--text-primary);
+        border: 1px solid var(--border);
+        padding: 12px 30px;
+        font-size: 0.9rem;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    .btn-secondary:hover {
+        border-color: var(--accent);
+    }
+    .btn-danger {
+        background: rgba(248, 113, 113, 0.2);
+        color: var(--danger);
+        border: 1px solid var(--danger);
+        padding: 12px 30px;
+        font-size: 0.9rem;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    .btn-success {
+        background: rgba(74, 222, 128, 0.2);
+        color: var(--success);
+        border: 1px solid var(--success);
+        padding: 12px 30px;
+        font-size: 0.9rem;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    .field-group {
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 15px;
+        margin-bottom: 10px;
+    }
+    .field-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border);
+    }
+    .field-row:last-child {
+        border-bottom: none;
+    }
+    .field-label {
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+    }
+    .field-value {
+        color: var(--text-primary);
+        font-weight: bold;
+    }
+    .field-value.new {
+        color: var(--success);
+    }
+    .patient-status {
+        padding: 20px;
+        border-radius: 8px;
+        text-align: center;
+        margin: 15px 0;
+    }
+    .patient-status.found {
+        background: rgba(74, 222, 128, 0.1);
+        border: 2px solid var(--success);
+    }
+    .patient-status.not-found {
+        background: rgba(251, 191, 36, 0.1);
+        border: 2px solid var(--warning);
+    }
+    .patient-status.error {
+        background: rgba(248, 113, 113, 0.1);
+        border: 2px solid var(--danger);
+    }
+    .warning-box {
+        background: rgba(248, 113, 113, 0.1);
+        border: 2px solid var(--danger);
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    .success-box {
+        background: rgba(74, 222, 128, 0.1);
+        border: 2px solid var(--success);
+        border-radius: 8px;
+        padding: 30px;
+        text-align: center;
+    }
+    .field-tag {
+        display: inline-block;
+        background: rgba(255, 107, 53, 0.2);
+        padding: 4px 10px;
+        border-radius: 3px;
+        font-size: 0.8rem;
+        margin: 3px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="import-container">
+    <div class="card">
+        <div class="card-header">
+            <h2>📥 Importar Datos Clínicos</h2>
+        </div>
+        
+        <!-- Step Indicator -->
+        <div class="step-indicator">
+            <div class="step-item">
+                <div class="step-number active" id="step1-num">1</div>
+                <div class="step-label">Analizar</div>
+            </div>
+            <div class="step-item">
+                <div class="step-number" id="step2-num">2</div>
+                <div class="step-label">Verificar</div>
+            </div>
+            <div class="step-item">
+                <div class="step-number" id="step3-num">3</div>
+                <div class="step-label">Confirmar</div>
+            </div>
+            <div class="step-item">
+                <div class="step-number" id="step4-num">4</div>
+                <div class="step-label">Resultado</div>
+            </div>
+        </div>
+        
+        <div class="card-body">
+            
+            <!-- STEP 1: Pegar Texto -->
+            <div class="step-section active" id="step1">
+                <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                    Pegue el texto de una nota médica, historia clínica o datos brutos. 
+                    El sistema analizará y extraerá la información automáticamente.
+                </p>
+                
+                <div class="type-selector">
+                    <div class="type-card selected" data-type="nota_evolucion" onclick="selectType(this)">
+                        <div class="icon">📝</div>
+                        <div class="title">Nota de Evolución</div>
+                    </div>
+                    <div class="type-card" data-type="historia_clinica" onclick="selectType(this)">
+                        <div class="icon">📋</div>
+                        <div class="title">Historia Clínica</div>
+                    </div>
+                    <div class="type-card" data-type="datos_brutos" onclick="selectType(this)">
+                        <div class="icon">📊</div>
+                        <div class="title">Datos Brutos</div>
+                    </div>
+                </div>
+                
+                <input type="hidden" id="tipoImportacion" value="nota_evolucion">
+                
+                <textarea class="import-textarea" id="importText" placeholder="Pegue aquí el texto clínico..."
+                >{{ texto_ejemplo or '' }}</textarea>
+                
+                <div style="text-align: center; margin-top: 25px;">
+                    <button type="button" class="btn-import" id="btnAnalizar" onclick="analizarTexto()">
+                        🔍 Analizar Texto
+                    </button>
+                </div>
+            </div>
+            
+            <!-- STEP 2: Verificar Datos -->
+            <div class="step-section" id="step2">
+                <h3 style="color: var(--accent); margin-bottom: 15px;">📋 Datos Encontrados</h3>
+                
+                <div id="datosResumen"></div>
+                
+                <hr style="border-color: var(--border); margin: 20px 0;">
+                
+                <h4 style="margin-bottom: 10px;">👤 Paciente</h4>
+                <div id="pacienteStatus"></div>
+                
+                <div style="margin-top: 25px; display: flex; justify-content: space-between;">
+                    <button type="button" class="btn-secondary" onclick="goToStep(1)">← Regresar</button>
+                    <button type="button" class="btn-import" onclick="prepararConfirmacion()">
+                        Continuar →
+                    </button>
+                </div>
+            </div>
+            
+            <!-- STEP 3: Confirmar -->
+            <div class="step-section" id="step3">
+                <div class="warning-box">
+                    <strong>⚠️ ATENCIÓN</strong><br>
+                    Esta acción modificará la base de datos de manera irreversible. 
+                    Revise cuidadosamente la información antes de confirmar.
+                </div>
+                
+                <h3 style="color: var(--accent); margin-bottom: 15px;">📝 Resumen de Cambios</h3>
+                
+                <div id="resumenCambios"></div>
+                
+                <div style="margin-top: 25px; display: flex; justify-content: space-between;">
+                    <button type="button" class="btn-secondary" onclick="goToStep(2)">← Regresar</button>
+                    <div>
+                        <button type="button" class="btn-danger" onclick="cancelarImportacion()">
+                            ❌ Cancelar
+                        </button>
+                        <button type="button" class="btn-success" id="btnConfirmar" onclick="confirmarImportacion()">
+                            ✅ Confirmar y Guardar
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- STEP 4: Resultado -->
+            <div class="step-section" id="step4">
+                <div id="resultadoFinal"></div>
+                
+                <div style="text-align: center; margin-top: 30px;">
+                    <a href="/import" class="btn-import" style="text-decoration: none;">📥 Nueva Importación</a>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+<script>
+// ============================================================
+// PARSER LOCAL EXHAUSTIVO - Sin depender de API
+// ============================================================
+
+let tipoSeleccionado = 'nota_evolucion';
+let datosAnalizados = {};
+let pacienteExistente = null;
+
+function selectType(element) {
+    document.querySelectorAll('.type-card').forEach(c => c.classList.remove('selected'));
+    element.classList.add('selected');
+    tipoSeleccionado = element.dataset.type;
+    document.getElementById('tipoImportacion').value = tipoSeleccionado;
+}
+
+function goToStep(step) {
+    document.querySelectorAll('.step-section').forEach(s => s.classList.remove('active'));
+    document.getElementById('step' + step).classList.add('active');
+    
+    for (let i = 1; i <= 4; i++) {
+        const num = document.getElementById('step' + i + '-num');
+        num.classList.remove('active', 'completed');
+        if (i < step) num.classList.add('completed');
+        if (i === step) num.classList.add('active');
+    }
+}
+
+// ============================================================
+// PARSER ROBUSTO LOCAL
+// ============================================================
+function extraerDatosLocales(texto, tipo) {
+    const datos = {};
+    
+    // ============================================================
+    // HELPERS
+    // ============================================================
+    function extraerNumero(pattern, texto) {
+        const match = texto.match(pattern);
+        if (match) {
+            const val = parseFloat(match[1]);
+            return isNaN(val) ? null : val;
+        }
+        return null;
+    }
+    
+    function extraerEntero(pattern, texto) {
+        const match = texto.match(pattern);
+        if (match) {
+            const val = parseInt(match[1]);
+            return isNaN(val) ? null : val;
+        }
+        return null;
+    }
+    
+    // ============================================================
+    // NOMBRE - múltiples patrones
+    // ============================================================
+    const nombrePatterns = [
+        /(?:paciente|nombre|patient|name)[\s:]+([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+){0,5})(?:\s|$|\n)/i,
+        /(?:paciente|nombre)[\s:]+([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+){0,3})/i,
+        /NOMBRE[\s:]+([A-ZÁÉÍÓÚÑ\s]{5,60})/i
+    ];
+    for (const p of nombrePatterns) {
+        const m = texto.match(p);
+        if (m) {
+            datos.nombre_completo = m[1].trim().toUpperCase();
+            break;
+        }
+    }
+    
+    // ============================================================
+    // EDAD Y SEXO
+    // ============================================================
+    const edadMatch = texto.match(/(\d+)\s*años?/i);
+    if (edadMatch) datos.edad = parseInt(edadMatch[1]);
+    
+    if (/\bfemenino\b|\bmujer\b/i.test(texto)) datos.sexo = 'F';
+    else if (/\bmasculino\b|\bhombre\b/i.test(texto)) datos.sexo = 'M';
+    
+    // ============================================================
+    // EXPEDIENTE Y FECHAS
+    // ============================================================
+    const expMatch = texto.match(/(?:expediente|exp|folio|record)[\s:#]+([A-Z0-9\-]+)/i);
+    if (expMatch) datos.expediente = expMatch[1].trim().toUpperCase();
+    
+    const fechaMatch = texto.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+    if (fechaMatch) {
+        let d1 = fechaMatch[1].padStart(2, '0');
+        let d2 = fechaMatch[2].padStart(2, '0');
+        let d3 = fechaMatch[3];
+        if (d3.length === 2) d3 = '20' + d3;
+        datos.fecha = `${d3}-${d2}-${d1}`;
+    }
+    
+    const horaMatch = texto.match(/(\d{1,2}):(\d{2})/);
+    if (horaMatch) {
+        datos.hora = `${horaMatch[1].padStart(2, '0')}:${horaMatch[2]}`;
+    }
+    
+    // ============================================================
+    // SIGNOS VITALES
+    // ============================================================
+    datos.fc = extraerEntero(/(?:FC|HR)[\s:]+(\d+)/i, texto);
+    datos.fr = extraerEntero(/(?:FR|RR)[\s:]+(\d+)/i, texto);
+    
+    const taMatch = texto.match(/(?:TA|SBP|TAS)[\s:]+(\d+)[\/\s]+(\d+)/i);
+    if (taMatch) {
+        datos.tas = parseInt(taMatch[1]);
+        datos.tad = parseInt(taMatch[2]);
+    }
+    
+    datos.temperatura = extraerNumero(/(?:temp|temperatura)[\s:]+(\d+\.?\d*)/i, texto);
+    datos.spo2 = extraerEntero(/(?:SpO2|sat|spo2)[\s:]+?(\d+)/i, texto);
+    datos.fio2 = extraerEntero(/(?:FiO2|fio2)[\s:]+?(\d+)/i, texto);
+    datos.glasgow = extraerEntero(/(?:GCS|glasgow)[\s:]+(\d+)/i, texto);
+    
+    // ============================================================
+    // LABS - HEMATOLOGÍA
+    // ============================================================
+    datos.hemoglobina = extraerNumero(/(?:HB|HGB|hemoglobina)[\s:]+(\d+\.?\d*)/i, texto);
+    datos.hematocrito = extraerNumero(/(?:HTC|HCT|hematocrito)[\s:]+(\d+\.?\d*)/i, texto);
+    datos.leucocitos = extraerNumero(/(?:leucocitos|WBC|LEU)[\s:]+(\d+\.?\d*)/i, texto);
+    datos.plaquetas = extraerNumero(/(?:plaquetas|PLT)[\s:]+(\d+\.?\d*)/i, texto);
+    datos.neutrofilos = extraerNumero(/NEU[\s:]+(\d+\.?\d*)/i, texto);
+    datos.linfcitos = extraerNumero(/(?:linfocitos|LINFOCITOS|LYM)[\s:]+(\d+\.?\d*)/i, texto);
+    
+    // ============================================================
+    // LABS - QUÍMICA SANGUÍNEA
+    // ============================================================
+    datos.glucosa = extraerNumero(/gluc(?:osa)?[\s:]+(\d+\.?\d*)/i, texto);
+    datos.creatinina = extraerNumero(/creat(?:inina)?[\s:]+(\d+\.?\d*)/i, texto);
+    datos.urea = extraerNumero(/urea[\s:]+(\d+\.?\d*)/i, texto);
+    datos.lactato = extraerNumero(/(?:lactato|LCT)[\s:]+(\d+\.?\d*)/i, texto);
+    datos.pcr = extraerNumero(/PCR[\s:]+(\d+\.?\d*)/i, texto);
+    datos.bnp = extraerNumero(/(?:BNP|NT[-]?pro[-]?BNP)[\s:]+(\d+\.?\d*)/i, texto);
+    datos.troponina = extraerNumero(/troponina[\s:]+(\d+\.?\d*)/i, texto);
+    datos.bilirrubina_total = extraerNumero(/(?:bilirrubina\s+total|BT)[\s:]+(\d+\.?\d*)/i, texto);
+    datos.bilirrubina_directa = extraerNumero(/(?:bilirrubina\s+directa|BD)[\s:]+(\d+\.?\d*)/i, texto);
+    datos.amilasa = extraerNumero(/amilasa[\s:]+(\d+\.?\d*)/i, texto);
+    datos.lipasa = extraerNumero(/lipasa[\s:]+(\d+\.?\d*)/i, texto);
+    datos.albumina = extraerNumero(/albumina[\s:]+(\d+\.?\d*)/i, texto);
+    datos.proteinas_totales = extraerNumero(/proteinas\s+totales[\s:]+(\d+\.?\d*)/i, texto);
+    datos.alt = extraerNumero(/ALT[\s:]+(\d+\.?\d*)/i, texto);
+    datos.ast = extraerNumero(/AST[\s:]+(\d+\.?\d*)/i, texto);
+    
+    // ============================================================
+    // ELECTROLITOS - Patrones específicos con word boundaries
+    // ============================================================
+    // Sodio: buscar "NA" como palabra completa, no dentro de otras palabras
+    // Evitar capturar valores de creatinina (0.38) u otros campos
+    datos.sodio = extraerNumero(/(?:^|\s|\b|,)\s*NA\s+([0-9]+\.?[0-9]*)(?:\s|$|\b|,)/im, texto);
+    if (!datos.sodio) datos.sodio = extraerNumero(/(?:^|\s|\b)sodio[\s:]+([0-9]+\.?[0-9]*)(?:\s|$|\b)/im, texto);
+    
+    // Potasio: K como palabra completa o con dos puntos
+    datos.potasio = extraerNumero(/(?:^|\s|\b|,)\s*K\s+([0-9]+\.?[0-9]*)(?:\s|$|\b|,)/im, texto);
+    if (!datos.potasio) datos.potasio = extraerNumero(/(?:^|\s|\b)potasio[\s:]+([0-9]+\.?[0-9]*)(?:\s|$|\b)/im, texto);
+    
+    // Cloro: CL como palabra completa
+    datos.cloro = extraerNumero(/(?:^|\s|\b|,)\s*CL\s+([0-9]+\.?[0-9]*)(?:\s|$|\b|,)/im, texto);
+    if (!datos.cloro) datos.cloro = extraerNumero(/(?:^|\s|\b)cloro[\s:]+([0-9]+\.?[0-9]*)(?:\s|$|\b)/im, texto);
+    
+    // Fósforo: P como palabra completa, no en pH, pCO2, etc.
+    // Buscar primero "FOSFORO" o "FÓSFORO", luego "P" con espacios
+    datos.fosforo = extraerNumero(/(?:^|\s|\b)f[oó]sforo[\s:]+([0-9]+\.?[0-9]*)(?:\s|$|\b)/im, texto);
+    if (!datos.fosforo) datos.fosforo = extraerNumero(/(?:^|\s|\b|,)\s*P\s+([0-9]+\.?[0-9]*)(?:\s|$|\b|,)/im, texto);
+    // Si el valor parece temperatura (>30), probablemente es un falso positivo
+    if (datos.fosforo && datos.fosforo > 20) {
+        // Buscar otro valor de fósforo en el texto
+        const fosforoMatches = texto.match(/(?:^|\s|\b|,)\s*P\s+([0-9]+\.?[0-9]*)(?:\s|$|\b|,)/gim);
+        if (fosforoMatches && fosforoMatches.length > 1) {
+            for (const m of fosforoMatches) {
+                const valMatch = m.match(/([0-9]+\.?[0-9]*)/);
+                if (valMatch) {
+                    const val = parseFloat(valMatch[1]);
+                    if (val <= 20) {
+                        datos.fosforo = val;
+                        break;
+                    }
+                }
+            }
+        } else {
+            datos.fosforo = null;
+        }
+    }
+    
+    // Magnesio: MG como palabra completa (no en mg/dL)
+    datos.magnesio = extraerNumero(/(?:^|\s|\b|,)\s*MG\s+([0-9]+\.?[0-9]*)(?:\s|$|\b|,)/im, texto);
+    if (!datos.magnesio) datos.magnesio = extraerNumero(/(?:^|\s|\b)magnesio[\s:]+([0-9]+\.?[0-9]*)(?:\s|$|\b)/im, texto);
+    // Evitar confundir con mg/dL o mg
+    if (datos.magnesio && datos.magnesio > 10) {
+        datos.magnesio = null;
+    }
+    
+    // Calcio: CA como palabra completa
+    datos.calcio = extraerNumero(/(?:^|\s|\b|,)\s*CA\s+([0-9]+\.?[0-9]*)(?:\s|$|\b|,)/im, texto);
+    if (!datos.calcio) datos.calcio = extraerNumero(/(?:^|\s|\b)calcio[\s:]+([0-9]+\.?[0-9]*)(?:\s|$|\b)/im, texto);
+    
+    datos.bun = extraerNumero(/(?:BUN|bun)[\s:]+([0-9]+\.?[0-9]*)/i, texto);
+    
+    // ============================================================
+    // GASOMETRÍA
+    // ============================================================
+    datos.gasometria_ph = extraerNumero(/(?:pH|ph)[\s:]+(\d+\.?\d*)/i, texto);
+    datos.gasometria_pco2 = extraerNumero(/(?:pCO2|pco2)[\s:]+(\d+\.?\d*)/i, texto);
+    datos.gasometria_po2 = extraerNumero(/(?:pO2|po2)[\s:]+(\d+\.?\d*)/i, texto);
+    datos.gasometria_hco3 = extraerNumero(/(?:HCO3|hco3)[\s:]+(\d+\.?\d*)/i, texto);
+    datos.gasometria_lactato = extraerNumero(/(?:lactato\s+arterial|LAC)[\s:]+(\d+\.?\d*)/i, texto);
+    
+    // ============================================================
+    // BALANCE DE LÍQUIDOS
+    // ============================================================
+    datos.ingresos = extraerEntero(/INGRESOS[\s:]+(\d+)/i, texto);
+    datos.egresos = extraerEntero(/EGRESOS[\s:]+(\d+)/i, texto);
+    datos.diuresis = extraerEntero(/DIURESIS[\s:]+(\d+)/i, texto);
+    datos.drenajes = extraerEntero(/DRENAJES[\s:]+(\d+)/i, texto);
+    
+    // Balance: buscar BALANCE PARCIAL primero, luego BALANCE GLOBAL, luego BALANCE simple
+    let balanceMatch = texto.match(/BALANCE[\s]+PARCIAL[\s:]+([\-]?\d+)/i);
+    if (!balanceMatch) balanceMatch = texto.match(/BALANCE[\s]+GLOBAL[\s:]+([\-]?\d+)/i);
+    if (!balanceMatch) balanceMatch = texto.match(/BALANCE[\s:]+([\-]?\d+)/i);
+    if (balanceMatch) datos.balance = parseInt(balanceMatch[1]);
+    
+    // ============================================================
+    // SECCIONES DE NOTA
+    // ============================================================
+    const subjMatch = texto.match(/(?:MOTIVO|MOTIVO\s+DE\s+INGRESO|SUBJETIVO)[\s:]*(.+?)(?=OBJETIVO|EXAMEN|EXPLORACI[oó]N|SIGNOS|PLAN|\Z)/is);
+    if (subjMatch) datos.subjetivo = subjMatch[1].trim().substring(0, 500);
+    
+    const objMatch = texto.match(/(?:OBJETIVO|EXAMEN|EXPLORACI[oó]N)[\s:]*(.+?)(?=AN[aá]LISIS|DIAGN[oó]STICO|PLAN|\Z)/is);
+    if (objMatch) datos.objetivo = objMatch[1].trim().substring(0, 1000);
+    
+    // ANÁLISIS - Buscar "ANÁLISIS" o "ANÁLISIS Y PLAN" específicamente
+    const analisisMatch = texto.match(/AN[ÁA]LISIS(?:\s+Y\s+PLAN)?[\s:]*(.+?)(?=PLAN[\s:]|TRATAMIENTO|DR\s|DR\.\s|UNIDAD\s|\Z)/is);
+    if (analisisMatch) {
+        let analisisTexto = analisisMatch[1].trim();
+        // Filtrar diagnósticos iniciales (líneas cortas en mayúsculas)
+        const lineas = analisisTexto.split('\n');
+        const lineasLimpias = [];
+        let encontroAnalisisReal = false;
+        for (const linea of lineas) {
+            const l = linea.trim();
+            if (!l || l.length < 3) continue;
+            if (!encontroAnalisisReal && /^[A-ZÁÉÍÓÚÑ\s.]+$/.test(l) && l.length < 60) {
+                continue; // Saltar diagnósticos
+            }
+            encontroAnalisisReal = true;
+            lineasLimpias.push(l);
+        }
+        if (lineasLimpias.length > 0) {
+            datos.analisis = lineasLimpias.join('\n').substring(0, 500);
+        }
+    }
+    
+    if (!datos.analisis) {
+        const aypMatch = texto.match(/AN[ÁA]LISIS\s+Y\s+PLAN[\s:]*(.+?)(?=DR\s|DR\.\s|UNIDAD\s|\Z)/is);
+        if (aypMatch) datos.analisis = aypMatch[1].trim().substring(0, 500);
+    }
+    
+    const planMatch = texto.match(/(?:PLAN|TRATAMIENTO)[\s:]*(.+?)(?=\Z)/is);
+    if (planMatch) datos.plan = planMatch[1].trim().substring(0, 1000);
+    
+    // ============================================================
+    // DIAGNÓSTICO
+    // ============================================================
+    const diagMatch = texto.match(/(?:DIAGN[oó]STICO\s+DE\s+INGRESO|DIAGN[oó]STICO\s+PRINCIPAL)[\s:]*(.+?)(?=\n|\Z)/i);
+    if (diagMatch) datos.diagnostico = diagMatch[1].trim().substring(0, 200);
+    
+    return datos;
+}
+
+// ============================================================
+// ANÁLISIS LOCAL (sin API)
+// ============================================================
+function analizarTexto() {
+    const texto = document.getElementById('importText').value.trim();
+    const btn = document.getElementById('btnAnalizar');
+    
+    if (!texto) {
+        alert('Por favor pegue un texto para analizar');
+        return;
+    }
+    
+    btn.disabled = true;
+    btn.textContent = 'Analizando...';
+    
+    // Simular delay para UX
+    setTimeout(() => {
+        // Ejecutar parser local
+        datosAnalizados = extraerDatosLocales(texto, tipoSeleccionado);
+        
+        // Mostrar resultados
+        mostrarDatosEncontrados(datosAnalizados);
+        
+        // Buscar paciente en lista local (simulado - en producción se haría con AJAX)
+        buscarPacienteLocal(datosAnalizados);
+        
+        btn.disabled = false;
+        btn.textContent = '🔍 Analizar Texto';
+        
+        goToStep(2);
+    }, 500);
+}
+
+function mostrarDatosEncontrados(datos) {
+    const container = document.getElementById('datosResumen');
+    const camposValidos = Object.entries(datos).filter(([k, v]) => v !== null && v !== '' && v !== undefined);
+    
+    let html = `<div style="margin-bottom: 15px;">
+        <strong>Se encontraron ${camposValidos.length} campos:</strong>
+    </div>
+    <div style="display: flex; flex-wrap: wrap; gap: 8px;">`;
+    
+    for (const [key, value] of camposValidos) {
+        const displayValue = typeof value === 'string' && value.length > 30 
+            ? value.substring(0, 30) + '...' 
+            : value;
+        html += `<span class="field-tag">${key}: ${displayValue}</span>`;
+    }
+    
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+function buscarPacienteLocal(datos) {
+    const container = document.getElementById('pacienteStatus');
+    const nombre = datos.nombre_completo || '';
+    const expediente = datos.expediente || '';
+    const textoOriginal = document.getElementById('importText').value.trim();
+    
+    // Mostrar estado de carga
+    container.innerHTML = `
+        <div class="patient-status found">
+            <div style="font-size: 2rem; margin-bottom: 10px;">🔍</div>
+            <h4>Buscando en base de datos...</h4>
+            <p>Nombre: ${nombre || 'No identificado'}</p>
+            <p style="color: var(--text-secondary); font-size: 0.85rem;">
+                Consultando pacientes activos...
+            </p>
+        </div>
+    `;
+    
+    // Consultar al backend para verificar si el paciente existe
+    fetch('/api/import/analyze', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({texto: textoOriginal, tipo: tipoSeleccionado})
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success && data.paciente_existente) {
+            // Paciente encontrado en BD
+            pacienteExistente = data.paciente_existente;
+            container.innerHTML = `
+                <div class="patient-status found" style="border-color: var(--success);">
+                    <div style="font-size: 2rem; margin-bottom: 10px;">✅</div>
+                    <h4 style="color: var(--success);">Paciente Encontrado</h4>
+                    <p><strong>${data.paciente_existente.nombre_completo}</strong></p>
+                    <p>Expediente: ${data.paciente_existente.expediente || 'N/A'}</p>
+                    <p>Edad: ${data.paciente_existente.edad || 'N/A'} años</p>
+                    <p>Diagnóstico: ${data.paciente_existente.diagnostico_ingreso || 'N/A'}</p>
+                </div>
+            `;
+        } else {
+            // Paciente no encontrado
+            mostrarPacienteNoEncontrado(container, nombre, expediente);
+        }
+    })
+    .catch(err => {
+        console.error('Error buscando paciente:', err);
+        mostrarPacienteNoEncontrado(container, nombre, expediente);
+    });
+}
+
+function mostrarPacienteNoEncontrado(container, nombre, expediente) {
+    if (expediente) {
+        container.innerHTML = `
+            <div class="patient-status not-found">
+                <div style="font-size: 2rem; margin-bottom: 10px;">⚠️</div>
+                <h4>Paciente No Encontrado</h4>
+                <p>Expediente: ${expediente}<br>Nombre: ${nombre || 'No identificado'}</p>
+                <p style="color: var(--warning);">
+                    ${tipoSeleccionado === 'historia_clinica' 
+                        ? 'Se creará como nuevo paciente' 
+                        : 'Debe especificar expediente o crear paciente primero'}
+                </p>
+            </div>
+        `;
+    } else if (nombre) {
+        container.innerHTML = `
+            <div class="patient-status not-found">
+                <div style="font-size: 2rem; margin-bottom: 10px;">⚠️</div>
+                <h4>Paciente No Identificado</h4>
+                <p>Nombre: ${nombre}<br>Sin expediente</p>
+                <p style="color: var(--warning);">
+                    ${tipoSeleccionado === 'historia_clinica' 
+                        ? 'Se creará como nuevo paciente' 
+                        : 'Debe especificar expediente o crear paciente primero'}
+                </p>
+            </div>
+        `;
+    } else {
+        container.innerHTML = `
+            <div class="patient-status error">
+                <div style="font-size: 2rem; margin-bottom: 10px;">❌</div>
+                <h4>Sin Identificación</h4>
+                <p>No se encontró nombre ni expediente en el texto.</p>
+                <p style="color: var(--danger);">Agregue al menos el nombre del paciente.</p>
+            </div>
+        `;
+    }
+}
+
+function cancelarImportacion() {
+    if (confirm('¿Está seguro de cancelar? Los cambios no se guardarán.')) {
+        window.location.href = '/import';
+    }
+}
+
+function prepararConfirmacion() {
+    // Mostrar resumen de cambios en el paso 3
+    const container = document.getElementById('resumenCambios');
+    const datos = datosAnalizados;
+    
+    let html = '';
+    
+    // Info del paciente
+    if (tipoSeleccionado === 'historia_clinica') {
+        html += `
+            <div class="field-group" style="border-color: var(--success);">
+                <h4 style="color: var(--success); margin-bottom: 10px;">➕ Crear Nuevo Paciente</h4>
+                <div class="field-row">
+                    <span class="field-label">Nombre</span>
+                    <span class="field-value new">${datos.nombre_completo || 'N/A'}</span>
+                </div>
+                ${datos.edad ? `<div class="field-row"><span class="field-label">Edad</span><span class="field-value new">${datos.edad} años</span></div>` : ''}
+                ${datos.sexo ? `<div class="field-row"><span class="field-label">Sexo</span><span class="field-value new">${datos.sexo}</span></div>` : ''}
+                ${datos.expediente ? `<div class="field-row"><span class="field-label">Expediente</span><span class="field-value new">${datos.expediente}</span></div>` : ''}
+            </div>
+        `;
+    } else {
+        html += `
+            <div class="field-group" style="border-color: var(--warning);">
+                <h4 style="color: var(--warning); margin-bottom: 10px;">📈 Agregar Evolución</h4>
+                <p>Paciente: <strong>${datos.nombre_completo || 'N/A'}</strong><br>
+                Expediente: ${datos.expediente || 'N/A'}</p>
+            </div>
+        `;
+    }
+    
+    // Campos de la evolución
+    html += '<div class="field-group"><h4 style="margin-bottom: 10px;">📋 Datos a Guardar</h4>';
+    
+    const camposRelevantes = ['fecha', 'hora', 'fc', 'fr', 'tas', 'tad', 'temperatura', 'spo2', 'glasgow'];
+    
+    for (const campo of camposRelevantes) {
+        if (datos[campo]) {
+            html += `
+                <div class="field-row">
+                    <span class="field-label">${campo.toUpperCase()}</span>
+                    <span class="field-value new">${datos[campo]}</span>
+                </div>
+            `;
+        }
+    }
+    
+    if (datos.subjetivo) {
+        html += `<div class="field-row">
+            <span class="field-label">SUBJETIVO</span>
+            <span class="field-value new">${datos.subjetivo.substring(0, 50)}...</span>
+        </div>`;
+    }
+    
+    html += '</div>';
+    container.innerHTML = html;
+    
+    goToStep(3);
+}
+
+function confirmarImportacion() {
+    const btn = document.getElementById('btnConfirmar');
+    btn.disabled = true;
+    btn.textContent = 'Guardando...';
+    
+    // Preparar datos para envío
+    const payload = {
+        datos: datosAnalizados,
+        tipo: tipoSeleccionado
+    };
+    
+    // Enviar al backend
+    fetch('/api/import/execute', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(r => {
+        if (!r.ok) throw new Error('Error HTTP ' + r.status);
+        return r.json();
+    })
+    .then(data => {
+        if (data.success) {
+            goToStep(4);
+            mostrarResultado(data);
+        } else {
+            alert('Error: ' + data.error);
+            btn.disabled = false;
+            btn.textContent = '✅ Confirmar y Guardar';
+        }
+    })
+    .catch(err => {
+        alert('Error al guardar: ' + err.message);
+        btn.disabled = false;
+        btn.textContent = '✅ Confirmar y Guardar';
+    });
+}
+
+function mostrarResultado(data) {
+    const container = document.getElementById('resultadoFinal');
+    
+    let html = `
+        <div class="success-box">
+            <div style="font-size: 3rem; margin-bottom: 15px;">✅</div>
+            <h2 style="color: var(--success); margin-bottom: 20px;">¡Importación Exitosa!</h2>
+    `;
+    
+    if (data.paciente) {
+        html += `
+            <p style="margin-bottom: 10px;">
+                <strong>Paciente:</strong> ${data.paciente.nombre_completo}
+            </p>
+        `;
+    }
+    
+    if (data.evolucion) {
+        html += `
+            <p style="margin-bottom: 10px;">
+                <strong>Evolución:</strong> ${data.evolucion.fecha} ${data.evolucion.hora}
+            </p>
+        `;
+    }
+    
+    html += `
+            <div style="margin-top: 20px;">
+                <a href="${data.redirect_url || '/patients'}" class="btn-import" style="text-decoration: none;">
+                    Ver Paciente →
+                </a>
+            </div>
+        </div>
+    `;
+    
+    container.innerHTML = html;
+}
+
+// Cargar ejemplo si existe
+document.addEventListener('DOMContentLoaded', function() {
+    const textarea = document.getElementById('importText');
+    if (textarea && !textarea.value.trim()) {
+        textarea.value = `PACIENTE: MARÍA GONZÁLEZ HERNÁNDEZ
+EDAD: 45 años
+EXPEDIENTE: HGM-2026-001234
+FECHA: 22/05/2026
+
+MOTIVO DE INGRESO:
+Paciente femenino de 45 años de edad, conocida previamente saludable, 
+quien inicia cuadro caracterizado por dolor torácico de tipo opresivo, 
+de intensidad 8/10, irradiado a miembro superior izquierdo.
+
+SIGNOS VITALES AL INGRESO:
+- FC: 110 lpm
+- FR: 24 rpm  
+- TAS: 185/110 mmHg
+- SpO2: 92% con FiO2 28%
+- TEMP: 37.2°C
+- Glasgow: 15`;
+    }
+});
+</script>
+{% endblock %}

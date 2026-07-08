@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}Inicio{% endblock %}
+
+{% block extra_css %}
+<style>
+    .featured-article {
+        background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 25px;
+        margin-bottom: 25px;
+    }
+    .featured-article h3 {
+        color: var(--accent);
+        font-size: 1.4rem;
+        margin-bottom: 10px;
+    }
+    .featured-article .summary {
+        color: var(--text-primary);
+        line-height: 1.6;
+        margin: 15px 0;
+    }
+    .search-box {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 20px;
+        margin-bottom: 25px;
+    }
+    .article-card {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 20px;
+        margin-bottom: 15px;
+        display: block;
+        color: inherit;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+    .article-card:hover {
+        border-color: var(--accent);
+        box-shadow: 0 0 10px rgba(255, 107, 53, 0.1);
+    }
+    .article-card h4 {
+        color: var(--text-primary);
+        margin-bottom: 8px;
+    }
+    .article-card .summary {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        line-height: 1.5;
+        margin: 10px 0;
+    }
+    .article-card .meta {
+        color: var(--accent);
+        font-size: 0.75rem;
+    }
+    .article-tag {
+        display: inline-block;
+        background: rgba(255, 107, 53, 0.2);
+        color: var(--accent);
+        padding: 2px 8px;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        margin-right: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+    <h2 style="color: var(--accent); margin-bottom: 20px;">Blog de Resumenes Medicos</h2>
+    
+    {% if featured_article %}
+    <div class="featured-article">
+        <h3>{{ featured_article.title }}</h3>
+        <p style="color: var(--text-secondary); font-size: 0.9rem;">
+            {{ featured_article.date }} | {{ featured_article.journal }}
+            {% if featured_article.study_type == 'meta-analysis' %}
+            <span class="article-tag">Meta-analisis</span>
+            {% elif featured_article.study_type == 'rct' %}
+            <span class="article-tag">RCT</span>
+            {% endif %}
+        </p>
+        <p class="summary">{{ featured_article.summary[:400] }}{% if featured_article.summary|length > 400 %}...{% endif %}</p>
+        <a href="/library/article/{{ featured_article.id }}" class="btn">Ver resumen completo</a>
+    </div>
+    {% endif %}
+    
+    <div class="search-box">
+        <h3 style="color: var(--accent); margin-bottom: 15px;">Buscar en biblioteca medica</h3>
+        <form action="/search" method="GET">
+            <input type="text" name="q" placeholder="Buscar por titulo, tema, autor..." 
+                   value="{{ request.args.get('q', '') }}"
+                   style="width: 70%; padding: 10px; background: var(--bg-tertiary); border: 1px solid var(--border); color: var(--text-primary);">
+            <button type="submit" class="btn">Buscar</button>
+        </form>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">
+            <h2>Articulos recientes</h2>
+            <a href="/library" class="btn btn-secondary">Ver todos</a>
+        </div>
+        <div class="card-body">
+            {% if articles %}
+                {% for article in articles %}
+                <a href="/library/article/{{ article.id }}" class="article-card">
+                    <h4>{{ article.title }}</h4>
+                    <p class="summary">{{ article.summary[:200] }}{% if article.summary|length > 200 %}...{% endif %}</p>
+                    <div class="meta">
+                        {{ article.date }} | {{ article.journal }}
+                        {% if article.study_type == 'meta-analysis' %}
+                        <span class="article-tag">Meta-analisis</span>
+                        {% elif article.study_type == 'rct' %}
+                        <span class="article-tag">RCT</span>
+                        {% endif %}
+                    </div>
+                </a>
+                {% endfor %}
+            {% else %}
+                <p style="color: var(--text-secondary); text-align: center; padding: 20px;">
+                    No hay articulos disponibles. La biblioteca se llena automaticamente cuando haces consultas medicas.
+                </p>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

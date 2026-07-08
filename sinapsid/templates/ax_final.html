@@ -1,0 +1,715 @@
+{% extends "base.html" %}
+
+{% block title %}AX - Tendencias{% endblock %}
+
+{% block content %}
+
+<!-- Estilos que emparejan con Sinapsid usando sus variables CSS -->
+<style>
+.ax-container { 
+  background: var(--bg-primary); 
+  min-height: calc(100vh - 60px);
+}
+
+body.light-mode .ax-container {
+  background: var(--bg-primary);
+}
+
+.ax-header {
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  padding: 1rem 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ax-title { 
+  margin: 0; 
+  font-size: 1.4rem; 
+  color: var(--text-primary); 
+}
+
+body.light-mode .ax-title {
+  color: #000000;
+}
+
+.ax-subtitle { 
+  color: var(--text-secondary); 
+  font-size: 0.85rem; 
+  margin-top: 0.2rem; 
+}
+
+body.light-mode .ax-subtitle {
+  color: #333333;
+}
+
+.ax-select { 
+  background: var(--bg-primary); 
+  color: var(--text-primary); 
+  border: 1px solid var(--border);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  min-width: 320px;
+  font-size: 0.9rem;
+}
+
+body.light-mode .ax-select {
+  background: #ffffff;
+  color: #000000;
+  border: 1px solid #ced4da;
+}
+
+.ax-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1.2rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: opacity 0.2s;
+}
+
+.ax-btn:hover { 
+  opacity: 0.9; 
+  background: var(--accent-hover);
+}
+
+.ax-btn:disabled { 
+  background: var(--text-secondary); 
+  cursor: not-allowed; 
+}
+
+body.light-mode .ax-btn:disabled {
+  background: #888888;
+}
+
+.ax-info {
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  padding: 0.75rem 2rem;
+  display: flex;
+  gap: 2rem;
+  font-size: 0.85rem;
+  flex-wrap: wrap;
+}
+
+body.light-mode .ax-info {
+  background: #ffffff;
+  border-bottom: 1px solid #ced4da;
+}
+
+.ax-info-item { 
+  color: var(--text-secondary); 
+}
+
+body.light-mode .ax-info-item {
+  color: #333333;
+}
+
+.ax-info-item strong { 
+  color: var(--text-primary); 
+}
+
+body.light-mode .ax-info-item strong {
+  color: #000000;
+  font-weight: 700;
+}
+
+.ax-nav {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem 2rem;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+  background: var(--bg-secondary);
+}
+
+body.light-mode .ax-nav {
+  background: #ffffff;
+  border-bottom: 1px solid #ced4da;
+}
+
+.ax-nav-btn {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  padding: 0.4rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+body.light-mode .ax-nav-btn {
+  color: #333333;
+  border: 1px solid #ced4da;
+}
+
+.ax-nav-btn:hover { 
+  background: var(--bg-tertiary); 
+  color: var(--text-primary); 
+}
+
+body.light-mode .ax-nav-btn:hover {
+  background: #e9ecef;
+  color: #000000;
+}
+
+.ax-nav-btn.active { 
+  background: var(--accent); 
+  color: #fff; 
+  border-color: var(--accent);
+}
+
+body.light-mode .ax-nav-btn.active {
+  background: #000000;
+  color: #ffffff;
+  border-color: #000000;
+}
+
+.ax-chart-wrap {
+  padding: 1.5rem 2rem;
+  min-height: 500px;
+}
+
+.ax-chart-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+body.light-mode .ax-chart-card {
+  background: #ffffff;
+  border: 1px solid #ced4da;
+}
+
+.ax-chart-header {
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+body.light-mode .ax-chart-header {
+  border-bottom: 1px solid #ced4da;
+}
+
+.ax-chart-title { 
+  color: var(--text-primary); 
+  font-size: 1rem; 
+  margin: 0; 
+}
+
+body.light-mode .ax-chart-title {
+  color: #000000;
+  font-weight: 700;
+}
+
+.ax-theme-btns { 
+  display: flex; 
+  gap: 0.3rem; 
+}
+
+.ax-theme-btn {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: all 0.2s;
+}
+
+body.light-mode .ax-theme-btn {
+  color: #333333;
+  border: 1px solid #ced4da;
+}
+
+.ax-theme-btn.active { 
+  background: var(--accent); 
+  color: #fff; 
+  border-color: var(--accent);
+}
+
+body.light-mode .ax-theme-btn.active {
+  background: #000000;
+  color: #ffffff;
+  border-color: #000000;
+}
+
+.ax-chart-body {
+  min-height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.ax-chart-body img { 
+  max-width: 100%; 
+  height: auto; 
+  display: block;
+  border-radius: 4px;
+}
+
+/* Descripcion de colores para vista combinada */
+.ax-legend-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--bg-tertiary);
+  border-top: 1px solid var(--border);
+  font-size: 0.8rem;
+}
+
+body.light-mode .ax-legend-bar {
+  background: #e9ecef;
+  border-top: 1px solid #ced4da;
+}
+
+.ax-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--text-primary);
+}
+
+body.light-mode .ax-legend-item {
+  color: #000000;
+}
+
+.ax-legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.ax-placeholder {
+  text-align: center;
+  padding: 4rem 2rem;
+}
+
+.ax-placeholder i { 
+  font-size: 3rem; 
+  color: var(--border); 
+  margin-bottom: 1rem; 
+  display: block; 
+}
+
+.ax-placeholder h4 { 
+  color: var(--text-secondary); 
+  font-weight: normal; 
+}
+
+body.light-mode .ax-placeholder h4 {
+  color: #333333;
+}
+
+.ax-placeholder p { 
+  color: var(--text-secondary); 
+  font-size: 0.85rem; 
+}
+
+body.light-mode .ax-placeholder p {
+  color: #333333;
+}
+
+.ax-loading { 
+  text-align: center; 
+  padding: 4rem; 
+  color: var(--text-secondary); 
+}
+
+body.light-mode .ax-loading {
+  color: #333333;
+}
+
+.ax-error { 
+  background: rgba(248,81,73,0.1); 
+  border: 1px solid var(--danger); 
+  color: var(--danger); 
+  padding: 1rem; 
+  border-radius: 6px; 
+  margin: 2rem; 
+}
+
+body.light-mode .ax-error {
+  background: rgba(248,81,73,0.05);
+}
+
+.ax-empty { 
+  text-align: center; 
+  padding: 3rem; 
+  color: var(--text-secondary); 
+}
+
+body.light-mode .ax-empty {
+  color: #333333;
+}
+
+.d-none { 
+  display: none !important; 
+}
+
+@media (max-width: 768px) {
+  .ax-header { 
+    flex-direction: column; 
+    gap: 1rem; 
+  }
+  .ax-select { 
+    min-width: 100%; 
+  }
+  .ax-chart-wrap { 
+    padding: 1rem; 
+  }
+  .ax-legend-bar { 
+    flex-direction: column; 
+    gap: 0.5rem; 
+  }
+}
+</style>
+
+<div class="ax-container">
+
+  <!-- Header -->
+  <div class="ax-header">
+    <div>
+      <h2 class="ax-title"><i class="fas fa-chart-line" style="color: var(--accent);"></i> Tendencias Clinicas</h2>
+      <div class="ax-subtitle">Visualizacion temporal de variables por sistema</div>
+    </div>
+    <div style="display: flex; gap: 0.5rem;">
+      <select id="ax-patient" class="ax-select">
+        <option value="">Seleccionar paciente...</option>
+        {% for p in patients %}
+        <option value="{{ p.id }}">{{ p.nombre_completo or p.nombre }} | Exp: {{ p.expediente }}</option>
+        {% endfor %}
+      </select>
+      <button id="ax-load" class="ax-btn">Cargar</button>
+      <button id="ax-csv" class="ax-btn" disabled style="background: var(--success);">CSV</button>
+    </div>
+  </div>
+
+  <!-- Info bar -->
+  <div id="ax-info" class="ax-info d-none">
+    <div class="ax-info-item"><strong>Paciente:</strong> <span id="ax-p-name">-</span></div>
+    <div class="ax-info-item"><strong>Expediente:</strong> <span id="ax-p-exp">-</span></div>
+    <div class="ax-info-item"><strong>Evoluciones:</strong> <span id="ax-p-count">-</span></div>
+    <div class="ax-info-item"><strong>Periodo:</strong> <span id="ax-p-period">-</span></div>
+  </div>
+
+  <!-- Navigation -->
+  <div id="ax-nav" class="ax-nav d-none">
+    <button class="ax-nav-btn active" data-view="combined">Combinado</button>
+    <button class="ax-nav-btn" data-view="main">Principal</button>
+    <button class="ax-nav-btn" data-view="vitals">Vitales</button>
+    <button class="ax-nav-btn" data-view="liquids">Liquidos</button>
+    <button class="ax-nav-btn" data-view="hemodynamic">Hemodinamico</button>
+    <button class="ax-nav-btn" data-view="renal">Renal</button>
+    <button class="ax-nav-btn" data-view="ventilatory">Ventilatorio</button>
+    <button class="ax-nav-btn" data-view="metabolic">Metabolico</button>
+    <button class="ax-nav-btn" data-view="hematologic">Hematologico</button>
+    <button class="ax-nav-btn" data-view="liver">Hepatico</button>
+    <button class="ax-nav-btn" data-view="coagulation">Coagulacion</button>
+    <button class="ax-nav-btn" data-view="labs">Laboratorios</button>
+  </div>
+
+  <!-- Chart area -->
+  <div class="ax-chart-wrap">
+    <!-- Placeholder -->
+    <div id="ax-placeholder" class="ax-placeholder">
+      <i class="fas fa-chart-area"></i>
+      <h4>Selecciona un paciente para ver sus tendencias</h4>
+      <p>Las graficas se generan automaticamente con todos los datos disponibles del paciente.</p>
+    </div>
+
+    <!-- Loading -->
+    <div id="ax-loading" class="ax-loading d-none">
+      <i class="fas fa-circle-notch fa-spin fa-2x"></i>
+      <p>Cargando datos del paciente...</p>
+    </div>
+
+    <!-- Error -->
+    <div id="ax-error" class="ax-error d-none"></div>
+
+    <!-- Chart -->
+    <div id="ax-chart-card" class="ax-chart-card d-none">
+      <div class="ax-chart-header">
+        <h5 class="ax-chart-title" id="ax-chart-title">Vista Combinada</h5>
+        <div class="ax-theme-btns">
+          <button class="ax-theme-btn active" data-theme="dark">Oscuro</button>
+          <button class="ax-theme-btn" data-theme="light">Claro</button>
+          <button class="ax-theme-btn" data-theme="medical">Medico</button>
+        </div>
+      </div>
+      <div class="ax-chart-body" id="ax-chart-body">
+        <img id="ax-chart-img" src="" alt="Tendencias" style="display: none;">
+      </div>
+      
+      <!-- Leyenda de colores para vista combinada -->
+      <div id="ax-legend" class="ax-legend-bar d-none">
+        <div class="ax-legend-item"><span class="ax-legend-dot" style="background:#58a6ff"></span> FC (lpm) - Hemodinamico</div>
+        <div class="ax-legend-item"><span class="ax-legend-dot" style="background:#f85149"></span> PAM (mmHg) - Hemodinamico</div>
+        <div class="ax-legend-item"><span class="ax-legend-dot" style="background:#d29922"></span> FR (rpm) - Ventilatorio</div>
+        <div class="ax-legend-item"><span class="ax-legend-dot" style="background:#a371f7"></span> SpO2 (%) - Ventilatorio</div>
+        <div class="ax-legend-item"><span class="ax-legend-dot" style="background:#ff7b72"></span> Creat (mg/dL) - Renal</div>
+        <div class="ax-legend-item"><span class="ax-legend-dot" style="background:#56d364"></span> Diuresis (ml) - Renal</div>
+        <div class="ax-legend-item"><span class="ax-legend-dot" style="background:#79c0ff"></span> Lactato - Metabolico</div>
+        <div class="ax-legend-item"><span class="ax-legend-dot" style="background:#d2a8ff"></span> pH - Metabolico</div>
+      </div>
+    </div>
+
+    <!-- Empty -->
+    <div id="ax-empty" class="ax-empty d-none">
+      <i class="fas fa-exclamation-circle fa-2x"></i>
+      <p>No hay datos suficientes para generar esta grafica.</p>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // Detectar tema actual de Sinapsid
+  function detectTheme() {
+    // Sinapsid usa body.light-mode para modo claro
+    if (document.body.classList.contains('light-mode')) {
+      return 'light';
+    }
+    return 'dark';
+  }
+
+  // State
+  var currentPid = null;
+  var currentView = 'combined';
+  var currentTheme = detectTheme();
+  var evolutions = [];
+  var patientData = null;
+
+  // Elements
+  var $patient = document.getElementById('ax-patient');
+  var $load = document.getElementById('ax-load');
+  var $csv = document.getElementById('ax-csv');
+  var $info = document.getElementById('ax-info');
+  var $nav = document.getElementById('ax-nav');
+  var $placeholder = document.getElementById('ax-placeholder');
+  var $loading = document.getElementById('ax-loading');
+  var $error = document.getElementById('ax-error');
+  var $chartCard = document.getElementById('ax-chart-card');
+  var $chartBody = document.getElementById('ax-chart-body');
+  var $chartImg = document.getElementById('ax-chart-img');
+  var $chartTitle = document.getElementById('ax-chart-title');
+  var $empty = document.getElementById('ax-empty');
+  var $legend = document.getElementById('ax-legend');
+
+  // Labels
+  var viewLabels = {
+    'combined': 'Vista Combinada',
+    'main': 'Dashboard Principal',
+    'vitals': 'Signos Vitales',
+    'liquids': 'Balance de Liquidos',
+    'hemodynamic': 'Sistema Hemodinamico',
+    'renal': 'Sistema Renal',
+    'ventilatory': 'Sistema Ventilatorio',
+    'metabolic': 'Metabolico / Gasometria',
+    'hematologic': 'Hematologico / Inflamacion',
+    'liver': 'Funcion Hepatica',
+    'coagulation': 'Coagulacion',
+    'labs': 'Laboratorios Generales'
+  };
+
+  // Event listeners
+  $load.addEventListener('click', loadPatient);
+  $csv.addEventListener('click', exportCSV);
+
+  // Navigation
+  $nav.addEventListener('click', function(e) {
+    if (!e.target.matches('.ax-nav-btn')) return;
+    document.querySelectorAll('.ax-nav-btn').forEach(function(btn) {
+      btn.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    currentView = e.target.dataset.view;
+    if (currentPid) renderChart();
+  });
+
+  // Theme buttons
+  document.querySelector('.ax-theme-btns').addEventListener('click', function(e) {
+    if (!e.target.matches('.ax-theme-btn')) return;
+    document.querySelectorAll('.ax-theme-btn').forEach(function(btn) {
+      btn.classList.remove('active');
+    });
+    e.target.classList.add('active');
+    currentTheme = e.target.dataset.theme;
+    if (currentPid) renderChart();
+  });
+
+  function loadPatient() {
+    var pid = $patient.value;
+    if (!pid) {
+      showError('Selecciona un paciente primero');
+      return;
+    }
+
+    currentPid = pid;
+    showLoading();
+
+    // Detectar tema actual
+    currentTheme = detectTheme();
+    
+    // Actualizar botones de tema
+    document.querySelectorAll('.ax-theme-btn').forEach(function(btn) {
+      btn.classList.toggle('active', btn.dataset.theme === currentTheme);
+    });
+
+    // Fetch data
+    var url = '/api/patient/' + pid + '/trends?limit=200&_=' + Date.now();
+    
+    fetch(url, { credentials: 'same-origin' })
+      .then(function(r) {
+        if (!r.ok) throw new Error('Error ' + r.status + ': ' + r.statusText);
+        return r.json();
+      })
+      .then(function(data) {
+        console.log('Trends data:', data);
+        
+        if (!data.evoluciones || data.evoluciones.length === 0) {
+          showError('Este paciente no tiene evoluciones registradas (0 encontradas)');
+          return;
+        }
+
+        evolutions = data.evoluciones;
+        patientData = data;
+
+        // Update info
+        document.getElementById('ax-p-name').textContent = data.nombre_completo || 'Paciente';
+        document.getElementById('ax-p-exp').textContent = data.expediente || 'N/A';
+        document.getElementById('ax-p-count').textContent = data.count + ' evoluciones';
+
+        // Calculate period
+        var fechas = evolutions.map(function(e) { return e.fecha; }).filter(Boolean);
+        if (fechas.length > 1) {
+          var sorted = fechas.slice().sort();
+          var days = Math.round((new Date(sorted[sorted.length-1]) - new Date(sorted[0])) / 86400000) + 1;
+          document.getElementById('ax-p-period').textContent = days + ' dias';
+        } else {
+          document.getElementById('ax-p-period').textContent = '1 dia';
+        }
+
+        $info.classList.remove('d-none');
+        $nav.classList.remove('d-none');
+        $csv.disabled = false;
+        $placeholder.classList.add('d-none');
+        $error.classList.add('d-none');
+
+        // Render first chart
+        renderChart();
+      })
+      .catch(function(err) {
+        console.error('Error:', err);
+        showError('Error cargando datos: ' + err.message);
+      })
+      .finally(function() {
+        $loading.classList.add('d-none');
+      });
+  }
+
+  function renderChart() {
+    if (!currentPid) return;
+
+    $chartCard.classList.add('d-none');
+    $empty.classList.add('d-none');
+    $error.classList.add('d-none');
+    $loading.classList.remove('d-none');
+    $chartImg.style.display = 'none';
+    $legend.classList.add('d-none');
+    $chartTitle.textContent = viewLabels[currentView] || currentView;
+
+    var url = '/api/patient/' + currentPid + '/trends/chart?type=' + currentView + 
+              '&theme=' + currentTheme + '&limit=200&_=' + Date.now();
+
+    fetch(url, { credentials: 'same-origin' })
+      .then(function(r) {
+        if (!r.ok) {
+          return r.json().then(function(err) {
+            throw new Error(err.error || 'Error ' + r.status);
+          });
+        }
+        return r.json();
+      })
+      .then(function(data) {
+        $loading.classList.add('d-none');
+        
+        if (data.image) {
+          $chartImg.src = data.image;
+          $chartImg.style.display = 'block';
+          $chartImg.alt = data.title || 'Tendencias';
+          $chartCard.classList.remove('d-none');
+          
+          // Mostrar leyenda solo en vista combinada
+          if (currentView === 'combined') {
+            $legend.classList.remove('d-none');
+          }
+        } else {
+          $empty.classList.remove('d-none');
+        }
+      })
+      .catch(function(err) {
+        console.error('Chart error:', err);
+        $loading.classList.add('d-none');
+        showError('Error generando grafica: ' + err.message);
+      });
+  }
+
+  function showLoading() {
+    $placeholder.classList.add('d-none');
+    $error.classList.add('d-none');
+    $chartCard.classList.add('d-none');
+    $empty.classList.add('d-none');
+    $loading.classList.remove('d-none');
+  }
+
+  function showError(msg) {
+    $placeholder.classList.add('d-none');
+    $loading.classList.add('d-none');
+    $chartCard.classList.add('d-none');
+    $empty.classList.add('d-none');
+    $error.textContent = msg;
+    $error.classList.remove('d-none');
+  }
+
+  function exportCSV() {
+    if (!evolutions.length) return;
+    var headers = Object.keys(evolutions[0]);
+    var rows = evolutions.map(function(e) {
+      return headers.map(function(h) {
+        var v = e[h];
+        if (v == null) return '';
+        var s = String(v);
+        return s.indexOf(',') >= 0 ? '"' + s + '"' : s;
+      }).join(',');
+    });
+    var csv = [headers.join(','), ...rows].join('\n');
+    var blob = new Blob([csv], { type: 'text/csv' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'evoluciones_' + currentPid + '_' + new Date().toISOString().split('T')[0] + '.csv';
+    a.click();
+  }
+
+})();
+</script>
+
+{% endblock %}

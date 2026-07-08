@@ -1,0 +1,1087 @@
+{% extends "base.html" %}
+
+{% block title %}Paciente {{ patient.expediente or patient.id }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Aumentar tamaño de fuente global */
+    body {
+        font-size: 16px;
+    }
+    
+    .patient-header {
+        background: linear-gradient(135deg, var(--card-bg) 0%, rgba(255,107,53,0.05) 100%);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 25px;
+        margin-bottom: 20px;
+    }
+    
+    .patient-header h1 {
+        font-size: 2rem;
+        margin: 0 0 15px 0;
+    }
+    
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 12px;
+    }
+    
+    .info-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 15px;
+        background: rgba(255,255,255,0.03);
+        border-radius: 6px;
+        border-left: 4px solid var(--accent);
+        font-size: 1.05rem;
+    }
+    
+    .info-label {
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .info-value {
+        color: var(--text-primary);
+        font-weight: 600;
+        text-align: right;
+    }
+    
+    .section-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        margin-bottom: 20px;
+        overflow: hidden;
+    }
+    
+    .section-header {
+        background: linear-gradient(135deg, rgba(255,107,53,0.1) 0%, transparent 100%);
+        padding: 15px 20px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .section-title {
+        color: var(--accent);
+        font-size: 1.3rem;
+        font-weight: 600;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .section-body {
+        padding: 20px;
+    }
+    
+    /* Tablas dinámicas - estilo mejorado */
+    .dynamic-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 1rem;
+        margin-bottom: 15px;
+    }
+    
+    .dynamic-table th {
+        background: var(--bg-tertiary);
+        padding: 12px 15px;
+        text-align: left;
+        color: var(--text-secondary);
+        font-weight: 600;
+        border-bottom: 2px solid var(--border);
+        font-size: 1.05rem;
+    }
+    
+    .dynamic-table td {
+        padding: 10px 15px;
+        border-bottom: 1px solid var(--border);
+        color: var(--text-primary);
+        font-size: 1rem;
+    }
+    
+    .dynamic-table tr:hover td {
+        background: rgba(255,107,53,0.05);
+    }
+    
+    .dynamic-table tr:last-child td {
+        border-bottom: none;
+    }
+    
+    /* Badges */
+    .badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 15px;
+        font-size: 0.95rem;
+        font-weight: 600;
+    }
+    
+    .badge-presente { background: rgba(74, 222, 128, 0.2); color: #4ADE80; }
+    .badge-ausente { background: rgba(248, 113, 113, 0.2); color: #F87171; }
+    .badge-neutro { background: rgba(156, 163, 175, 0.2); color: #9CA3AF; }
+    
+    .badge-positivo { background: rgba(239, 68, 68, 0.2); color: #EF4444; }
+    .badge-negativo { background: rgba(74, 222, 128, 0.2); color: #4ADE80; }
+    .badge-pendiente { background: rgba(245, 158, 11, 0.2); color: #F59E0B; }
+    
+    /* Tabs */
+    .tabs-container {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 20px;
+        border-bottom: 2px solid var(--border);
+        padding-bottom: 0;
+        flex-wrap: wrap;
+    }
+    
+    .tab-btn {
+        padding: 12px 24px;
+        background: transparent;
+        border: none;
+        color: var(--text-secondary);
+        cursor: pointer;
+        font-size: 1.1rem;
+        font-weight: 600;
+        border-bottom: 3px solid transparent;
+        transition: all 0.3s;
+    }
+    
+    .tab-btn:hover {
+        color: var(--accent);
+    }
+    
+    .tab-btn.active {
+        color: var(--accent);
+        border-bottom-color: var(--accent);
+    }
+    
+    .tab-panel {
+        display: none;
+    }
+    
+    .tab-panel.active {
+        display: block;
+    }
+    
+    /* Layouts */
+    .two-columns {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+    
+    .three-columns {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+    }
+    
+    @media (max-width: 768px) {
+        .two-columns, .three-columns {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    /* Mensaje cuando no hay datos */
+    .no-data {
+        text-align: center;
+        color: var(--text-secondary);
+        padding: 20px;
+        font-size: 1.1rem;
+    }
+
+    /* Subsecciones colapsables */
+    .subsection-card {
+        background: rgba(255,255,255,0.02);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        margin-bottom: 15px;
+        overflow: hidden;
+    }
+    
+    .subsection-header {
+        background: linear-gradient(135deg, rgba(255,107,53,0.05) 0%, transparent 100%);
+        padding: 12px 15px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .subsection-title {
+        color: var(--text-primary);
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .subsection-body {
+        padding: 15px;
+    }
+    
+    .collapsible-body {
+        max-height: 2000px;
+        overflow: hidden;
+        transition: max-height 0.5s ease-in-out, padding 0.3s;
+    }
+    
+    .collapsible-body.collapsed {
+        max-height: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+    
+    .collapsible-header {
+        cursor: pointer;
+        user-select: none;
+    }
+    
+    .collapsible-header:hover {
+        background: linear-gradient(135deg, rgba(255,107,53,0.1) 0%, transparent 100%);
+    }
+    
+    .rotate-icon {
+        transform: rotate(-90deg);
+    }
+
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Patient Header -->
+<div class="patient-header">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 20px;">
+        <div>
+            <h1>{{ patient.nombre_completo }}</h1>
+            <div style="display: flex; gap: 20px; flex-wrap: wrap; font-size: 1rem;">
+                <span><strong>Exp:</strong> {{ patient.expediente or 'N/A' }}</span>
+                <span><strong>Cama:</strong> {{ patient.cama or 'N/A' }}</span>
+                <span><strong>Edad:</strong> {{ patient.edad or 'N/A' }}</span>
+                <span><strong>Sexo:</strong> {{ patient.sexo or 'N/A' }}</span>
+                <span><strong>Ingreso:</strong> {{ patient.fecha_ingreso or 'N/A' }}</span>
+                <span class="status-badge status-{{ patient.estado or 'ingreso' }}">{{ patient.estado or 'INGRESO' }}</span>
+            </div>
+        </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <a href="/patient/{{ patient.id }}/edit" class="btn" style="font-size: 1.1rem; padding: 10px 20px;">✏️ Editar</a>
+            <a href="/patient/{{ patient.id }}/notes-view" class="btn" style="font-size: 1.1rem; padding: 10px 20px;">📋 Notas</a>
+            {% if patient.estado != 'egreso' %}
+            <a href="/patient/{{ patient.id }}/evolution" class="btn" style="font-size: 1.1rem; padding: 10px 20px;">📝 Evolución</a>
+            <a href="/patient/{{ patient.id }}/discharge" class="btn btn-danger" style="font-size: 1.1rem; padding: 10px 20px;">🏥 Alta</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Tabs Navigation -->
+<div class="tabs-container">
+    <button class="tab-btn active" onclick="showTab('general')">📋 General</button>
+    <button class="tab-btn" onclick="showTab('neuro')">🧠 Neuro</button>
+    <button class="tab-btn" onclick="showTab('hemo')">❤️ Hemo</button>
+    <button class="tab-btn" onclick="showTab('vent')">🫁 Vent</button>
+    <button class="tab-btn" onclick="showTab('renal')">💧 Renal</button>
+    <button class="tab-btn" onclick="showTab('gastro')">🍽️ Gastro</button>
+    <button class="tab-btn" onclick="showTab('hema')">🩸 Hema</button>
+    <button class="tab-btn" onclick="showTab('labs')">🧪 Labs</button>
+</div>
+
+<!-- Tab: General -->
+<div id="tab-general" class="tab-panel active">
+    <div class="two-columns">
+        <!-- Datos Básicos -->
+        <div class="section-card">
+            <div class="section-header">
+                <h3 class="section-title">👤 Datos Básicos</h3>
+            </div>
+            <div class="section-body">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Nombre</span>
+                        <span class="info-value">{{ patient.nombre_completo or '-' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">CURP</span>
+                        <span class="info-value">{{ patient.curp or '-' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Fecha Nac.</span>
+                        <span class="info-value">{{ patient.fecha_nacimiento or '-' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Edad</span>
+                        <span class="info-value">{{ patient.edad or '-' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Sexo</span>
+                        <span class="info-value">{{ patient.sexo or '-' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Procedencia</span>
+                        <span class="info-value">{{ patient.procedencia or '-' }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Datos de Ingreso -->
+        <div class="section-card">
+            <div class="section-header">
+                <h3 class="section-title">🏥 Datos de Ingreso</h3>
+            </div>
+            <div class="section-body">
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Expediente</span>
+                        <span class="info-value">{{ patient.expediente or '-' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Episodio</span>
+                        <span class="info-value">{{ patient.episodio or '-' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Cama</span>
+                        <span class="info-value">{{ patient.cama or '-' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Servicio</span>
+                        <span class="info-value">{{ patient.servicio_tratante or '-' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Fecha Ing. Hospital</span>
+                        <span class="info-value">{{ patient.fecha_ingreso_hosp or '-' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Fecha Ing. UCI</span>
+                        <span class="info-value">{{ patient.fecha_ingreso or '-' }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Días Estancia</span>
+                        <span class="info-value">{{ patient.dias_estancia or '-' }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Diagnósticos -->
+    <div class="section-card">
+        <div class="section-header">
+            <h3 class="section-title">🔬 Diagnósticos</h3>
+        </div>
+        <div class="section-body">
+            <table class="dynamic-table">
+                <thead>
+                    <tr>
+                        <th>Tipo</th>
+                        <th>Descripción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Principal</strong></td>
+                        <td>{{ patient.diagnostico or 'No registrado' }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Secundario</strong></td>
+                        <td>{{ patient.diagnostico_secundario or 'No registrado' }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Código</strong></td>
+                        <td>{{ patient.codigo_diagnostico or '-' }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Tab: Neuro -->
+<div id="tab-neuro" class="tab-panel">
+    <div class="two-columns">
+        <div class="section-card">
+            <div class="section-header">
+                <h3 class="section-title">🧠 Evaluación Neurológica</h3>
+            </div>
+            <div class="section-body">
+                <table class="dynamic-table">
+                    <tbody>
+                        <tr>
+                            <td><strong>Glasgow</strong></td>
+                            <td>{{ patient.glasgow or '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>RASS</strong></td>
+                            <td>{{ patient.rass or '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>CPOT</strong></td>
+                            <td>{{ patient.cpot or '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>ROTS</strong></td>
+                            <td>{{ patient.rots or '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Pupilas (mm)</strong></td>
+                            <td>{{ patient.pupilas_mm or '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Reflejo Pupilar</strong></td>
+                            <td>
+                                {% if patient.reflejo_pupilar is true %}
+                                    <span class="badge badge-presente">✓ Presente</span>
+                                {% elif patient.reflejo_pupilar is false %}
+                                    <span class="badge badge-ausente">✗ Ausente</span>
+                                {% else %}
+                                    <span class="badge badge-neutro">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Reflejo Corneal</strong></td>
+                            <td>
+                                {% if patient.reflejo_corneal is true %}
+                                    <span class="badge badge-presente">✓ Presente</span>
+                                {% elif patient.reflejo_corneal is false %}
+                                    <span class="badge badge-ausente">✗ Ausente</span>
+                                {% else %}
+                                    <span class="badge badge-neutro">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><strong>Reflejo Tusígeno</strong></td>
+                            <td>
+                                {% if patient.reflejo_tusigeno is true %}
+                                    <span class="badge badge-presente">✓ Presente</span>
+                                {% elif patient.reflejo_tusigeno is false %}
+                                    <span class="badge badge-ausente">✗ Ausente</span>
+                                {% else %}
+                                    <span class="badge badge-neutro">-</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="section-card">
+            <div class="section-header">
+                <h3 class="section-title">📝 Exploración</h3>
+            </div>
+            <div class="section-body">
+                <p><strong>Exploración Neurológica:</strong></p>
+                <p style="white-space: pre-wrap; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 6px; font-size: 1.05rem;">{{ patient.exploracion_neurologica or 'No registrada' }}</p>
+                <br>
+                <p><strong>Imagen Neurológica:</strong></p>
+                <p style="white-space: pre-wrap; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 6px; font-size: 1.05rem;">{{ patient.imagen_neurologica or 'No registrada' }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tab: Hemo -->
+<div id="tab-hemo" class="tab-panel">
+    <div class="section-card">
+        <div class="section-header">
+            <h3 class="section-title">❤️ Evaluación Hemodinámica</h3>
+        </div>
+        <div class="section-body">
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">TAS</span>
+                    <span class="info-value">{{ patient.tas or '-' }} mmHg</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">TAD</span>
+                    <span class="info-value">{{ patient.tad or '-' }} mmHg</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">FC</span>
+                    <span class="info-value">{{ patient.fc or '-' }} lpm</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Mottling</span>
+                    <span class="info-value">{{ patient.mottling or '-' }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Llenado Capilar</span>
+                    <span class="info-value">{{ patient.llenado_capilar or '-' }} seg</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tab: Vent -->
+<div id="tab-vent" class="tab-panel">
+    <div class="section-card">
+        <div class="section-header">
+            <h3 class="section-title">🫁 Evaluación Ventilatoria</h3>
+        </div>
+        <div class="section-body">
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">Modo Ventilatorio</span>
+                    <span class="info-value">{{ patient.modo_ventilatorio or '-' }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">FiO2</span>
+                    <span class="info-value">{{ patient.fio2 or '-' }}%</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">PEEP</span>
+                    <span class="info-value">{{ patient.peep or '-' }} cmH2O</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Volumen Corriente</span>
+                    <span class="info-value">{{ patient.volumen_corriente or '-' }} mL</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Frecuencia Respiratoria</span>
+                    <span class="info-value">{{ patient.frecuencia_respiratoria or '-' }} rpm</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Presión Plateau</span>
+                    <span class="info-value">{{ patient.presion_plateau or '-' }} cmH2O</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tab: Renal -->
+<div id="tab-renal" class="tab-panel">
+    <div class="two-columns">
+        <div class="section-card">
+            <div class="section-header">
+                <h3 class="section-title">💧 Balance Hídrico</h3>
+            </div>
+            <div class="section-body">
+                <table class="dynamic-table">
+                    <tbody>
+                        <tr>
+                            <td><strong>Ingresos</strong></td>
+                            <td>{{ patient.ingresos or '-' }} mL</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Egresos</strong></td>
+                            <td>{{ patient.egresos or '-' }} mL</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Balance</strong></td>
+                            <td>{{ patient.balance or '-' }} mL</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Diuresis</strong></td>
+                            <td>{{ patient.diuresis or '-' }} mL</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="section-card">
+            <div class="section-header">
+                <h3 class="section-title">🧪 Laboratorio Renal</h3>
+            </div>
+            <div class="section-body">
+                <table class="dynamic-table">
+                    <tbody>
+                        <tr>
+                            <td><strong>Creatinina</strong></td>
+                            <td>{{ patient.creatinina or '-' }} mg/dL</td>
+                        </tr>
+                        <tr>
+                            <td><strong>BUN</strong></td>
+                            <td>{{ patient.bun or '-' }} mg/dL</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Glucosa</strong></td>
+                            <td>{{ patient.glucosa or '-' }} mg/dL</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tab: Gastro -->
+<div id="tab-gastro" class="tab-panel">
+    <div class="section-card">
+        <div class="section-header">
+            <h3 class="section-title">🍽️ Evaluación Gastrometabólica</h3>
+        </div>
+        <div class="section-body">
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">Nutrición</span>
+                    <span class="info-value">{{ patient.nutricion or '-' }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Tipo de Dieta</span>
+                    <span class="info-value">{{ patient.tipo_dieta or '-' }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">SNG</span>
+                    <span class="info-value">{% if patient.sng %}✓ Colocada{% else %}✗ No{% endif %}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Evacuaciones</span>
+                    <span class="info-value">{{ patient.evacuaciones or '-' }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tab: Hema -->
+<div id="tab-hema" class="tab-panel">
+    <div class="two-columns">
+        <div class="section-card">
+            <div class="section-header">
+                <h3 class="section-title">🩸 Evaluación Hematológica</h3>
+            </div>
+            <div class="section-body">
+                <table class="dynamic-table">
+                    <tbody>
+                        <tr>
+                            <td><strong>Hemoglobina</strong></td>
+                            <td>{{ patient.hemoglobina or '-' }} g/dL</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Hematocrito</strong></td>
+                            <td>{{ patient.hematocrito or '-' }}%</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Leucocitos</strong></td>
+                            <td>{{ patient.leucocitos or '-' }} K/μL</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Plaquetas</strong></td>
+                            <td>{{ patient.plaquetas or '-' }} K/μL</td>
+                        </tr>
+                        <tr>
+                            <td><strong>INR</strong></td>
+                            <td>{{ patient.inr or '-' }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="section-card">
+            <div class="section-header">
+                <h3 class="section-title">🧫 Cultivos</h3>
+            </div>
+            <div class="section-body">
+                {% if patient.cultivos %}
+                <table class="dynamic-table">
+                    <thead>
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Resultado</th>
+                            <th>Fecha</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cultivo in patient.cultivos %}
+                        <tr>
+                            <td>{{ cultivo.tipo or '-' }}</td>
+                            <td>{{ cultivo.resultado or '-' }}</td>
+                            <td>{{ cultivo.fecha or '-' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p class="no-data">Sin cultivos registrados</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tab: Labs -->
+<div id="tab-labs" class="tab-panel">
+    <div class="three-columns">
+        <div class="section-card">
+            <div class="section-header">
+                <h3 class="section-title">🔬 Bioquímica</h3>
+            </div>
+            <div class="section-body">
+                <table class="dynamic-table">
+                    <tbody>
+                        <tr>
+                            <td><strong>Glucosa</strong></td>
+                            <td>{{ patient.glucosa or '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Urea</strong></td>
+                            <td>{{ patient.urea or '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Creatinina</strong></td>
+                            <td>{{ patient.creatinina or '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Sodio</strong></td>
+                            <td>{{ patient.sodio or '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Potasio</strong></td>
+                            <td>{{ patient.potasio or '-' }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="section-card">
+            <div class="section-header">
+                <h3 class="section-title">🧪 Gasometría</h3>
+            </div>
+            <div class="section-body">
+                <table class="dynamic-table">
+                    <tbody>
+                        <tr>
+                            <td><strong>pH</strong></td>
+                            <td>{{ patient.ph or '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>PaO2</strong></td>
+                            <td>{{ patient.pao2 or '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>PaCO2</strong></td>
+                            <td>{{ patient.paco2 or '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>HCO3</strong></td>
+                            <td>{{ patient.hco3 or '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Lactato</strong></td>
+                            <td>{{ patient.lactato or '-' }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="section-card">
+            <div class="section-header">
+                <h3 class="section-title">📋 Otros</h3>
+            </div>
+            <div class="section-body">
+                <table class="dynamic-table">
+                    <tbody>
+                        <tr>
+                            <td><strong>Procalcitonina</strong></td>
+                            <td>{{ patient.procalcitonina or '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>PCR</strong></td>
+                            <td>{{ patient.pcr or '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Albumina</strong></td>
+                            <td>{{ patient.albumina or '-' }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Bilirrubina</strong></td>
+                            <td>{{ patient.bilirrubina or '-' }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tab: Medicamentos -->
+<!-- SECCIÓN: TABLAS DINÁMICAS (Colapsable) -->
+<div class="section-card" style="margin-top: 20px;">
+    <div class="section-header collapsible-header" onclick="toggleSection('dynamic-tables-section', 'dynamic-tables-icon')" style="cursor: pointer;">
+        <h3 class="section-title">📊 Registros Clínicos (Tablas Dinámicas)</h3>
+        <span id="dynamic-tables-icon" style="font-size: 1.5rem; transition: transform 0.3s;">▼</span>
+    </div>
+    <div id="dynamic-tables-section" class="collapsible-body">
+        <div class="section-body">
+            
+            <!-- 💊 Medicamentos -->
+            <div class="subsection-card">
+                <div class="subsection-header collapsible-header" onclick="toggleSection('meds-section', 'meds-icon')" style="cursor: pointer;">
+                    <h4 class="subsection-title">💊 Medicamentos</h4>
+                    <span id="meds-icon" style="font-size: 1.2rem; transition: transform 0.3s;">▼</span>
+                </div>
+                <div id="meds-section" class="collapsible-body">
+                    <div class="subsection-body">
+                        {% if medicamentos %}
+                        <div style="overflow-x: auto;">
+                            <table class="dynamic-table">
+                                <thead>
+                                    <tr>
+                                        <th>Tipo</th>
+                                        <th>Medicamento</th>
+                                        <th>Dosis</th>
+                                        <th>Vía</th>
+                                        <th>Frecuencia</th>
+                                        <th>Inicio</th>
+                                        <th>Fin</th>
+                                        <th>Indicación</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for med in medicamentos %}
+                                    <tr>
+                                        <td><span class="badge badge-neutro">{{ med.tipo or '-' }}</span></td>
+                                        <td><strong>{{ med.medicamento or '-' }}</strong></td>
+                                        <td>{{ med.dosis or '-' }}</td>
+                                        <td>{{ med.via or '-' }}</td>
+                                        <td>{{ med.frecuencia or '-' }}</td>
+                                        <td>{{ med.fecha_inicio or '-' }}</td>
+                                        <td>{{ med.fecha_fin or '-' }}</td>
+                                        <td>{{ med.indicacion or '-' }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="no-data">Sin medicamentos registrados</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 🧫 Cultivos -->
+            <div class="subsection-card">
+                <div class="subsection-header collapsible-header" onclick="toggleSection('cultivos-section', 'cultivos-icon')" style="cursor: pointer;">
+                    <h4 class="subsection-title">🧫 Cultivos</h4>
+                    <span id="cultivos-icon" style="font-size: 1.2rem; transition: transform 0.3s;">▼</span>
+                </div>
+                <div id="cultivos-section" class="collapsible-body">
+                    <div class="subsection-body">
+                        {% if cultivos %}
+                        <div style="overflow-x: auto;">
+                            <table class="dynamic-table">
+                                <thead>
+                                    <tr>
+                                        <th>Tipo</th>
+                                        <th>Microorganismo</th>
+                                        <th>Resultado</th>
+                                        <th>Sensibilidad</th>
+                                        <th>Resistencia</th>
+                                        <th>Fecha</th>
+                                        <th>Notas</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for cultivo in cultivos %}
+                                    <tr>
+                                        <td><span class="badge badge-neutro">{{ cultivo.tipo or '-' }}</span></td>
+                                        <td><strong>{{ cultivo.microorganismo or '-' }}</strong></td>
+                                        <td>
+                                            {% if cultivo.resultado == 'Positivo' %}
+                                            <span class="badge badge-positivo">⚠️ Positivo</span>
+                                            {% elif cultivo.resultado == 'Negativo' %}
+                                            <span class="badge badge-negativo">✓ Negativo</span>
+                                            {% elif cultivo.resultado == 'Pendiente' %}
+                                            <span class="badge badge-pendiente">⏳ Pendiente</span>
+                                            {% else %}
+                                            <span class="badge badge-neutro">{{ cultivo.resultado or '-' }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ cultivo.sensibilidad or '-' }}</td>
+                                        <td>{{ cultivo.resistencia or '-' }}</td>
+                                        <td>{{ cultivo.fecha or '-' }}</td>
+                                        <td>{{ cultivo.notas or '-' }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="no-data">Sin cultivos registrados</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 💉 Transfusiones -->
+            <div class="subsection-card">
+                <div class="subsection-header collapsible-header" onclick="toggleSection('transfusiones-section', 'transfusiones-icon')" style="cursor: pointer;">
+                    <h4 class="subsection-title">💉 Transfusiones</h4>
+                    <span id="transfusiones-icon" style="font-size: 1.2rem; transition: transform 0.3s;">▼</span>
+                </div>
+                <div id="transfusiones-section" class="collapsible-body">
+                    <div class="subsection-body">
+                        {% if transfusiones %}
+                        <div style="overflow-x: auto;">
+                            <table class="dynamic-table">
+                                <thead>
+                                    <tr>
+                                        <th>Tipo</th>
+                                        <th>Cantidad</th>
+                                        <th>Unidades</th>
+                                        <th>Fecha</th>
+                                        <th>Hora</th>
+                                        <th>Reacción</th>
+                                        <th>Notas</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for tx in transfusiones %}
+                                    <tr>
+                                        <td><span class="badge badge-neutro">{{ tx.tipo or '-' }}</span></td>
+                                        <td><strong>{{ tx.cantidad or '-' }}</strong></td>
+                                        <td>{{ tx.unidades or '-' }}</td>
+                                        <td>{{ tx.fecha or '-' }}</td>
+                                        <td>{{ tx.hora or '-' }}</td>
+                                        <td>
+                                            {% if tx.reaccion == 'Si' %}
+                                            <span class="badge badge-positivo">⚠️ Sí</span>
+                                            {% else %}
+                                            <span class="badge badge-negativo">No</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ tx.notas or '-' }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <p class="no-data">Sin transfusiones registradas</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
+<!-- Evoluciones -->
+<div class="section-card" style="margin-top: 20px;">
+    <div class="section-header">
+        <h3 class="section-title">📈 Evoluciones</h3>
+        <span class="badge badge-neutro">{{ evoluciones|length }} registradas</span>
+    </div>
+    <div class="section-body">
+        {% if evoluciones %}
+        <div style="overflow-x: auto;">
+            <table class="dynamic-table">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Hora</th>
+                        <th>FC</th>
+                        <th>FR</th>
+                        <th>PA</th>
+                        <th>Temp</th>
+                        <th>SPO2</th>
+                        <th>FiO2</th>
+                        <th>Glasgow</th>
+                        <th>Nota</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for evo in evoluciones %}
+                    <tr style="cursor: pointer;" onclick="window.location.href='/patient/{{ patient.id }}/evolution/{{ evo.id }}/edit'" title="Click para editar">
+                        <td><strong>{{ evo.fecha }}</strong></td>
+                        <td>{{ evo.hora or '-' }}</td>
+                        <td>{{ evo.fc or '-' }}</td>
+                        <td>{{ evo.fr or '-' }}</td>
+                        <td>{% if evo.tas and evo.tad %}{{ evo.tas }}/{{ evo.tad }}{% else %}-{% endif %}</td>
+                        <td>{{ evo.temperatura or '-' }}</td>
+                        <td>{{ evo.spo2 or '-' }}</td>
+                        <td>{{ evo.fio2 or '-' }}</td>
+                        <td>{{ evo.glasgow or '-' }}</td>
+                        <td>{% if evo.nota %}{{ evo.nota[:50] }}{% if evo.nota|length > 50 %}...{% endif %}{% else %}-{% endif %}</td>
+                        <td style="text-align: center;" onclick="event.stopPropagation();">
+                            <form method="POST" action="/patient/{{ patient.id }}/evolution/{{ evo.id }}/delete" style="display: inline;" onsubmit="return confirm('Eliminar evolucion del {{ evo.fecha }} {{ evo.hora or '' }}?')">
+                                <button type="submit" style="background: none; border: none; color: var(--danger); cursor: pointer; font-size: 1.1rem; padding: 4px;" title="Eliminar evolucion">🗑️</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="no-data">Sin evoluciones registradas</p>
+        {% endif %}
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+function showTab(tabName) {
+    // Ocultar todos los paneles
+    document.querySelectorAll('.tab-panel').forEach(panel => {
+        panel.classList.remove('active');
+    });
+    
+    // Desactivar todos los botones
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Activar panel seleccionado
+    document.getElementById('tab-' + tabName).classList.add('active');
+    
+    // Activar botón seleccionado
+    event.target.classList.add('active');
+}
+
+// Función para colapsar/expandir secciones
+function toggleSection(sectionId, iconId) {
+    const section = document.getElementById(sectionId);
+    const icon = document.getElementById(iconId);
+    
+    if (section.classList.contains('collapsed')) {
+        section.classList.remove('collapsed');
+        icon.style.transform = 'rotate(0deg)';
+    } else {
+        section.classList.add('collapsed');
+        icon.style.transform = 'rotate(-90deg)';
+    }
+}
+
+// Inicializar: colapsar todas las subsecciones por defecto
+document.addEventListener('DOMContentLoaded', function() {
+    // Colapsar subsecciones internas
+    document.querySelectorAll('#dynamic-tables-section .collapsible-body').forEach(function(section) {
+        section.classList.add('collapsed');
+    });
+    
+    // Rotar iconos
+    document.querySelectorAll('#dynamic-tables-section .collapsible-header span[id$="-icon"]').forEach(function(icon) {
+        icon.style.transform = 'rotate(-90deg)';
+    });
+});
+    document.getElementById('tab-' + tabName).classList.add('active');
+    
+    // Activar botón seleccionado
+    event.target.classList.add('active');
+}
+</script>
+{% endblock %}
+
+{% endblock %}

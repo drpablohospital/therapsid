@@ -1,0 +1,600 @@
+{% extends "base.html" %}
+
+{% block title %}AX - Análisis de Tendencias{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+  <div class="row mb-3">
+    <div class="col-12">
+      <h2 class="mb-0"><i class="fas fa-chart-line text-primary me-2"></i>Análisis de Tendencias Clínicas</h2>
+      <p class="text-muted">Visualización temporal de variables clínicas por sistema</p>
+    </div>
+  </div>
+
+  <!-- Controles -->
+  <div class="card theme-card mb-3">
+    <div class="card-body">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label">Paciente</label>
+          <select id="patient-select" class="form-select theme-input">
+            <option value="">Seleccionar paciente...</option>
+            {% for p in patients %}
+            <option value="{{ p.id }}">{{ p.nombre_completo or p.nombre }} (Exp: {{ p.expediente }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Desde</label>
+          <input type="date" id="start-date" class="form-control theme-input">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Hasta</label>
+          <input type="date" id="end-date" class="form-control theme-input">
+        </div>
+        <div class="col-md-2">
+          <button id="btn-cargar" class="btn btn-primary w-100">
+            <i class="fas fa-sync-alt me-1"></i>Cargar
+          </button>
+        </div>
+        <div class="col-md-2">
+          <div class="form-check form-switch mt-3">
+            <input class="form-check-input" type="checkbox" id="theme-toggle">
+            <label class="form-check-label" for="theme-toggle">Modo claro</label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs de sistemas -->
+  <ul class="nav nav-tabs mb-3" id="chart-tabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="tab-main" data-bs-toggle="tab" data-bs-target="#content-main" type="button" role="tab">
+        <i class="fas fa-th-large me-1"></i>Principal
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="tab-hemodynamic" data-bs-toggle="tab" data-bs-target="#content-hemodynamic" type="button" role="tab">
+        <i class="fas fa-heartbeat me-1"></i>Hemodinámico
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="tab-renal" data-bs-toggle="tab" data-bs-target="#content-renal" type="button" role="tab">
+        <i class="fas fa-kidney me-1"></i>Renal
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="tab-ventilatory" data-bs-toggle="tab" data-bs-target="#content-ventilatory" type="button" role="tab">
+        <i class="fas fa-lungs me-1"></i>Ventilatorio
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="tab-metabolic" data-bs-toggle="tab" data-bs-target="#content-metabolic" type="button" role="tab">
+        <i class="fas fa-flask me-1"></i>Metabólico
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="tab-hematologic" data-bs-toggle="tab" data-bs-target="#content-hematologic" type="button" role="tab">
+        <i class="fas fa-vial me-1"></i>Hematológico
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="tab-liver" data-bs-toggle="tab" data-bs-target="#content-liver" type="button" role="tab">
+        <i class="fas fa-liver me-1"></i>Hepático
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="tab-coagulation" data-bs-toggle="tab" data-bs-target="#content-coagulation" type="button" role="tab">
+        <i class="fas fa-tint me-1"></i>Coagulación
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="tab-custom" data-bs-toggle="tab" data-bs-target="#content-custom" type="button" role="tab">
+        <i class="fas fa-sliders-h me-1"></i>Personalizado
+      </button>
+    </li>
+  </ul>
+
+  <div class="tab-content" id="chart-content">
+    <!-- Principal -->
+    <div class="tab-pane fade show active" id="content-main" role="tabpanel">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="mb-0"><i class="fas fa-th-large text-primary me-2"></i>Dashboard Principal</h5>
+        <small class="text-muted">FC, TAS, TAD, FR, SpO2, Temp, Diuresis, Balance</small>
+      </div>
+      <div id="chart-main" class="chart-container theme-bg rounded p-3 text-center">
+        <p class="text-muted"><i class="fas fa-chart-line fa-2x mb-2 d-block"></i>Selecciona un paciente y presiona Cargar</p>
+      </div>
+    </div>
+
+    <!-- Hemodinámico -->
+    <div class="tab-pane fade" id="content-hemodynamic" role="tabpanel">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="mb-0"><i class="fas fa-heartbeat text-danger me-2"></i>Sistema Hemodinámico</h5>
+        <small class="text-muted">FC, TAS, TAD, TAM, Glasgow, RASS</small>
+      </div>
+      <div id="chart-hemodynamic" class="chart-container theme-bg rounded p-3 text-center">
+        <p class="text-muted">Selecciona un paciente y presiona Cargar</p>
+      </div>
+    </div>
+
+    <!-- Renal -->
+    <div class="tab-pane fade" id="content-renal" role="tabpanel">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="mb-0"><i class="fas fa-kidney text-info me-2"></i>Sistema Renal</h5>
+        <small class="text-muted">Creatinina, BUN, Diuresis, Balance, Na, K</small>
+      </div>
+      <div id="chart-renal" class="chart-container theme-bg rounded p-3 text-center">
+        <p class="text-muted">Selecciona un paciente y presiona Cargar</p>
+      </div>
+    </div>
+
+    <!-- Ventilatorio -->
+    <div class="tab-pane fade" id="content-ventilatory" role="tabpanel">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="mb-0"><i class="fas fa-lungs text-success me-2"></i>Sistema Ventilatorio</h5>
+        <small class="text-muted">FR, SpO2, FiO2, PaFi, PEEP, Ppico</small>
+      </div>
+      <div id="chart-ventilatory" class="chart-container theme-bg rounded p-3 text-center">
+        <p class="text-muted">Selecciona un paciente y presiona Cargar</p>
+      </div>
+    </div>
+
+    <!-- Metabólico -->
+    <div class="tab-pane fade" id="content-metabolic" role="tabpanel">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="mb-0"><i class="fas fa-flask text-warning me-2"></i>Metabólico / Gasometría</h5>
+        <small class="text-muted">pH, Lactato, Glucosa, HCO3, pCO2, Temp</small>
+      </div>
+      <div id="chart-metabolic" class="chart-container theme-bg rounded p-3 text-center">
+        <p class="text-muted">Selecciona un paciente y presiona Cargar</p>
+      </div>
+    </div>
+
+    <!-- Hematológico -->
+    <div class="tab-pane fade" id="content-hematologic" role="tabpanel">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="mb-0"><i class="fas fa-vial text-purple me-2"></i>Hematológico / Inflamación</h5>
+        <small class="text-muted">Hb, Hto, Leu, Plaq, INR, PCR</small>
+      </div>
+      <div id="chart-hematologic" class="chart-container theme-bg rounded p-3 text-center">
+        <p class="text-muted">Selecciona un paciente y presiona Cargar</p>
+      </div>
+    </div>
+
+    <!-- Hepático -->
+    <div class="tab-pane fade" id="content-liver" role="tabpanel">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="mb-0"><i class="fas fa-liver text-warning me-2"></i>Función Hepática</h5>
+        <small class="text-muted">BT, Alb, ALT, AST, DHL</small>
+      </div>
+      <div id="chart-liver" class="chart-container theme-bg rounded p-3 text-center">
+        <p class="text-muted">Selecciona un paciente y presiona Cargar</p>
+      </div>
+    </div>
+
+    <!-- Coagulación -->
+    <div class="tab-pane fade" id="content-coagulation" role="tabpanel">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="mb-0"><i class="fas fa-tint text-danger me-2"></i>Coagulación</h5>
+        <small class="text-muted">INR, TP, TTP, Fibrinógeno, Dímero D</small>
+      </div>
+      <div id="chart-coagulation" class="chart-container theme-bg rounded p-3 text-center">
+        <p class="text-muted">Selecciona un paciente y presiona Cargar</p>
+      </div>
+    </div>
+
+    <!-- Personalizado -->
+    <div class="tab-pane fade" id="content-custom" role="tabpanel">
+      <div class="row">
+        <div class="col-md-3">
+          <div class="card theme-card">
+            <div class="card-header">
+              <h6 class="mb-0"><i class="fas fa-list me-2"></i>Parámetros</h6>
+            </div>
+            <div class="card-body" style="max-height: 500px; overflow-y: auto;">
+              <div id="custom-params-list"></div>
+            </div>
+            <div class="card-footer">
+              <button id="btn-guardar-perfil" class="btn btn-sm btn-outline-primary w-100">
+                <i class="fas fa-save me-1"></i>Guardar Perfil
+              </button>
+              <select id="perfil-select" class="form-select form-select-sm theme-input mt-2">
+                <option value="">Cargar perfil...</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-9">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5 class="mb-0"><i class="fas fa-sliders-h text-primary me-2"></i>Gráfica Personalizada</h5>
+            <button id="btn-generar-custom" class="btn btn-sm btn-primary" disabled>
+              <i class="fas fa-chart-line me-1"></i>Generar
+            </button>
+          </div>
+          <div id="chart-custom" class="chart-container theme-bg rounded p-3 text-center">
+            <p class="text-muted">Selecciona parámetros de la lista y presiona Generar</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Info del paciente -->
+  <div id="patient-info" class="mt-3 d-none">
+    <div class="alert alert-info">
+      <strong id="info-nombre"></strong> — <span id="info-expediente"></span>
+      <span class="float-end">Evoluciones: <span id="info-count"></span></span>
+    </div>
+  </div>
+
+  <!-- Botón exportar -->
+  <div class="mt-3 text-end">
+    <button id="btn-exportar" class="btn btn-outline-success" disabled>
+      <i class="fas fa-file-csv me-1"></i>Exportar CSV
+    </button>
+  </div>
+</div>
+
+<style>
+.chart-container {
+  min-height: 450px;
+}
+.chart-container img {
+  max-width: 100%;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+.param-checkbox {
+  margin-bottom: 0.4rem;
+}
+.param-checkbox label {
+  font-size: 0.85rem;
+}
+.text-purple {
+  color: #8b5cf6 !important;
+}
+.theme-bg {
+  background: var(--bs-dark-bg-subtle, #1a1a1a);
+}
+</style>
+
+<script>
+// ============================================================
+// AX - ANÁLISIS DE TENDENCIAS v2
+// ============================================================
+
+const API_BASE = '/api/patient';
+let currentPatientId = null;
+let currentEvolutions = [];
+let customSelected = [];
+let currentTheme = 'medical';
+
+// Parámetros disponibles
+const PARAMS_DISPONIBLES = [
+  // Signos vitales
+  { campo: 'fc', label: 'FC (lpm)', color: '#ef4444', categoria: 'Vital' },
+  { campo: 'fr', label: 'FR (rpm)', color: '#f97316', categoria: 'Vital' },
+  { campo: 'tas', label: 'TAS (mmHg)', color: '#ef4444', categoria: 'Vital' },
+  { campo: 'tad', label: 'TAD (mmHg)', color: '#60a5fa', categoria: 'Vital' },
+  { campo: 'tam', label: 'TAM (mmHg)', color: '#8b5cf6', categoria: 'Vital' },
+  { campo: 'temperatura', label: 'Temperatura (°C)', color: '#f59e0b', categoria: 'Vital' },
+  { campo: 'spo2', label: 'SpO2 (%)', color: '#10b981', categoria: 'Vital' },
+  { campo: 'fio2', label: 'FiO2 (%)', color: '#06b6d4', categoria: 'Vital' },
+  { campo: 'glasgow', label: 'Glasgow', color: '#84cc16', categoria: 'Vital' },
+  { campo: 'rass', label: 'RASS', color: '#a855f7', categoria: 'Vital' },
+  
+  // Ventilación
+  { campo: 'pafi', label: 'PaFi', color: '#ec4899', categoria: 'Ventilación' },
+  { campo: 'peep', label: 'PEEP (cmH2O)', color: '#f43f5e', categoria: 'Ventilación' },
+  { campo: 'ppico', label: 'Ppico (cmH2O)', color: '#f59e0b', categoria: 'Ventilación' },
+  { campo: 'pplat', label: 'Pplat (cmH2O)', color: '#6366f1', categoria: 'Ventilación' },
+  
+  // Líquidos
+  { campo: 'balance', label: 'Balance (mL)', color: '#4ade80', categoria: 'Líquidos' },
+  { campo: 'diuresis', label: 'Diuresis (mL)', color: '#60a5fa', categoria: 'Líquidos' },
+  { campo: 'balance_global', label: 'Balance Global (mL)', color: '#ec4899', categoria: 'Líquidos' },
+  
+  // Hematología
+  { campo: 'hemoglobina', label: 'Hb (g/dL)', color: '#ef4444', categoria: 'Hematología' },
+  { campo: 'hematocrito', label: 'Hto (%)', color: '#f97316', categoria: 'Hematología' },
+  { campo: 'plaquetas', label: 'Plaq (×10³/μL)', color: '#8b5cf6', categoria: 'Hematología' },
+  { campo: 'leucocitos', label: 'Leu (×10³/μL)', color: '#60a5fa', categoria: 'Hematología' },
+  { campo: 'neutrofilos', label: 'Neut (%)', color: '#ec4899', categoria: 'Hematología' },
+  { campo: 'linfocitos', label: 'Linf (%)', color: '#10b981', categoria: 'Hematología' },
+  
+  // Bioquímica
+  { campo: 'creatinina', label: 'Creatinina (mg/dL)', color: '#ec4899', categoria: 'Bioquímica' },
+  { campo: 'urea', label: 'BUN (mg/dL)', color: '#f97316', categoria: 'Bioquímica' },
+  { campo: 'sodio', label: 'Sodio (mEq/L)', color: '#06b6d4', categoria: 'Bioquímica' },
+  { campo: 'potasio', label: 'Potasio (mEq/L)', color: '#84cc16', categoria: 'Bioquímica' },
+  { campo: 'cloro', label: 'Cloro (mEq/L)', color: '#f59e0b', categoria: 'Bioquímica' },
+  { campo: 'glucosa', label: 'Glucosa (mg/dL)', color: '#f59e0b', categoria: 'Bioquímica' },
+  
+  // Gasometría
+  { campo: 'ph', label: 'pH', color: '#ef4444', categoria: 'Gasometría' },
+  { campo: 'pco2', label: 'pCO2 (mmHg)', color: '#8b5cf6', categoria: 'Gasometría' },
+  { campo: 'hco3', label: 'HCO3 (mEq/L)', color: '#60a5fa', categoria: 'Gasometría' },
+  { campo: 'lactato', label: 'Lactato (mmol/L)', color: '#f43f5e', categoria: 'Gasometría' },
+  
+  // Coagulación
+  { campo: 'inr', label: 'INR', color: '#ef4444', categoria: 'Coagulación' },
+  { campo: 'tp', label: 'TP (seg)', color: '#f97316', categoria: 'Coagulación' },
+  { campo: 'ttp', label: 'TTP (seg)', color: '#60a5fa', categoria: 'Coagulación' },
+  { campo: 'fibrinogeno', label: 'Fibrinógeno (mg/dL)', color: '#8b5cf6', categoria: 'Coagulación' },
+  { campo: 'dimero_d', label: 'Dímero D (ng/mL)', color: '#ec4899', categoria: 'Coagulación' },
+  
+  // Hepático
+  { campo: 'bilirrubina_total', label: 'BT (mg/dL)', color: '#f59e0b', categoria: 'Hepático' },
+  { campo: 'albumina', label: 'Alb (g/dL)', color: '#60a5fa', categoria: 'Hepático' },
+  { campo: 'alt', label: 'ALT (U/L)', color: '#ef4444', categoria: 'Hepático' },
+  { campo: 'ast', label: 'AST (U/L)', color: '#f97316', categoria: 'Hepático' },
+  
+  // Inflamación
+  { campo: 'pcr', label: 'PCR (mg/L)', color: '#10b981', categoria: 'Inflamación' },
+  { campo: 'pct', label: 'PCT (ng/mL)', color: '#06b6d4', categoria: 'Inflamación' },
+  { campo: 'troponina', label: 'Troponina', color: '#ef4444', categoria: 'Cardíaco' },
+  { campo: 'bnp', label: 'BNP (pg/mL)', color: '#8b5cf6', categoria: 'Cardíaco' },
+];
+
+// Inicializar
+$(function() {
+  initCustomParams();
+  loadPerfiles();
+
+  $('#btn-cargar').on('click', cargarPaciente);
+  $('#btn-exportar').on('click', exportarCSV);
+  $('#btn-generar-custom').on('click', generarCustom);
+  $('#btn-guardar-perfil').on('click', guardarPerfil);
+  $('#perfil-select').on('change', cargarPerfil);
+  $('#theme-toggle').on('change', function() {
+    currentTheme = $(this).is(':checked') ? 'light' : 'medical';
+    if (currentPatientId) cargarTodasLasGraficas();
+  });
+
+  // Auto-cargar si hay paciente en URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const patientId = urlParams.get('patient_id');
+  if (patientId) {
+    $('#patient-select').val(patientId);
+  }
+});
+
+function initCustomParams() {
+  const container = $('#custom-params-list');
+  container.empty();
+  
+  // Agrupar por categoría
+  const categorias = {};
+  PARAMS_DISPONIBLES.forEach(p => {
+    if (!categorias[p.categoria]) categorias[p.categoria] = [];
+    categorias[p.categoria].push(p);
+  });
+  
+  Object.keys(categorias).sort().forEach(cat => {
+    container.append(`<h6 class="mt-3 mb-2 text-primary">${cat}</h6>`);
+    categorias[cat].forEach(p => {
+      container.append(`
+        <div class="param-checkbox form-check">
+          <input class="form-check-input" type="checkbox" value="${p.campo}" 
+                 id="chk-${p.campo}" data-color="${p.color}" data-label="${p.label}">
+          <label class="form-check-label" for="chk-${p.campo}" style="color: ${p.color}">
+            ${p.label}
+          </label>
+        </div>
+      `);
+    });
+  });
+
+  $('#custom-params-list').on('change', 'input[type="checkbox"]', function() {
+    customSelected = [];
+    $('#custom-params-list input:checked').each(function() {
+      const campo = $(this).val();
+      const param = PARAMS_DISPONIBLES.find(p => p.campo === campo);
+      if (param) customSelected.push(param);
+    });
+    $('#btn-generar-custom').prop('disabled', customSelected.length === 0);
+  });
+}
+
+async function cargarPaciente() {
+  const patientId = $('#patient-select').val();
+  if (!patientId) {
+    alert('Selecciona un paciente');
+    return;
+  }
+
+  currentPatientId = patientId;
+
+  try {
+    const response = await fetch(`${API_BASE}/${patientId}/trends?limit=50`, {
+      credentials: 'include'
+    });
+
+    if (!response.ok) throw new Error('Error al cargar datos');
+
+    const data = await response.json();
+    currentEvolutions = data.evoluciones || [];
+
+    // Info
+    $('#info-nombre').text(data.nombre_completo || 'Paciente');
+    $('#info-expediente').text(`ID: ${patientId}`);
+    $('#info-count').text(currentEvolutions.length);
+    $('#patient-info').removeClass('d-none');
+    $('#btn-exportar').prop('disabled', currentEvolutions.length === 0);
+
+    cargarTodasLasGraficas();
+
+  } catch (err) {
+    console.error('Error cargando paciente:', err);
+    alert('Error al cargar datos del paciente');
+  }
+}
+
+async function cargarTodasLasGraficas() {
+  if (!currentPatientId) return;
+
+  const chartTypes = ['main', 'hemodynamic', 'renal', 'ventilatory', 'metabolic', 
+                      'hematologic', 'liver', 'coagulation'];
+  
+  for (const tipo of chartTypes) {
+    await cargarGrafica(tipo, `chart-${tipo}`, currentTheme);
+  }
+}
+
+async function cargarGrafica(tipo, containerId, theme) {
+  const container = $(`#${containerId}`);
+  container.html('<p class="text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Generando gráfica...</p>');
+
+  try {
+    const response = await fetch(
+      `${API_BASE}/${currentPatientId}/trends/chart?type=${tipo}&theme=${theme}&limit=50`,
+      { credentials: 'include' }
+    );
+
+    if (!response.ok) {
+      const err = await response.json();
+      container.html(`<p class="text-warning">${err.error || 'Sin datos'}</p>`);
+      return;
+    }
+
+    const data = await response.json();
+    if (data.image) {
+      container.html(`<img src="${data.image}" alt="${data.title}" class="img-fluid">`);
+    } else {
+      container.html('<p class="text-warning">No hay datos suficientes</p>');
+    }
+  } catch (err) {
+    console.error(`Error en gráfica ${tipo}:`, err);
+    container.html('<p class="text-danger">Error al generar gráfica</p>');
+  }
+}
+
+async function generarCustom() {
+  if (!currentPatientId || customSelected.length === 0) return;
+
+  const container = $('#chart-custom');
+  container.html('<p class="text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Generando...</p>');
+
+  const params = new URLSearchParams();
+  params.append('type', 'custom');
+  params.append('theme', currentTheme);
+  params.append('limit', '50');
+
+  customSelected.forEach(p => {
+    params.append(`param_${p.campo}`, '1');
+    params.append(`label_${p.campo}`, p.label);
+    params.append(`color_${p.campo}`, p.color);
+  });
+
+  try {
+    const response = await fetch(
+      `${API_BASE}/${currentPatientId}/trends/chart?${params.toString()}`,
+      { credentials: 'include' }
+    );
+
+    if (!response.ok) throw new Error('Error generando gráfica');
+
+    const data = await response.json();
+    if (data.image) {
+      container.html(`<img src="${data.image}" alt="Personalizado" class="img-fluid">`);
+    } else {
+      container.html('<p class="text-warning">No hay datos suficientes</p>');
+    }
+  } catch (err) {
+    console.error('Error gráfica custom:', err);
+    container.html('<p class="text-danger">Error al generar gráfica personalizada</p>');
+  }
+}
+
+// Perfiles guardables
+function guardarPerfil() {
+  if (customSelected.length === 0) {
+    alert('Selecciona al menos un parámetro');
+    return;
+  }
+
+  const nombre = prompt('Nombre del perfil:');
+  if (!nombre) return;
+
+  const perfiles = JSON.parse(localStorage.getItem('ax_perfiles_v2') || '[]');
+  perfiles.push({
+    id: Date.now(),
+    nombre: nombre,
+    parametros: customSelected.map(p => p.campo),
+    creado: new Date().toISOString()
+  });
+
+  localStorage.setItem('ax_perfiles_v2', JSON.stringify(perfiles));
+  loadPerfiles();
+  alert('Perfil guardado');
+}
+
+function loadPerfiles() {
+  const perfiles = JSON.parse(localStorage.getItem('ax_perfiles_v2') || '[]');
+  const select = $('#perfil-select');
+  select.empty().append('<option value="">Cargar perfil...</option>');
+
+  perfiles.forEach(p => {
+    select.append(`<option value="${p.id}">${p.nombre} (${p.parametros.length} params)</option>`);
+  });
+}
+
+function cargarPerfil() {
+  const perfilId = parseInt($('#perfil-select').val());
+  if (!perfilId) return;
+
+  const perfiles = JSON.parse(localStorage.getItem('ax_perfiles_v2') || '[]');
+  const perfil = perfiles.find(p => p.id === perfilId);
+  if (!perfil) return;
+
+  $('#custom-params-list input').prop('checked', false);
+  perfil.parametros.forEach(campo => {
+    $(`#chk-${campo}`).prop('checked', true);
+  });
+
+  customSelected = [];
+  $('#custom-params-list input:checked').each(function() {
+    const campo = $(this).val();
+    const param = PARAMS_DISPONIBLES.find(p => p.campo === campo);
+    if (param) customSelected.push(param);
+  });
+
+  $('#btn-generar-custom').prop('disabled', false);
+}
+
+// Exportar CSV
+function exportarCSV() {
+  if (!currentEvolutions.length) {
+    alert('No hay datos para exportar');
+    return;
+  }
+
+  const headers = Object.keys(currentEvolutions[0]);
+  const rows = currentEvolutions.map(evo => {
+    return headers.map(h => {
+      const val = evo[h];
+      if (val === null || val === undefined) return '';
+      if (typeof val === 'string' && val.includes(',')) return `"${val}"`;
+      return val;
+    }).join(',');
+  });
+
+  const csv = [headers.join(','), ...rows].join('\\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `evoluciones_${currentPatientId}_${new Date().toISOString().split('T')[0]}.csv`;
+  link.click();
+}
+
+// Recargar al cambiar de tab
+$('button[data-bs-toggle="tab"]').on('shown.bs.tab', function(e) {
+  const target = $(e.target).attr('data-bs-target');
+  if (target === '#content-custom' && currentPatientId && customSelected.length > 0) {
+    generarCustom();
+  }
+});
+</script>
+{% endblock %}

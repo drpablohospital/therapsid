@@ -1,0 +1,336 @@
+{% extends "base.html" %}
+
+{% block title %}Nueva Evolución - {{ patient.nombre_completo }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h2>📝 Nueva Evolución Clínica</h2>
+                <p style="color: var(--text-secondary); margin-top: 5px;">
+                    Paciente: <strong>{{ patient.nombre_completo }}</strong> | 
+                    Expediente: <strong>{{ patient.expediente or 'N/A' }}</strong> | 
+                    Cama: <strong>{{ patient.cama or 'N/A' }}</strong>
+                </p>
+            </div>
+            <a href="/patient/{{ patient.id }}" class="btn btn-secondary">← Volver al Paciente</a>
+        </div>
+    </div>
+
+    <!-- Tabs Navigation -->
+    <div class="tabs">
+        <button type="button" class="tab active" data-tab="contextual" onclick="showTab('contextual')">📋</button>
+        <button type="button" class="tab" data-tab="signos" onclick="showTab('signos')">🩺</button>
+        <button type="button" class="tab" data-tab="ventilatorio" onclick="showTab('ventilatorio')">🫁</button>
+        <button type="button" class="tab" data-tab="laboratorio" onclick="showTab('laboratorio')">🧪</button>
+        <button type="button" class="tab" data-tab="nota" onclick="showTab('nota')">📝</button>
+        <button type="button" class="tab" data-tab="plan" onclick="showTab('plan')">📋</button>
+    </div>
+
+    <div class="card-body">
+        <form method="POST" action="/patient/{{ patient.id }}/evolution" id="evolutionForm">
+            
+            <!-- 📋 Fecha y Hora -->
+            <div id="tab-contextual" class="tab-content active">
+                <div class="card-body">
+                    <h3 style="color: var(--accent); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px;">📅 Fecha y Hora</h3>
+                    <div class="section-grid">
+                        <div class="form-group">
+                            <label>Fecha *</label>
+                            <input type="date" name="fecha" required 
+                                   value="{{ today }}">
+                        </div>
+                        <div class="form-group">
+                            <label>Hora *</label>
+                            <input type="time" name="hora" required
+                                   value="{{ now }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 🩺 Signos Vitales -->
+            <div id="tab-signos" class="tab-content">
+                <div class="card-body">
+                    <h3 style="color: var(--accent); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px;">🩺 Signos Vitales</h3>
+                    <div class="section-grid">
+                        <div class="form-group">
+                            <label>FC (lpm)</label>
+                            <input type="number" name="fc" min="30" max="200" 
+                                   placeholder="60-100">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>FR (rpm)</label>
+                            <input type="number" name="fr" min="8" max="40" 
+                                   placeholder="12-20">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>TAS (mmHg)</label>
+                            <input type="number" name="tas" min="60" max="220" 
+                                   placeholder="Sistólica">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>TAD (mmHg)</label>
+                            <input type="number" name="tad" min="40" max="140" 
+                                   placeholder="Diastólica">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>TAM (mmHg) <span class="calculated-badge">⚡</span></label>
+                            <input type="number" name="tam" step="0.1" 
+                                   placeholder="Media calculada" class="form-control calculated-field" readonly>
+                            <small class="calculated-hint">TAM = TAD + (TAS - TAD) / 3</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Temperatura (°C)</label>
+                            <input type="number" name="temperatura" step="0.1" min="32" max="42" 
+                                   placeholder="36.0-37.5">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>SpO2 (%)</label>
+                            <input type="number" name="spo2" min="50" max="100" 
+                                   placeholder="> 95%">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>FiO2 (%)</label>
+                            <input type="number" name="fio2" min="21" max="100" 
+                                   placeholder="21-100">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>PaFi <span class="calculated-badge">⚡</span></label>
+                            <input type="number" name="pafi" step="0.1" 
+                                   placeholder="Ratio PaO2/FiO2" class="form-control calculated-field" readonly>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Glasgow (3-15)</label>
+                            <input type="number" name="glasgow" min="3" max="15" 
+                                   placeholder="15 = Normal">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>RASS (-5 a +4)</label>
+                            <input type="number" name="rass" min="-5" max="4" 
+                                   placeholder="0 = Alerta">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 🫁 Ventilatorio -->
+            <div id="tab-ventilatorio" class="tab-content">
+                <div class="card-body">
+                    <h3 style="color: var(--accent); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px;">🫁 Parámetros Ventilatorios</h3>
+                    <div class="section-grid">
+                        <div class="form-group">
+                            <label>Modo Ventilatorio</label>
+                            <select name="modo_ventilatorio">
+                                <option value="">No ventilado</option>
+                                <option value="VMI">VMI - Ventilación Mandatoria Intermitente</option>
+                                <option value="VCV">VCV - Volumen Controlado</option>
+                                <option value="PCV">PCV - Presión Controlada</option>
+                                <option value="SIMV">SIMV</option>
+                                <option value="PSV">PSV - Presión de Soporte</option>
+                                <option value="CPAP">CPAP</option>
+                                <option value="BiPAP">BiPAP</option>
+                                <option value="APRV">APRV</option>
+                                <option value="HFO">HFO - Oscilación de Alta Frecuencia</option>
+                                <option value="Otro">Otro</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>VT/PS/NP (ml)</label>
+                            <input type="number" name="vt_psinp" 
+                                   placeholder="Volumen tidal">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>PEEP (cmH2O)</label>
+                            <input type="number" name="peep" 
+                                   placeholder="5-15">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>P Pico (cmH2O)</label>
+                            <input type="number" name="ppico" 
+                                   placeholder="Presión pico">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>P Plat (cmH2O)</label>
+                            <input type="number" name="pplat" 
+                                   placeholder="Presión plateau">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 🧪 Laboratorio -->
+            <div id="tab-laboratorio" class="tab-content">
+                <div class="card-body">
+                    <h3 style="color: var(--accent); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px;">🧪 Laboratorio Básico</h3>
+                    <div class="section-grid">
+                        <div class="form-group">
+                            <label>Glucosa (mg/dL)</label>
+                            <input type="number" name="glucosa" step="0.1" min="30" max="600" 
+                                   placeholder="70-110">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Sodio (mEq/L)</label>
+                            <input type="number" name="sodio" step="0.1" min="100" max="180" 
+                                   placeholder="135-145">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Potasio (mEq/L)</label>
+                            <input type="number" name="potasio" step="0.01" min="2" max="8" 
+                                   placeholder="3.5-5.0">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Creatinina (mg/dL)</label>
+                            <input type="number" name="creatinina" step="0.01" min="0.1" max="15" 
+                                   placeholder="0.6-1.2">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Urea (mg/dL)</label>
+                            <input type="number" name="urea" step="0.1" min="5" max="200" 
+                                   placeholder="10-50">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 📝 Nota -->
+            <div id="tab-nota" class="tab-content">
+                <div class="card-body">
+                    <h3 style="color: var(--accent); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px;">📝 Nota de Evolución</h3>
+                    <div class="form-group">
+                        <label>Descripción de la evolución clínica *</label>
+                        <textarea name="nota" rows="12" required
+                                  placeholder="Describa la evolución del paciente, cambios en el estado clínico, respuesta al tratamiento, procedimientos realizados, etc..."
+                                  style="font-family: inherit; font-size: 0.95rem;"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 📋 Plan -->
+            <div id="tab-plan" class="tab-content">
+                <div class="card-body">
+                    <h3 style="color: var(--accent); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px;">📋 Plan</h3>
+                    <div class="form-group">
+                        <label>Plan de manejo y órdenes médicas</label>
+                        <textarea name="plan" rows="10" 
+                                  placeholder="Indique ajustes en el tratamiento, nuevas órdenes, estudios a solicitar, consultas, etc..."
+                                  style="font-family: inherit; font-size: 0.95rem;"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div style="display: flex; gap: 10px; justify-content: flex-end; padding-top: 20px; border-top: 1px solid var(--border);">
+                <a href="/patient/{{ patient.id }}" class="btn btn-secondary">Cancelar</a>
+                <button type="reset" class="btn btn-secondary">Limpiar</button>
+                <button type="submit" class="btn">💾 Guardar Evolución</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+// ============================================================================
+// Tab Navigation
+// ============================================================================
+function showTab(tabName) {
+    // Ocultar todas las tabs
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+    });
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Mostrar tab seleccionada
+    const selectedContent = document.getElementById('tab-' + tabName);
+    const selectedTab = document.querySelector('.tab[data-tab="' + tabName + '"]');
+    
+    if (selectedContent) selectedContent.classList.add('active');
+    if (selectedTab) selectedTab.classList.add('active');
+}
+
+// Auto-calculate TAM when TAS and TAD are entered
+document.querySelector('[name="tas"]').addEventListener('input', calculateTAM);
+document.querySelector('[name="tad"]').addEventListener('input', calculateTAM);
+
+function calculateTAM() {
+    const tas = parseFloat(document.querySelector('[name="tas"]').value);
+    const tad = parseFloat(document.querySelector('[name="tad"]').value);
+    
+    if (tas && tad) {
+        const tam = ((tas - tad) / 3) + tad;
+        document.querySelector('[name="tam"]').value = tam.toFixed(1);
+    }
+}
+
+// Auto-calculate PaFi when SpO2 and FiO2 are entered (estimation)
+document.querySelector('[name="spo2"]').addEventListener('input', calculatePaFi);
+document.querySelector('[name="fio2"]').addEventListener('input', calculatePaFi);
+
+function calculatePaFi() {
+    const spo2 = parseFloat(document.querySelector('[name="spo2"]').value);
+    const fio2 = parseFloat(document.querySelector('[name="fio2"]').value);
+    
+    if (spo2 && fio2 && fio2 > 0) {
+        // Approximate PaO2 from SpO2 (simplified)
+        const pao2 = spo2 < 99 ? spo2 * 0.9 : 95; // rough approximation
+        const pafi = (pao2 * 100) / fio2;
+        document.querySelector('[name="pafi"]').value = pafi.toFixed(1);
+    }
+}
+
+// Set current date/time if not already set
+document.addEventListener('DOMContentLoaded', function() {
+    const dateInput = document.querySelector('[name="fecha"]');
+    const timeInput = document.querySelector('[name="hora"]');
+    
+    if (!dateInput.value) {
+        const now = new Date();
+        dateInput.value = now.toISOString().split('T')[0];
+    }
+    
+    if (!timeInput.value) {
+        const now = new Date();
+        timeInput.value = now.toTimeString().slice(0, 5);
+    }
+});
+
+// Form validation
+document.getElementById('evolutionForm').addEventListener('submit', function(e) {
+    const fecha = document.querySelector('[name="fecha"]').value;
+    const hora = document.querySelector('[name="hora"]').value;
+    const nota = document.querySelector('[name="nota"]').value;
+    
+    if (!fecha || !hora || !nota.trim()) {
+        e.preventDefault();
+        alert('Por favor complete los campos obligatorios: Fecha, Hora y Nota de Evolución');
+        return false;
+    }
+    
+    return true;
+});
+</script>
+{% endblock %}
+
+{% endblock %}

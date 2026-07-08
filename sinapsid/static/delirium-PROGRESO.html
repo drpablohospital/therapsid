@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delirium en UCI - Presentación</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-primary: #0a1628; --bg-secondary: #111d2e; --accent-cyan: #00d4ff;
+            --accent-orange: #ff6b35; --accent-green: #00d9a3; --text-primary: #ffffff;
+            --text-secondary: #94a3b8; --text-muted: #64748b; --border-subtle: rgba(255,255,255,0.1);
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg-primary); color: var(--text-primary); line-height: 1.5; }
+        .slide { width: 1920px; height: 1080px; margin: 0 auto 20px; background: var(--bg-primary); position: relative; display: flex; flex-direction: column; padding: 45px 65px; page-break-after: always; overflow: hidden; }
+        .slide::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, var(--accent-cyan), var(--accent-orange)); }
+        .slide-number { position: absolute; bottom: 30px; right: 65px; font-size: 14px; color: var(--text-muted); }
+        h1 { font-size: 48px; font-weight: 700; margin-bottom: 18px; background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-cyan) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        h2 { font-size: 34px; font-weight: 600; margin-bottom: 18px; color: var(--text-primary); }
+        h3 { font-size: 26px; font-weight: 600; margin-bottom: 10px; color: var(--accent-cyan); }
+        .content { flex: 1; display: flex; gap: 30px; }
+        .content-full { flex: 1; }
+        .content-text { flex: 0 0 40%; }
+        .content-visual { flex: 1.2; display: flex; align-items: center; justify-content: center; }
+        ul { list-style: none; }
+        li { font-size: 17px; color: var(--text-secondary); margin-bottom: 11px; padding-left: 18px; position: relative; line-height: 1.45; }
+        li::before { content: ''; position: absolute; left: 0; top: 7px; width: 8px; height: 8px; background: var(--accent-cyan); border-radius: 50%; }
+        .ref-inline { color: var(--accent-cyan); font-size: 13px; vertical-align: super; margin-left: 2px; }
+        footer { position: absolute; bottom: 30px; left: 65px; right: 120px; font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+        .highlight-box { background: var(--bg-secondary); border-left: 4px solid var(--accent-cyan); padding: 18px 22px; border-radius: 0 8px 8px 0; margin: 12px 0; }
+        .highlight-box.orange { border-left-color: var(--accent-orange); }
+        .highlight-box.green { border-left-color: var(--accent-green); }
+        .stat-number { font-size: 65px; font-weight: 700; color: var(--accent-cyan); display: block; }
+        .stat-label { font-size: 15px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; }
+        table { width: 100%; border-collapse: collapse; font-size: 15px; margin-top: 10px; }
+        th { background: var(--bg-secondary); color: var(--accent-cyan); font-weight: 600; text-align: left; padding: 12px 14px; border-bottom: 2px solid var(--accent-cyan); }
+        td { padding: 10px 14px; border-bottom: 1px solid var(--border-subtle); color: var(--text-secondary); }
+        .slide-cover { justify-content: center; text-align: center; }
+        .slide-cover h1 { font-size: 62px; margin-bottom: 18px; }
+        .subtitle { font-size: 26px; color: var(--text-secondary); margin-bottom: 45px; }
+        .author { font-size: 22px; color: var(--accent-cyan); margin-bottom: 10px; }
+        .institution { font-size: 16px; color: var(--text-muted); }
+        .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 25px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+        .card { background: var(--bg-secondary); border-radius: 10px; padding: 22px; border: 1px solid var(--border-subtle); }
+        .card h4 { color: var(--accent-cyan); font-size: 20px; margin-bottom: 12px; }
+        .timeline { position: relative; padding-left: 30px; }
+        .timeline::before { content: ''; position: absolute; left: 8px; top: 0; bottom: 0; width: 3px; background: linear-gradient(180deg, var(--accent-cyan), var(--accent-orange)); }
+        .timeline-item { position: relative; margin-bottom: 22px; }
+        .timeline-item::before { content: ''; position: absolute; left: -26px; top: 5px; width: 11px; height: 11px; background: var(--accent-cyan); border-radius: 50%; border: 3px solid var(--bg-primary); }
+        .timeline-year { color: var(--accent-orange); font-weight: 600; font-size: 15px; }
+        .bar-chart { display: flex; align-items: flex-end; gap: 18px; height: 280px; padding: 25px; background: var(--bg-secondary); border-radius: 10px; }
+        .bar { flex: 1; background: var(--accent-cyan); border-radius: 6px 6px 0 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 10px; min-height: 50px; }
+        .bar-label { font-size: 14px; color: var(--text-secondary); margin-top: 8px; text-align: center; font-weight: 500; }
+        svg { max-width: 100%; height: auto; }
+        .pie-chart { width: 380px; height: 380px; }
+        .flowchart { width: 100%; max-width: 700px; }
+        .large-svg { width: 600px; height: 450px; }
+    </style>
+</head>
+<body>
+
+<!-- SLIDE 1: PORTADA -->
+<section class="slide slide-cover">
+    <h1>Delirium en Terapia Intensiva</h1>
+    <div class="subtitle">De la Neuroinflamación a la Medicina de Precisión</div>
+    <div class="author">José Pablo Fernández Magaña</div>
+    <div class="institution">R1 UCI HGSJDR · 22/04/2026</div>
+    <span class="slide-number">1 / 48</span>
+</section>
+
+<!-- SLIDE 2: AGENDA -->
+<section class="slide">
+    <h1>Agenda</h1>
+    <div class="content">
+        <div class="content-text">
+            <ul>
+                <li><strong>Definición y epidemiología</strong> — Prevalencia 35,7% <span class="ref-inline">[1]</span></li>
+                <li><strong>Paradoja del delirium</strong> — Disonancia evidencia-práctica <span class="ref-inline">[1,3,4]</span></li>
+                <li><strong>Fisiopatología integrada</strong> — Neuroinflamación, biomarcadores <span class="ref-inline">[2]</span></li>
+                <li><strong>Historia natural</strong> — Fenotipos y PICS <span class="ref-inline">[8,14]</span></li>
+                <li><strong>Diagnóstico</strong> — CAM-ICU, RASS, EEG <span class="ref-inline">[15]</span></li>
+            </ul>
+        </div>
+        <div class="content-text">
+            <ul>
+                <li><strong>Tratamiento no farmacológico</strong> — Bundle ABCDEF <span class="ref-inline">[3]</span></li>
+                <li><strong>Tratamiento farmacológico</strong> — Dexmedetomidina RR 0,59 <span class="ref-inline">[4,5]</span></li>
+                <li><strong>Antipsicóticos</strong> — ECA MIND-USA, AID-ICU negativos <span class="ref-inline">[8]</span></li>
+                <li><strong>Melatonina</strong> — No efectiva (RR 0,86) <span class="ref-inline">[6]</span></li>
+                <li><strong>Futuro</strong> — IA DeLLiriuM AUROC 82,4% <span class="ref-inline">[9]</span></li>
+            </ul>
+        </div>
+    </div>
+    <footer>[1] Leong AY, et al. Intensive Care Med. 2025;51(11):2079-2092. [3] Kundakci B, et al. Crit Care. 2025;29(1):501. [4] Kundakci B, et al. Crit Care. 2025;29(1):540.</footer>
+    <span class="slide-number">2 / 48</span>
+</section>
+
+<!-- SLIDE 8: LÍNEA DE TIEMPO - 4 ERAS -->
+<section class="slide">
+    <h1>Línea de Tiempo: 4 Eras del Delirium <span class="ref-inline">[15]</span></h1>
+    <div class="content">
+        <div class="content-full">
+            <svg width="100%" height="520" viewBox="0 0 1700 520">
+                <line x1="100" y1="260" x2="1600" y2="260" stroke="var(--text-muted)" stroke-width="3"/>
+                
+                <circle cx="200" cy="260" r="60" fill="var(--accent-cyan)" opacity="0.2" stroke="var(--accent-cyan)" stroke-width="3"/>
+                <text x="200" y="170" text-anchor="middle" fill="var(--accent-cyan)" font-size="20" font-weight="bold">ERA PREMODERNA</text>
+                <text x="200" y="195" text-anchor="middle" fill="var(--text-secondary)" font-size="14">Hipócrates → Celsus</text>
+                <text x="200" y="360" text-anchor="middle" fill="var(--text-muted)" font-size="16">Antigüedad — Siglo XIX</text>
+                
+                <circle cx="600" cy="260" r="60" fill="var(--accent-orange)" opacity="0.2" stroke="var(--accent-orange)" stroke-width="3"/>
+                <text x="600" y="170" text-anchor="middle" fill="var(--accent-orange)" font-size="20" font-weight="bold">OBSERVACIÓN CLÍNICA</text>
+                <text x="600" y="195" text-anchor="middle" fill="var(--text-secondary)" font-size="14">Pinel, Esquirol, delirium tremens</text>
+                <text x="600" y="360" text-anchor="middle" fill="var(--text-muted)" font-size="16">Siglo XIX — Medios XX</text>
+                
+                <circle cx="1000" cy="260" r="60" fill="var(--accent-green)" opacity="0.2" stroke="var(--accent-green)" stroke-width="3"/>
+                <text x="1000" y="170" text-anchor="middle" fill="var(--accent-green)" font-size="20" font-weight="bold">CUANTIFICACIÓN</text>
+                <text x="1000" y="195" text-anchor="middle" fill="var(--text-secondary)" font-size="14">DSM-III, CAM, CAM-ICU, ICDSC</text>
+                <text x="1000" y="360" text-anchor="middle" fill="var(--text-muted)" font-size="16">1980 — 2010</text>
+                
+                <circle cx="1400" cy="260" r="60" fill="var(--text-primary)" opacity="0.1" stroke="var(--text-primary)" stroke-width="3"/>
+                <text x="1400" y="170" text-anchor="middle" fill="var(--text-primary)" font-size="20" font-weight="bold">EVIDENCIA Y PARADOJA</text>
+                <text x="1400" y="195" text-anchor="middle" fill="var(--text-secondary)" font-size="14">PADIS, ECA negativos, IA</text>
+                <text x="1400" y="360" text-anchor="middle" fill="var(--text-muted)" font-size="16">2010 — Presente</text>
+            </svg>
+        </div>
+    </div>
+    <footer>[15] Stollings JL, et al. PADIS Guidelines Update. <em>Crit Care Med</em>. 2025.</footer>
+    <span class="slide-number">8 / 48</span>
+</section>
+
+<!-- SLIDE 9: ERA PREMODERNA -->
+<section class="slide">
+    <h1>Era Premoderna: Orígenes del Concepto <span class="ref-inline">[15]</span></h1>
+    <div class="content">
+        <div class="content-text">
+            <div class="highlight-box">
+                <span class="timeline-year">Siglo V a.C.</span>
+                <h4 style="margin-top: 12px;">Hipócrates</h4>
+                <p style="font-size: 17px; color: var(--text-secondary); margin-top: 8px;">Describe el <strong>"phrenitis"</strong>: inflamación aguda del cerebro asociada a fiebre y confusión <span class="ref-inline">[15]</span>.</p>
+            </div>
+            
+            <div class="highlight-box orange">
+                <span class="timeline-year">Siglo I d.C.</span>
+                <h4 style="margin-top: 12px;">Celsus</h4>
+                <p style="font-size: 17px; color: var(--text-secondary); margin-top: 8px;">Introduce el término <strong>"delirium"</strong> del latín <em>delirare</em>: "salirse del surco" <span class="ref-inline">[15]</span>.</p>
+            </div>
+            
+            <ul>
+                <li><strong>Siglo XVIII:</strong> Diferenciación entre delirium (agudo) y demencia (crónico) <span class="ref-inline">[15]</span></li>
+            </ul>
+        </div>
+        <div class="content-visual">
+            <svg width="550" height="480" viewBox="0 0 550 480" class="large-svg">
+                <rect x="50" y="50" width="200" height="180" rx="15" fill="var(--bg-secondary)" stroke="var(--accent-cyan)" stroke-width="2"/>
+                <text x="150" y="90" text-anchor="middle" fill="var(--accent-cyan)" font-size="22" font-weight="bold">HIPÓCRATES</text>
+                <text x="150" y="120" text-anchor="middle" fill="var(--text-secondary)" font-size="14">460-370 a.C.</text>
+                <text x="150" y="160" text-anchor="middle" fill="var(--text-primary)" font-size="16">"Phrenitis"</text>
+                <text x="150" y="185" text-anchor="middle" fill="var(--text-muted)" font-size="13">Inflamación cerebral</text>
+                
+                <line x1="250" y1="140" x2="320" y2="140" stroke="var(--accent-orange)" stroke-width="3" marker-end="url(#arrow)"/>
+                
+                <rect x="330" y="50" width="200" height="180" rx="15" fill="var(--bg-secondary)" stroke="var(--accent-orange)" stroke-width="2"/>
+                <text x="430" y="90" text-anchor="middle" fill="var(--accent-orange)" font-size="22" font-weight="bold">CELSUS</text>
+                <text x="430" y="120" text-anchor="middle" fill="var(--text-secondary)" font-size="14">25 a.C. — 50 d.C.</text>
+                <text x="430" y="160" text-anchor="middle" fill="var(--text-primary)" font-size="16">"Delirium"</text>
+                <text x="430" y="185" text-anchor="middle" fill="var(--text-muted)" font-size="13">"Salirse del surco"</text>
+                
+                <rect x="150" y="280" width="300" height="120" rx="15" fill="var(--accent-cyan)" opacity="0.1" stroke="var(--accent-cyan)" stroke-width="2"/>
+                <text x="300" y="325" text-anchor="middle" fill="var(--text-primary)" font-size="18" font-weight="bold">Delirium vs Demencia</text>
+                <text x="300" y="355" text-anchor="middle" fill="var(--text-secondary)" font-size="15">Diferenciación siglo XVIII</text>
+            </svg>
+        </div>
+    </div>
+    <footer>[15] Stollings JL, et al. A Focused Update to the PADIS Guidelines. <em>Crit Care Med</em>. 2025.</footer>
+    <span class="slide-number">9 / 48</span>
+</section>
+
+<!-- CONTINUARÉ CON MÁS SLIDES 10-20... -->
+
+</body>
+</html>

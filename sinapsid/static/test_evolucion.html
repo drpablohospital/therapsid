@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Evolución</title>
+</head>
+<body style="font-family: Arial; padding: 20px;">
+    <h1>🧪 Test - Formulario de Evolución</h1>
+    <p>Esta página no requiere autenticación.</p>
+    
+    <form id="evolutionForm">
+        <label>FC: <input type="number" id="fc" value="80"></label><br><br>
+        <label>TAS: <input type="number" id="tas" value="120"></label><br><br>
+        <label>TAD: <input type="number" id="tad" value="80"></label><br><br>
+        <button type="button" onclick="generarNota()">Generar Nota</button>
+    </form>
+    
+    <div id="resultado" style="margin-top: 20px; padding: 20px; background: #f0f0f0; display: none;">
+        <pre id="nota"></pre>
+    </div>
+    
+    <script>
+        function generarNota() {
+            const fc = document.getElementById('fc').value;
+            const tas = document.getElementById('tas').value;
+            const tad = document.getElementById('tad').value;
+            const tam = ((parseFloat(tas) - parseFloat(tad)) / 3) + parseFloat(tad);
+            
+            const nota = `
+NOTA DE EVOLUCIÓN
+=================
+FC: ${fc} lpm
+TAS: ${tas} mmHg
+TAD: ${tad} mmHg
+TAM: ${tam.toFixed(1)} mmHg
+
+Paciente estable.
+            `;
+            
+            document.getElementById('nota').textContent = nota;
+            document.getElementById('resultado').style.display = 'block';
+        }
+    </script>
+</body>
+</html>

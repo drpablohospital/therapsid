@@ -1,0 +1,429 @@
+{% extends "base.html" %}
+
+{% block title %}Biblioteca Médica{% endblock %}
+
+{% block extra_css %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Library Page Styles */
+.library-container {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+    color: var(--text-primary);
+}
+
+.library-header {
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+.library-header h1 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(135deg, #ff6b35, #ff8f5c);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.library-header p {
+    color: var(--text-secondary);
+    font-size: 1rem;
+}
+
+/* Featured Article */
+.featured-article {
+    background: linear-gradient(135deg, rgba(255, 107, 53, 0.1), rgba(139, 92, 246, 0.1));
+    border: 1px solid rgba(255, 107, 53, 0.3);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 3rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.featured-article::before {
+    content: '★ DESTACADO';
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: linear-gradient(135deg, #ff6b35, #ff8f5c);
+    color: #000;
+    padding: 0.375rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.featured-article h2 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    margin-right: 120px;
+    color: #fff;
+}
+
+.featured-summary {
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.7;
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.featured-meta {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.featured-date {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.featured-tags {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.tag {
+    background: rgba(255, 107, 53, 0.2);
+    border: 1px solid rgba(255, 107, 53, 0.3);
+    color: #ff6b35;
+    padding: 0.25rem 0.625rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+/* Search Section */
+.search-section {
+    margin-bottom: 2rem;
+}
+
+.search-box {
+    display: flex;
+    gap: 0.75rem;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.search-input {
+    flex: 1;
+    padding: 1rem 1.25rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: #fff;
+    font-size: 1rem;
+    transition: all 0.2s;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: #ff6b35;
+    box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.2);
+}
+
+.search-input::placeholder {
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.search-btn {
+    padding: 1rem 1.5rem;
+    background: linear-gradient(135deg, #ff6b35, #ff8f5c);
+    border: none;
+    border-radius: 12px;
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.search-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4);
+}
+
+/* Articles Grid */
+.articles-section {
+    margin-top: 2rem;
+}
+
+.section-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.section-title::before {
+    content: '';
+    width: 4px;
+    height: 24px;
+    background: linear-gradient(to bottom, #ff6b35, #ff8f5c);
+    border-radius: 2px;
+}
+
+.articles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 1.5rem;
+}
+
+.article-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: all 0.3s;
+    cursor: pointer;
+    text-decoration: none;
+    display: block;
+}
+
+.article-card:hover {
+    border-color: rgba(255, 107, 53, 0.3);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+
+.article-header {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    align-items: flex-start;
+}
+
+.article-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.article-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #fff;
+    line-height: 1.4;
+    margin: 0;
+}
+
+.article-summary {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.875rem;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.article-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.article-date {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+}
+
+.article-tags {
+    display: flex;
+    gap: 0.375rem;
+    flex-wrap: wrap;
+}
+
+.tag-small {
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.6);
+    padding: 0.125rem 0.5rem;
+    border-radius: 8px;
+    font-size: 0.7rem;
+}
+
+/* Empty State */
+.empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--text-secondary);
+}
+
+.empty-state-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.empty-state h3 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
+    color: #fff;
+}
+
+/* Stats Bar */
+.stats-bar {
+    display: flex;
+    gap: 2rem;
+    justify-content: center;
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #ff6b35;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .library-container {
+        padding: 1rem;
+    }
+    
+    .articles-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .featured-article h2 {
+        font-size: 1.25rem;
+        margin-right: 0;
+    }
+    
+    .featured-article::before {
+        position: relative;
+        top: 0;
+        right: 0;
+        display: inline-block;
+        margin-bottom: 1rem;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="library-container">
+    <div class="library-header">
+        <h1>📚 Biblioteca Médica</h1>
+        <p>Evidencia clínica curada de PubMed y Cochrane</p>
+    </div>
+
+    <!-- Stats Bar -->
+    <div class="stats-bar">
+        <div class="stat-item">
+            <div class="stat-value">{{ stats.total_articles }}</div>
+            <div class="stat-label">Artículos</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value">{{ stats.searches_count }}</div>
+            <div class="stat-label">Búsquedas</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value">{{ stats.study_of_day_count }}</div>
+            <div class="stat-label">Estudios del Día</div>
+        </div>
+    </div>
+
+    <!-- Featured Article -->
+    {% if featured_article %}
+    <div class="featured-article">
+        <h2>{{ featured_article.title }}</h2>
+        <p class="featured-summary">{{ featured_article.summary }}</p>
+        <div class="featured-meta">
+            <span class="featured-date">📅 {{ featured_article.date }}</span>
+            <div class="featured-tags">
+                {% for tag in featured_article.tags[:5] %}
+                <span class="tag">{{ tag }}</span>
+                {% endfor %}
+            </div>
+            <a href="/library/article/{{ featured_article.id }}" class="btn" style="margin-left: auto;">
+                Leer más →
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Search -->
+    <div class="search-section">
+        <form action="/library" method="GET" class="search-box">
+            <input type="text" name="q" class="search-input" placeholder="Buscar artículos, estudios, temas..." value="{{ query or '' }}">
+            <button type="submit" class="search-btn">Buscar</button>
+        </form>
+    </div>
+
+    <!-- Articles Grid -->
+    <div class="articles-section">
+        <h2 class="section-title">
+            {% if query %}
+            Resultados para "{{ query }}"
+            {% else %}
+            Artículos Recientes
+            {% endif %}
+        </h2>
+        
+        {% if articles %}
+        <div class="articles-grid">
+            {% for article in articles %}
+            <a href="/library/article/{{ article.id }}" class="article-card">
+                <div class="article-header">
+                    <span class="article-icon">📄</span>
+                    <h3 class="article-title">{{ article.title[:80] }}{% if article.title|length > 80 %}...{% endif %}</h3>
+                </div>
+                <p class="article-summary">{{ article.summary[:200] }}</p>
+                <div class="article-footer">
+                    <span class="article-date">{{ article.date }}</span>
+                    <div class="article-tags">
+                        {% for tag in article.tags[:3] %}
+                        <span class="tag-small">{{ tag }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">📭</div>
+            <h3>No se encontraron artículos</h3>
+            <p>Intenta con otra búsqueda o revisa más tarde.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

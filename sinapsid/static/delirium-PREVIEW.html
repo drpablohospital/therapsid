@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delirium en UCI - Presentación</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg-primary: #0a1628; --bg-secondary: #111d2e; --accent-cyan: #00d4ff;
+            --accent-orange: #ff6b35; --accent-green: #00d9a3; --text-primary: #ffffff;
+            --text-secondary: #94a3b8; --text-muted: #64748b; --border-subtle: rgba(255,255,255,0.1);
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary); color: var(--text-primary); line-height: 1.5;
+        }
+        .slide {
+            width: 1920px; height: 1080px; margin: 0 auto 20px; background: var(--bg-primary);
+            position: relative; display: flex; flex-direction: column; padding: 50px 70px;
+            page-break-after: always; overflow: hidden;
+        }
+        .slide::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-orange));
+        }
+        .slide-number {
+            position: absolute; bottom: 35px; right: 70px; font-size: 13px; color: var(--text-muted);
+        }
+        h1 {
+            font-size: 50px; font-weight: 700; margin-bottom: 25px;
+            background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-cyan) 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        h2 { font-size: 36px; font-weight: 600; margin-bottom: 25px; color: var(--text-primary); }
+        h3 { font-size: 26px; font-weight: 600; margin-bottom: 15px; color: var(--accent-cyan); }
+        .content { flex: 1; display: flex; gap: 40px; }
+        .content-full { flex: 1; }
+        .content-text { flex: 0 0 45%; }
+        .content-visual { flex: 1; display: flex; align-items: center; justify-content: center; }
+        ul { list-style: none; }
+        li {
+            font-size: 18px; color: var(--text-secondary); margin-bottom: 12px;
+            padding-left: 20px; position: relative; line-height: 1.5;
+        }
+        li::before {
+            content: ''; position: absolute; left: 0; top: 8px;
+            width: 8px; height: 8px; background: var(--accent-cyan); border-radius: 50%;
+        }
+        .ref-inline { color: var(--accent-cyan); font-size: 14px; vertical-align: super; margin-left: 2px; }
+        footer {
+            position: absolute; bottom: 35px; left: 70px; right: 150px;
+            font-size: 11px; color: var(--text-muted); line-height: 1.3;
+        }
+        .highlight-box {
+            background: var(--bg-secondary); border-left: 4px solid var(--accent-cyan);
+            padding: 20px 25px; border-radius: 0 8px 8px 0; margin: 15px 0;
+        }
+        .highlight-box.orange { border-left-color: var(--accent-orange); }
+        .highlight-box.green { border-left-color: var(--accent-green); }
+        .stat-number { font-size: 60px; font-weight: 700; color: var(--accent-cyan); display: block; }
+        .stat-label { font-size: 16px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; }
+        table { width: 100%; border-collapse: collapse; font-size: 15px; margin-top: 15px; }
+        th {
+            background: var(--bg-secondary); color: var(--accent-cyan); font-weight: 600;
+            text-align: left; padding: 12px 15px; border-bottom: 2px solid var(--accent-cyan);
+        }
+        td { padding: 10px 15px; border-bottom: 1px solid var(--border-subtle); color: var(--text-secondary); }
+        .slide-cover { justify-content: center; text-align: center; }
+        .slide-cover h1 { font-size: 64px; margin-bottom: 20px; }
+        .subtitle { font-size: 26px; color: var(--text-secondary); margin-bottom: 50px; }
+        .author { font-size: 22px; color: var(--accent-cyan); margin-bottom: 10px; }
+        .institution { font-size: 16px; color: var(--text-muted); }
+        .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px; }
+        .card { background: var(--bg-secondary); border-radius: 8px; padding: 20px; border: 1px solid var(--border-subtle); }
+        .timeline { position: relative; padding-left: 30px; }
+        .timeline::before {
+            content: ''; position: absolute; left: 8px; top: 0; bottom: 0; width: 2px;
+            background: linear-gradient(180deg, var(--accent-cyan), var(--accent-orange));
+        }
+        .timeline-item { position: relative; margin-bottom: 20px; }
+        .timeline-item::before {
+            content: ''; position: absolute; left: -26px; top: 5px; width: 10px; height: 10px;
+            background: var(--accent-cyan); border-radius: 50%; border: 2px solid var(--bg-primary);
+        }
+        .timeline-year { color: var(--accent-orange); font-weight: 600; font-size: 14px; }
+        .chart-bar { background: linear-gradient(90deg, var(--accent-cyan), var(--accent-cyan)); border-radius: 4px; }
+        .flow-box {
+            background: var(--bg-secondary); border: 1px solid var(--accent-cyan);
+            border-radius: 6px; padding: 8px 12px; margin: 3px 0; text-align: center; font-size: 13px;
+        }
+        .flow-arrow { color: var(--accent-cyan); font-size: 18px; text-align: center; }
+        .bar-chart { display: flex; align-items: flex-end; gap: 15px; height: 200px; padding: 20px; background: var(--bg-secondary); border-radius: 8px; }
+        .bar { flex: 1; background: var(--accent-cyan); border-radius: 4px 4px 0 0; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 5px; }
+        .bar-label { font-size: 11px; color: var(--text-secondary); margin-top: 5px; text-align: center; }
+    </style>
+</head>
+<body>
+
+<!-- SLIDE 1: PORTADA -->
+<section class="slide slide-cover">
+    <h1>Delirium en Terapia Intensiva</h1>
+    <div class="subtitle">De la Neuroinflamación a la Medicina de Precisión</div>
+    <div class="author">José Pablo Fernández Magaña</div>
+    <div class="institution">R1 UCI HGSJDR · 22/04/2026</div>
+    <span class="slide-number">1 / 48</span>
+</section>
+
+<!-- SLIDE 2: AGENDA -->
+<section class="slide">
+    <h1>Agenda</h1>
+    <div class="content">
+        <div class="content-text">
+            <ul>
+                <li><strong>Definición y epidemiología</strong> — Prevalencia 35,7% [1]</li>
+                <li><strong>Paradoja del delirium</strong> — Disonancia evidencia-práctica [1,3,4]</li>
+                <li><strong>Fisiopatología integrada</strong> — Neuroinflamación, biomarcadores [2]</li>
+                <li><strong>Historia natural</strong> — Fenotipos y PICS [8,14]</li>
+                <li><strong>Diagnóstico</strong> — CAM-ICU, RASS, EEG [15]</li>
+            </ul>
+        </div>
+        <div class="content-text">
+            <ul>
+                <li><strong>Tratamiento no farmacológico</strong> — Bundle ABCDEF [3]</li>
+                <li><strong>Tratamiento farmacológico</strong> — Dexmedetomidina RR 0,59 [4,5]</li>
+                <li><strong>Antipsicóticos</strong> — ECA MIND-USA, AID-ICU negativos [8]</li>
+                <li><strong>Melatonina</strong> — No efectiva (RR 0,86) [6]</li>
+                <li><strong>Futuro</strong> — IA DeLLiriuM AUROC 82,4% [9]</li>
+            </ul>
+        </div>
+    </div>
+    <footer>
+        [1] Leong AY, et al. Intensive Care Med. 2025;51(11):2079-2092.<br>
+        [3] Kundakci B, et al. Crit Care. 2025;29(1):501.<br>
+        [4] Kundakci B, et al. Crit Care. 2025;29(1):540.
+    </footer>
+    <span class="slide-number">2 / 48</span>
+</section>
+
+<!-- SLIDE 3: DEFINICIÓN -->
+<section class="slide">
+    <h1>Definición de Delirium <span class="ref-inline">[15]</span></h1>
+    <div class="content">
+        <div class="content-text">
+            <div class="highlight-box">
+                <p style="font-size: 20px; line-height: 1.6; color: var(--text-secondary);">
+                    Síndrome neuropsiquiátrico <strong style="color: var(--accent-cyan);">agudo, fluctuante y potencialmente reversible</strong>, 
+                    caracterizado por alteración de <strong style="color: var(--accent-cyan);">atención y cognición</strong> que se desarrolla 
+                    en período breve (<strong>horas a días</strong>) y está asociado a causa médica subyacente <span class="ref-inline">[15]</span>.
+                </p>
+            </div>
+            <ul style="margin-top: 20px;">
+                <li>Desarrollo <strong>rápido</strong> (horas a días) <span class="ref-inline">[15]</span></li>
+                <li>Curso <strong>fluctuante</strong> durante el día <span class="ref-inline">[15]</span></li>
+                <li>Siempre hay <strong>causa subyacente</strong> identificable <span class="ref-inline">[15]</span></li>
+                <li>Potencialmente <strong>reversible</strong> con tratamiento <span class="ref-inline">[15]</span></li>
+            </ul>
+        </div>
+        <div class="content-visual">
+            <svg width="450" height="400" viewBox="0 0 450 400">
+                <rect x="25" y="25" width="400" height="350" rx="10" fill="var(--bg-secondary)" stroke="var(--accent-cyan)" stroke-width="2"/>
+                <text x="225" y="60" text-anchor="middle" fill="var(--accent-cyan)" font-size="22" font-weight="bold">CARACTERÍSTICAS</text>
+                <circle cx="100" cy="130" r="35" fill="var(--accent-cyan)" opacity="0.3"/>
+                <text x="100" y="135" text-anchor="middle" fill="var(--text-primary)" font-size="14" font-weight="bold">Agudo</text>
+                <circle cx="225" cy="150" r="35" fill="var(--accent-orange)" opacity="0.3"/>
+                <text x="225" y="155" text-anchor="middle" fill="var(--text-primary)" font-size="14" font-weight="bold">Fluctuante</text>
+                <circle cx="350" cy="130" r="35" fill="var(--accent-green)" opacity="0.3"/>
+                <text x="350" y="135" text-anchor="middle" fill="var(--text-primary)" font-size="14" font-weight="bold">Reversible</text>
+                <text x="225" y="280" text-anchor="middle" fill="var(--text-secondary)" font-size="18">Alteración de</text>
+                <text x="225" y="310" text-anchor="middle" fill="var(--accent-cyan)" font-size="24" font-weight="bold">ATENCIÓN + COGNICIÓN</text>
+            </svg>
+        </div>
+    </div>
+    <footer>
+        [15] Stollings JL, et al. A Focused Update to the PADIS Guidelines. <em>Crit Care Med</em>. 2025 (en prensa).
+    </footer>
+    <span class="slide-number">3 / 48</span>
+</section>
+
+<!-- SLIDE 4: PREVALENCIA -->
+<section class="slide">
+    <h1>Prevalencia de Delirium en UCI <span class="ref-inline">[1]</span></h1>
+    <div class="content">
+        <div class="content-text">
+            <div class="highlight-box">
+                <span class="stat-number">35,7%</span>
+                <span class="stat-label">Prevalencia agrupada (IC 95%: 32,4—39,0%)</span>
+            </div>
+            <ul>
+                <li>Metaanálisis 2025: <strong>226 publicaciones</strong> <span class="ref-inline">[1]</span></li>
+                <li>Población: <strong>183,285 pacientes</strong> <span class="ref-inline">[1]</span></li>
+                <li>Subtipo más común: <strong>Hipoactivo (16,5%)</strong> <span class="ref-inline">[1]</span></li>
+            </ul>
+        </div>
+        <div class="content-visual">
+            <div class="bar-chart" style="width: 100%; height: 300px;">
+                <div class="bar" style="height: 70%;">
+                    <span style="color: var(--text-primary); font-size: 18px; font-weight: bold;">35,7%</span>
+                    <span class="bar-label">Prevalencia</span>
+                </div>
+                <div class="bar" style="height: 57%; background: var(--accent-orange);">
+                    <span style="color: var(--text-primary); font-size: 18px; font-weight: bold;">28,8%</span>
+                    <span class="bar-label">Incidencia</span>
+                </div>
+                <div class="bar" style="height: 100%; background: var(--accent-green);">
+                    <span style="color: var(--text-primary); font-size: 18px; font-weight: bold;">70-80%</span>
+                    <span class="bar-label">En VM</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <footer>
+        [1] Leong AY, et al. Prevalence and incidence of ICU delirium and pain: a systematic review and meta-analysis. 
+        <em>Intensive Care Med</em>. 2025;51(11):2079-2092. doi: 10.1007/s00134-025-08143-1
+    </footer>
+    <span class="slide-number">4 / 48</span>
+</section>
+
+<!-- SLIDE 5: INCIDENCIA Y SUBTIPOS -->
+<section class="slide">
+    <h1>Incidencia y Distribución de Subtipos <span class="ref-inline">[1]</span></h1>
+    <div class="content">
+        <div class="content-text">
+            <div class="highlight-box" style="margin-bottom: 30px;">
+                <span class="stat-number">28,8%</span>
+                <span class="stat-label">Incidencia agrupada (IC 95%: 23,2—34,8%)</span>
+            </div>
+            <ul>
+                <li>En ventilación mecánica: <strong>hasta 70-80%</strong> <span class="ref-inline">[1]</span></li>
+                <li>Subtipo más frecuente: <strong>hipoactivo (16,5%)</strong> <span class="ref-inline">[1]</span></li>
+            </ul>
+        </div>
+        <div class="content-visual">
+            <svg width="400" height="350" viewBox="0 0 400 350">
+                <circle cx="200" cy="175" r="120" fill="var(--bg-secondary)" stroke="var(--text-muted)" stroke-width="1"/>
+                <path d="M 200 175 L 200 55 A 120 120 0 0 1 320 175 Z" fill="var(--accent-cyan)"/>
+                <path d="M 200 175 L 320 175 A 120 120 0 0 1 200 295 Z" fill="var(--accent-orange)"/>
+                <path d="M 200 175 L 200 295 A 120 120 0 0 1 80 175 Z" fill="var(--accent-green)"/>
+                <text x="250" y="120" fill="var(--text-primary)" font-size="16" font-weight="bold">Hipoactivo</text>
+                <text x="250" y="140" fill="var(--text-primary)" font-size="20" font-weight="bold">50%</text>
+                <text x="250" y="230" fill="var(--text-primary)" font-size="16" font-weight="bold">Mixto</text>
+                <text x="250" y="250" fill="var(--text-primary)" font-size="20" font-weight="bold">25-50%</text>
+                <text x="130" y="200" fill="var(--text-primary)" font-size="16" font-weight="bold">Hiperactivo</text>
+                <text x="130" y="220" fill="var(--text-primary)" font-size="20" font-weight="bold">~25%</text>
+            </svg>
+        </div>
+    </div>
+    <footer>
+        [1] Leong AY, et al. Prevalence and incidence of ICU delirium and pain: a systematic review and meta-analysis. 
+        <em>Intensive Care Med</em>. 2025;51(11):2079-2092.
+    </footer>
+    <span class="slide-number">5 / 48</span>
+</section>
+
+<!-- SLIDE 6: RELEVANCIA CLÍNICA -->
+<section class="slide">
+    <h1>Relevancia Clínica: Impacto Pronóstico <span class="ref-inline">[8,14]</span></h1>
+    <div class="content">
+        <div class="content-full">
+            <div class="grid-3">
+                <div class="card">
+                    <h4>🏥 Estancia</h4>
+                    <p style="font-size: 17px; color: var(--text-secondary); margin-top: 10px;">
+                        Prolongación significativa de estancia en UCI y hospital <span class="ref-inline">[8]</span>
+                    </p>
+                </div>
+                <div class="card">
+                    <h4>🫁 Ventilación</h4>
+                    <p style="font-size: 17px; color: var(--text-secondary); margin-top: 10px;">
+                        Mayor duración de ventilación mecánica <span class="ref-inline">[8]</span>
+                    </p>
+                </div>
+                <div class="card">
+                    <h4>⚰️ Mortalidad</h4>
+                    <p style="font-size: 17px; color: var(--text-secondary); margin-top: 10px;">
+                        Incremento independiente de mortalidad intrahospitalaria y a 6 meses <span class="ref-inline">[8]</span>
+                    </p>
+                </div>
+            </div>
+            
+            <div class="highlight-box orange" style="margin-top: 30px;">
+                <h3 style="margin-bottom: 15px;">Síndrome Post-UCI (PICS) <span class="ref-inline">[14]</span></h3>
+                <p style="font-size: 19px; color: var(--text-secondary);">
+                    Más del <strong style="color: var(--accent-orange);">50%</strong> de supervivientes desarrollan deterioro cognitivo persistente, 
+                    discapacidad funcional y problemas de salud mental. El delirium es predictor independiente de PICS <span class="ref-inline">[8,14]</span>.
+                </p>
+            </div>
+            
+            <div class="grid-3" style="margin-top: 20px;">
+                <div style="text-align: center; padding: 15px; background: var(--bg-secondary); border-radius: 8px;">
+                    <div style="font-size: 36px; color: var(--accent-cyan); font-weight: bold;">50%+</div>
+                    <div style="font-size: 14px; color: var(--text-secondary); margin-top: 5px;">Deterioro cognitivo persistente</div>
+                </div>
+                <div style="text-align: center; padding: 15px; background: var(--bg-secondary); border-radius: 8px;">
+                    <div style="font-size: 36px; color: var(--accent-orange); font-weight: bold;">50%+</div>
+                    <div style="font-size: 14px; color: var(--text-secondary); margin-top: 5px;">Discapacidad funcional</div>
+                </div>
+                <div style="text-align: center; padding: 15px; background: var(--bg-secondary); border-radius: 8px;">
+                    <div style="font-size: 36px; color: var(--accent-green); font-weight: bold;">50%+</div>
+                    <div style="font-size: 14px; color: var(--text-secondary); margin-top: 5px;">Problemas de salud mental</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        [8] Mart MF, et al. Long-term outcomes after treatment of delirium with antipsychotics (MIND-USA). <em>Lancet Respir Med</em>. 2025. doi: 10.1016/S2213-2600(25)00123-4<br>
+        [14] Banerdt J, et al. Post-Intensive Care Syndrome Linked to Long-Term Deficits. <em>American Thoracic Society International Conference</em>. 2025.
+    </footer>
+    
+    <span class="slide-number">6 / 48</span>
+</section>
+
+<!-- SLIDE 7: LA PARADOJA -->
+<section class="slide">
+    <h1>La Paradoja del Delirium <span class="ref-inline">[1,4,8,15]</span></h1>
+    
+    <div class="content">
+        <div class="content-full">
+            <div class="grid-2">
+                <div class="card" style="border-left: 4px solid var(--accent-cyan);">
+                    <h4>🔴 El Problema</h4>
+                    <ul style="margin-top: 15px; font-size: 17px;">
+                        <li>Muy frecuente y grave <span class="ref-inline">[1]</span></li>
+                        <li>Alto impacto en PICS <span class="ref-inline">[8,14]</span></li>
+                        <li>Sigue <strong>infradiagnosticado</strong> <span class="ref-inline">[1]</span></li>
+                        <li>Guías PADIS desde 2018 <span class="ref-inline">[15]</span></li>
+                    </ul>
+                </div>
+                
+                <div class="card" style="border-left: 4px solid var(--accent-orange);">
+                    <h4>🟡 La Disonancia</h4>
+                    <ul style="margin-top: 15px; font-size: 17px;">
+                        <li>Evidencia <strong>limitada/negativa</strong> para antipsicóticos <span class="ref-inline">[4,8]</span></li>
+                        <li>ECA MIND-USA y AID-ICU: <strong>sin beneficio</strong> <span class="ref-inline">[8]</span></li>
+                        <li>Pero antipsicóticos se siguen usando <strong>ampliamente</strong> <span class="ref-inline">[4]</span></li>
+                    </ul>
+                </div>
+            </div>
+            
+            
+            <div class="highlight-box" style="margin-top: 30px; text-align: center;">
+                <p style="font-size: 22px;">
+                    <strong style="color: var(--text-primary);">Esta disonancia entre evidencia y práctica clínica</strong>
+                    <br>constituye la <strong style="color: var(--accent-orange);">paradoja central</strong> que motiva esta clase.
+                </p>
+            </div>
+            
+            
+            <svg width="100%" height="120" viewBox="0 0 800 120" style="margin-top: 20px;">
+                <rect x="50" y="20" width="200" height="80" rx="8" fill="var(--accent-cyan)" opacity="0.3" stroke="var(--accent-cyan)" stroke-width="2"/>
+                <text x="150" y="55" text-anchor="middle" fill="var(--text-primary)" font-size="14" font-weight="bold">ALTA PREVALENCIA</text>
+                <text x="150" y="75" text-anchor="middle" fill="var(--text-secondary)" font-size="12">35,7% [1]</text>
+                
+                <polygon points="270,60 290,50 290,70" fill="var(--accent-orange)"/>
+                <line x1="250" y1="60" x2="270" y2="60" stroke="var(--accent-orange)" stroke-width="3"/>
+                
+                <rect x="310" y="20" width="200" height="80" rx="8" fill="var(--accent-orange)" opacity="0.3" stroke="var(--accent-orange)" stroke-width="2"/>
+                <text x="410" y="55" text-anchor="middle" fill="var(--text-primary)" font-size="14" font-weight="bold">EVIDENCIA NEGATIVA</text>
+                <text x="410" y="75" text-anchor="middle" fill="var(--text-secondary)" font-size="12">ECA MIND-USA [8]</text>
+                
+                <polygon points="530,60 550,50 550,70" fill="var(--accent-orange)"/>
+                <line x1="510" y1="60" x2="530" y2="60" stroke="var(--accent-orange)" stroke-width="3"/>
+                
+                <rect x="570" y="20" width="200" height="80" rx="8" fill="var(--bg-secondary)" stroke="var(--text-muted)" stroke-width="2" stroke-dasharray="5,5"/>
+                <text x="670" y="55" text-anchor="middle" fill="var(--text-primary)" font-size="14" font-weight="bold">USO CONTINUADO</text>
+                <text x="670" y="75" text-anchor="middle" fill="var(--text-secondary)" font-size="12">¿Por qué? [4]</text>
+            </svg>
+        </div>
+    </div>
+    
+    
+    <footer>
+        [1] Leong AY, et al. <em>Intensive Care Med</em>. 2025;51(11):2079-2092. 
+        [4] Kundakci B, et al. A systematic meta-review: Part 1 – Pharmacological. <em>Crit Care</em>. 2025;29(1):540.<br>
+        [8] Mart MF, et al. MIND-USA. <em>Lancet Respir Med</em>. 2025. 
+        [15] Stollings JL, et al. PADIS Guidelines Update. <em>Crit Care Med</em>. 2025.
+    </footer>
+    
+    
+    <span class="slide-number">7 / 48</span>
+</section>
+
+<!-- Continuaré con más slides... -->
+
+[STATUS] slides 1-7 corregidos
+[CHECKPOINT] last_slide=7
+

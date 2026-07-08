@@ -1,0 +1,883 @@
+<!-- TABLAS DINAMICAS AGRUPADAS Y COLAPSABLES -->
+
+<style>
+.collapsible-group {
+    margin-bottom: 15px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.collapsible-header {
+    background: var(--bg-tertiary);
+    padding: 12px 16px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+    font-size: 1.05rem;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border);
+    transition: background 0.2s;
+}
+
+.collapsible-header:hover {
+    background: var(--border);
+}
+
+.collapsible-header .toggle-icon {
+    font-size: 1.2rem;
+    transition: transform 0.3s;
+    user-select: none;
+}
+
+.collapsible-header.collapsed .toggle-icon {
+    transform: rotate(-90deg);
+}
+
+.collapsible-body {
+    padding: 15px;
+    background: var(--bg-primary);
+    transition: max-height 0.3s ease-out;
+}
+
+.collapsible-body.collapsed {
+    display: none;
+}
+
+.category-farmacos {
+    border-left: 4px solid #4ade80;
+}
+
+.category-micro {
+    border-left: 4px solid #fbbf24;
+}
+
+.category-sangre {
+    border-left: 4px solid #f87171;
+}
+
+.category-otros {
+    border-left: 4px solid #a78bfa;
+}
+
+.category-header-farmacos { color: #4ade80; }
+.category-header-micro { color: #fbbf24; }
+.category-header-sangre { color: #f87171; }
+.category-header-otros { color: #a78bfa; }
+</style>
+
+<script>
+function toggleGroup(header) {
+    const body = header.nextElementSibling;
+    const isCollapsed = body.classList.contains('collapsed');
+    
+    if (isCollapsed) {
+        body.classList.remove('collapsed');
+        header.classList.remove('collapsed');
+        header.querySelector('.toggle-icon').textContent = '▼';
+    } else {
+        body.classList.add('collapsed');
+        header.classList.add('collapsed');
+        header.querySelector('.toggle-icon').textContent = '▶';
+    }
+}
+
+// Expandir todas las categorias por defecto al cargar
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.collapsible-header').forEach(function(h) {
+        // Las de farmacos se dejan colapsadas, las demas expandidas
+        if (h.classList.contains('farmacos-default')) {
+            toggleGroup(h);
+        }
+    });
+});
+</script>
+
+<!-- ========================================== -->
+<!-- CATEGORIA 1: FARMACOS -->
+<!-- ========================================== -->
+<div class="collapsible-group category-farmacos">
+    <div class="collapsible-header farmacos-default" onclick="toggleGroup(this)">
+        <span>💊 Farmacos <span class="category-header-farmacos" style="font-size: 0.85em; font-weight: normal;">(Neurologicos, Hemodinamicos, Renales, Gastrointestinales, Hematologicos)</span></span>
+        <span class="toggle-icon">▶</span>
+    </div>
+    <div class="collapsible-body collapsed">
+        
+        <!-- Medicamentos Neurologicos (Tabla Dinamica) -->
+        <div class="card-body" style="border-top: 1px solid var(--border);">
+            <h4 style="color: var(--accent); margin: 30px 0 15px; text-transform: uppercase; letter-spacing: 1px;">💊 Medicamentos Neurologicos</h4>
+            
+            {% if medicamentos_neurologicos %}
+            <table style="width: 100%; margin-bottom: 20px; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: var(--bg-tertiary);">
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Medicamento</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Via</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Unidad</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Dosis</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Frec</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Inicio</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Fin</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Indicacion</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for med in medicamentos_neurologicos %}
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ med.medicamento }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ med.via or '-' }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ med.unidad }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ med.dosis }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ med.frecuencia or '-' }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ med.fecha_inicio }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ med.fecha_fin or '-' }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ med.indicacion or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+            
+            <div class="dynamic-form-section" style="background: var(--bg-tertiary); padding: 15px; border-radius: 4px; border: 1px solid var(--border);">
+                <h5 style="margin-bottom: 15px; color: var(--text-secondary);">➕ Agregar Medicamento Neurologico</h5>
+                <div class="section-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+                    <div class="form-group">
+                        <label>Medicamento</label>
+                        <input type="text" name="dynamic_medicamentos_neurologicos[0][medicamento]" placeholder="Ej: MIDAZOLAM" onblur="this.value = normalizeToUpper(this.value)">
+                    </div>
+                    <div class="form-group">
+                        <label>Via</label>
+                        <input type="text" name="dynamic_medicamentos_neurologicos[0][via]" placeholder="Ej: IV, BIC, SC" onblur="this.value = normalizeToUpper(this.value)">
+                    </div>
+                    <div class="form-group">
+                        <label>Unidad</label>
+                        <input type="text" name="dynamic_medicamentos_neurologicos[0][unidad]" placeholder="Ej: MG/KG/H" onblur="this.value = normalizeToUpper(this.value)">
+                    </div>
+                    <div class="form-group">
+                        <label>Dosis</label>
+                        <input type="text" name="dynamic_medicamentos_neurologicos[0][dosis]" placeholder="Ej: 0.1-0.3" onblur="this.value = normalizeToUpper(this.value)">
+                    </div>
+                    <div class="form-group">
+                        <label>Frecuencia</label>
+                        <input type="text" name="dynamic_medicamentos_neurologicos[0][frecuencia]" placeholder="Ej: CONTINUO, 1D, PRN" onblur="this.value = normalizeToUpper(this.value)">
+                    </div>
+                    <div class="form-group">
+                        <label>Fecha Inicio</label>
+                        <input type="date" name="dynamic_medicamentos_neurologicos[0][fecha_inicio]">
+                    </div>
+                    <div class="form-group">
+                        <label>Fecha Fin</label>
+                        <input type="date" name="dynamic_medicamentos_neurologicos[0][fecha_fin]">
+                    </div>
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>Indicacion</label>
+                        <input type="text" name="dynamic_medicamentos_neurologicos[0][indicacion]" placeholder="Ej: SEDACION, CONTROL DE CRISIS" onblur="this.value = normalizeToUpper(this.value)">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Medicamentos Hemodinamicos -->
+        <div class="card-body" style="border-top: 1px solid var(--border);">
+            <h4 style="color: var(--accent); margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;">❤️ Medicamentos Hemodinamicos</h4>
+            
+            {% if medicamentos_hemodinamicos %}
+            <table style="width: 100%; margin-bottom: 20px; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: var(--bg-tertiary);">
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Medicamento</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Unidad</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Dosis Max</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Dosis Min</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Inicio</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Fin</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Indicacion</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for med in medicamentos_hemodinamicos %}
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ med.medicamento }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ med.unidad }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ med.dosis_max }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ med.dosis_min }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ med.fecha_inicio }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ med.fecha_fin or '-' }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ med.indicacion or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+            
+            <div class="dynamic-form-section" style="background: var(--bg-tertiary); padding: 15px; border-radius: 4px; border: 1px solid var(--border); margin-top: 15px;">
+                <h5 style="margin-bottom: 15px; color: var(--text-secondary);">➕ Agregar Medicamentos Hemodinamicos</h5>
+                <div class="section-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                    <div class="form-group">
+                        <label>Medicamento</label>
+                        <input type="text" name="dynamic_medicamentos_hemodinamicos[0][medicamento]" placeholder="Ej: Noradrenalina" onblur="this.value = normalizeToUpper(this.value)">
+                    </div>
+                    <div class="form-group">
+                        <label>Unidad</label>
+                        <input type="text" name="dynamic_medicamentos_hemodinamicos[0][unidad]" placeholder="Ej: mcg/min" onblur="this.value = normalizeToUpper(this.value)">
+                    </div>
+                    <div class="form-group">
+                        <label>Dosis Max</label>
+                        <input type="text" name="dynamic_medicamentos_hemodinamicos[0][dosis_max]" placeholder="Ej: 1.0" onblur="this.value = normalizeToUpper(this.value)">
+                    </div>
+                    <div class="form-group">
+                        <label>Dosis Min</label>
+                        <input type="text" name="dynamic_medicamentos_hemodinamicos[0][dosis_min]" placeholder="Ej: 0.1" onblur="this.value = normalizeToUpper(this.value)">
+                    </div>
+                    <div class="form-group">
+                        <label>Inicio</label>
+                        <input type="date" name="dynamic_medicamentos_hemodinamicos[0][fecha_inicio]">
+                    </div>
+                    <div class="form-group">
+                        <label>Fin</label>
+                        <input type="date" name="dynamic_medicamentos_hemodinamicos[0][fecha_fin]">
+                    </div>
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>Indicacion</label>
+                        <input type="text" name="dynamic_medicamentos_hemodinamicos[0][indicacion]" placeholder="Ej: Choque septico" onblur="this.value = normalizeToUpper(this.value)">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Medicamentos Nefro -->
+        <div class="card-body" style="border-top: 1px solid var(--border);">
+            <h4 style="color: var(--accent); margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;">💧 Medicamentos Renales</h4>
+            
+            {% if medicamentos_nefro %}
+            <table style="width: 100%; margin-bottom: 20px; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: var(--bg-tertiary);">
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Medicamento</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Unidad</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Dosis</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Inicio</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Fin</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for med in medicamentos_nefro %}
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ med.medicamento }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ med.unidad }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ med.dosis }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ med.fecha_inicio }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ med.fecha_fin or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+            
+            <div class="dynamic-form-section" style="background: var(--bg-tertiary); padding: 15px; border-radius: 4px; border: 1px solid var(--border); margin-top: 15px;">
+                <h5 style="margin-bottom: 15px; color: var(--text-secondary);">➕ Agregar Medicamentos Renales</h5>
+                <div class="section-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                    <div class="form-group">
+                        <label>Medicamento</label>
+                        <input type="text" name="dynamic_medicamentos_nefro[0][medicamento]" placeholder="Ej: Furosemida" onblur="this.value = normalizeToUpper(this.value)">
+                    </div>
+                    <div class="form-group">
+                        <label>Unidad</label>
+                        <input type="text" name="dynamic_medicamentos_nefro[0][unidad]" placeholder="Ej: mg" onblur="this.value = normalizeToUpper(this.value)">
+                    </div>
+                    <div class="form-group">
+                        <label>Dosis</label>
+                        <input type="text" name="dynamic_medicamentos_nefro[0][dosis]" placeholder="Ej: 20-40" onblur="this.value = normalizeToUpper(this.value)">
+                    </div>
+                    <div class="form-group">
+                        <label>Inicio</label>
+                        <input type="date" name="dynamic_medicamentos_nefro[0][fecha_inicio]">
+                    </div>
+                    <div class="form-group">
+                        <label>Fin</label>
+                        <input type="date" name="dynamic_medicamentos_nefro[0][fecha_fin]">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Medicamentos Gastro -->
+        <div class="card-body" style="border-top: 1px solid var(--border);">
+            <h4 style="color: var(--accent); margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;">🍽️ Medicamentos Gastrointestinales</h4>
+            
+            {% if medicamentos_gastro %}
+            <table style="width: 100%; margin-bottom: 20px; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: var(--bg-tertiary);">
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Medicamento</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Unidad</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Dosis</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Inicio</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Fin</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for med in medicamentos_gastro %}
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ med.medicamento }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ med.unidad }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ med.dosis }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ med.fecha_inicio }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ med.fecha_fin or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+            
+            <div class="dynamic-form-section" style="background: var(--bg-tertiary); padding: 15px; border-radius: 4px; border: 1px solid var(--border); margin-top: 15px;">
+                <h5 style="margin-bottom: 15px; color: var(--text-secondary);">➕ Agregar Medicamentos Gastrointestinales</h5>
+                <div class="section-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                    <div class="form-group">
+                        <label>Medicamento</label>
+                        <input type="text" name="dynamic_medicamentos_gastro[0][medicamento]" placeholder="Ej: Omeprazol" onblur="this.value = normalizeToUpper(this.value)">
+                    </div>
+                    <div class="form-group">
+                        <label>Unidad</label>
+                        <input type="text" name="dynamic_medicamentos_gastro[0][unidad]" placeholder="Ej: mg" onblur="this.value = normalizeToUpper(this.value)">
+                    </div>
+                    <div class="form-group">
+                        <label>Dosis</label>
+                        <input type="text" name="dynamic_medicamentos_gastro[0][dosis]" placeholder="Ej: 40" onblur="this.value = normalizeToUpper(this.value)">
+                    </div>
+                    <div class="form-group">
+                        <label>Inicio</label>
+                        <input type="date" name="dynamic_medicamentos_gastro[0][fecha_inicio]">
+                    </div>
+                    <div class="form-group">
+                        <label>Fin</label>
+                        <input type="date" name="dynamic_medicamentos_gastro[0][fecha_fin]">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Medicacion Hematologica -->
+        <div class="card-body" style="border-top: 1px solid var(--border);">
+            <h4 style="color: var(--accent); margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;">🩸 Medicacion Hematologica</h4>
+            
+            {% if medicacion_hematologica %}
+            <table style="width: 100%; margin-bottom: 20px; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: var(--bg-tertiary);">
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Medicamento</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Dosis</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Unidad</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Inicio</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Fin</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Indicacion</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for med in medicacion_hematologica %}
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ med.medicamento }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ med.dosis }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ med.unidad }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ med.fecha_inicio }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ med.fecha_fin or '-' }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ med.indicacion or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+            
+            <div class="dynamic-form-section" style="background: var(--bg-tertiary); padding: 15px; border-radius: 4px; border: 1px solid var(--border);">
+                <h5 style="margin-bottom: 15px; color: var(--text-secondary);">➕ Agregar Medicacion Hematologica</h5>
+                <div class="section-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+                    <div class="form-group">
+                        <label>Medicamento</label>
+                        <input type="text" name="dynamic_medicacion_hematologica[0][medicamento]" placeholder="Ej: Heparina" onblur="this.value = normalizeToUpper(this.value)">
+                    </div>
+                    <div class="form-group">
+                        <label>Dosis</label>
+                        <input type="text" name="dynamic_medicacion_hematologica[0][dosis]" placeholder="Ej: 5000" onblur="this.value = normalizeToUpper(this.value)">
+                    </div>
+                    <div class="form-group">
+                        <label>Unidad</label>
+                        <input type="text" name="dynamic_medicacion_hematologica[0][unidad]" placeholder="Ej: UI" onblur="this.value = normalizeToUpper(this.value)">
+                    </div>
+                    <div class="form-group">
+                        <label>Inicio</label>
+                        <input type="date" name="dynamic_medicacion_hematologica[0][fecha_inicio]">
+                    </div>
+                    <div class="form-group">
+                        <label>Fin</label>
+                        <input type="date" name="dynamic_medicacion_hematologica[0][fecha_fin]">
+                    </div>
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>Indicacion</label>
+                        <input type="text" name="dynamic_medicacion_hematologica[0][indicacion]" placeholder="Ej: Profilaxis anticoagulante" onblur="this.value = normalizeToUpper(this.value)">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- CATEGORIA 2: MICROBIOLOGIA -->
+<!-- ========================================== -->
+<div class="collapsible-group category-micro">
+    
+    <div class="collapsible-header" onclick="toggleGroup(this)">
+        <span>🧫 Microbiologia <span class="category-header-micro" style="font-size: 0.85em; font-weight: normal;">(Cultivos, Antibioticos, Bacterias, Hongos)</span></span>
+        <span class="toggle-icon">▼</span>
+    </div>
+    
+    <div class="collapsible-body">
+        
+        <!-- Cultivos -->
+        <div class="card-body" style="border-top: 1px solid var(--border);">
+            <h4 style="color: var(--accent); margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;">🧫 Cultivos</h4>
+            
+            {% if cultivos %}
+            <table style="width: 100%; margin-bottom: 20px; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: var(--bg-tertiary);">
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Tipo</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Fecha</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Resultado</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Microorganismo</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Sensibilidad</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Resistencia</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: center; width: 80px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in cultivos %}
+                    <tr data-id="{{ c.id }}" data-table="cultivos">
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ c.tipo }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ c.fecha }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ c.resultado }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ c.microorganismo or '-' }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ c.sensibilidad or '-' }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ c.resistencia or '-' }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border); text-align: center; white-space: nowrap;">
+                            <button type="button" class="btn-edit-saved" onclick="editSavedRow(this, 'cultivos', {{ c.id }})" title="Editar" style="background: transparent; border: none; cursor: pointer; padding: 2px 6px; margin-right: 4px;">✏️</button>
+                            <button type="button" class="btn-delete-saved" onclick="deleteSavedRow(this, 'cultivos', {{ c.id }})" title="Eliminar" style="background: transparent; border: none; cursor: pointer; padding: 2px 6px;">❌</button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+            
+            
+            <div class="dynamic-form-section" style="background: var(--bg-tertiary); padding: 15px; border-radius: 4px; border: 1px solid var(--border); margin-top: 15px;">
+                <h5 style="margin-bottom: 15px; color: var(--text-secondary);">➕ Agregar Cultivos</h5>
+                <div class="section-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                    <div class="form-group">
+                        <label>Tipo</label>
+                        <select name="dynamic_cultivos[0][tipo]">
+                            <option value="">Seleccionar...</option>
+                            <option value="Hemocultivo">Hemocultivo</option>
+                            <option value="Urocultivo">Urocultivo</option>
+                            <option value="CSB">CSB (Secreción Bronquial)</option>
+                            <option value="LCR">LCR (Líquido Cefalorraquídeo)</option>
+                            <option value="Coprocultivo">Coprocultivo</option>
+                            <option value="Cultivo de Herida">Cultivo de Herida</option>
+                            <option value="Dispositivo Invasivo">Dispositivo Invasivo (CVC, SNG, ETT)</option>
+                            <option value="Otros">Otros</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Fecha</label>
+                        <input type="date" name="dynamic_cultivos[0][fecha]">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Resultado</label>
+                        <select name="dynamic_cultivos[0][resultado]">
+                            <option value="">Seleccionar...</option>
+                            <option value="Negativo">Negativo</option>
+                            <option value="Positivo">Positivo</option>
+                            <option value="Pendiente">Pendiente</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Microorganismo</label>
+                        <input type="text" name="dynamic_cultivos[0][microorganismo]" list="microorganismos_list" placeholder="Escribir o seleccionar..." onblur="this.value = normalizeToUpper(this.value)">
+                        <datalist id="microorganismos_list">
+                            <option value="ESCHERICHIA COLI">
+                            <option value="KLEBSIELLA PNEUMONIAE">
+                            <option value="PSEUDOMONAS AERUGINOSA">
+                            <option value="STAPHYLOCOCCUS AUREUS (MSSA)">
+                            <option value="STAPHYLOCOCCUS AUREUS (MRSA)">
+                            <option value="ENTEROCOCCUS FAECALIS">
+                            <option value="ENTEROCOCCUS FAECIUM (VRE)">
+                            <option value="ACINETOBACTER BAUMANNII">
+                            <option value="CANDIDA ALBICANS">
+                            <option value="CANDIDA PARAPSILOSIS">
+                            <option value="CANDIDA GLABRATA">
+                            <option value="CANDIDA AURIS">
+                            <option value="PROTEUS MIRABILIS">
+                            <option value="SERRATIA MARCESCENS">
+                            <option value="ENTEROBACTER CLOACAE">
+                            <option value="CITROBACTER FREUNDII">
+                            <option value="STREPTOCOCCUS PNEUMONIAE">
+                            <option value="HAEMOPHILUS INFLUENZAE">
+                            <option value="LEGIONELLA PNEUMOPHILA">
+                            <option value="ASPERGILLUS FUMIGATUS">
+                            <option value="STENOTROPHOMONAS MALTOPHILIA">
+                            <option value="BURKHOLDERIA CEPACIA">
+                            <option value="CLOSTRIDIOIDES DIFFICILE">
+                            <option value="MORGANELLA MORGANII">
+                            <option value="PROVIDENCIA STUARTII">
+                        </datalist>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Sensibilidad</label>
+                        <div id="sensibilidad-container">
+                            <input type="text" name="dynamic_cultivos[0][sensibilidad]" placeholder="Escribir y presionar Enter...">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Resistencia</label>
+                        <div id="resistencia-container">
+                            <input type="text" name="dynamic_cultivos[0][resistencia]" placeholder="Escribir y presionar Enter...">
+                        </div>
+                    </div>
+                    
+                    <!-- Datalist de antimicrobianos -->
+                    <datalist id="antimicrobianos_list">
+                        <option value="AMPICILINA">
+                        <option value="AMOXICILINA">
+                        <option value="AMOXICILINA/ACIDO CLAVULANICO">
+                        <option value="PIPERACILINA/TAZOBACTAM">
+                        <option value="CEFAZOLINA">
+                        <option value="CEFUROXIMA">
+                        <option value="CEFTRIAXONA">
+                        <option value="CEFOTAXIMA">
+                        <option value="CEFEPIME">
+                        <option value="CEFTAZIDIMA">
+                        <option value="ERTAPENEM">
+                        <option value="IMIPENEM">
+                        <option value="MEROPENEM">
+                        <option value="DORIPENEM">
+                        <option value="AZTREONAM">
+                        <option value="GENTAMICINA">
+                        <option value="AMIKACINA">
+                        <option value="TOBRAMICINA">
+                        <option value="CIPROFLOXACINO">
+                        <option value="LEVOFLOXACINO">
+                        <option value="MOXIFLOXACINO">
+                        <option value="AZITROMICINA">
+                        <option value="CLARITROMICINA">
+                        <option value="VANCOMICINA">
+                        <option value="TEICOPLANINA">
+                        <option value="DAPTOMICINA">
+                        <option value="LINEZOLID">
+                        <option value="COLISTINA">
+                        <option value="POLIMIXINA B">
+                        <option value="TRIMETOPRIM/SULFAMETOXAZOL">
+                        <option value="METRONIDAZOL">
+                        <option value="CLINDAMICINA">
+                        <option value="FOSFOMICINA">
+                        <option value="TIGECICLINA">
+                        <option value="ANFOTERICINA B">
+                        <option value="ANFOTERICINA B LIPOSOMAL">
+                        <option value="FLUCONAZOL">
+                        <option value="VORICONAZOL">
+                        <option value="POSACONAZOL">
+                        <option value="CASPOFUNGINA">
+                        <option value="MICAFUNGINA">
+                        <option value="ANIDULAFUNGINA">
+                        <option value="FLUCITOSINA">
+                        <option value="ACICLOVIR">
+                        <option value="GANCI CLOVIR">
+                        <option value="OSELTAMIVIR">
+                        <option value="ISONIAZIDA">
+                        <option value="RIFAMPICINA">
+                        <option value="PIRAZINAMIDA">
+                        <option value="ETAMBUTOL">
+                    </datalist>
+                </div>
+            </div>
+        </div>
+
+        <!-- ANTIBIOTICOS -->
+        <div class="card-body" style="border-top: 1px solid var(--border);">
+            <h4 style="color: var(--accent); margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;">💉 Antibioticos</h4>
+            
+            {% if antibioticos %}
+            <table style="width: 100%; margin-bottom: 20px; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: var(--bg-tertiary);">
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">ANTIBIOTICO</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">DOSIS</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">UNIDAD</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">VIA</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">FRECUENCIA</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">INICIO</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">FIN</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">INDICACION</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for med in antibioticos %}
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ med.antibiotico }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ med.dosis }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ med.unidad }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ med.via or '-' }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ med.frecuencia or '-' }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ med.fecha_inicio }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ med.fecha_fin or '-' }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ med.indicacion or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+            
+            <div class="dynamic-form-section" style="background: var(--bg-tertiary); padding: 15px; border-radius: 4px; border: 1px solid var(--border);">
+                <h5 style="margin-bottom: 15px; color: var(--text-secondary);">➕ Agregar Antibiotico</h5>
+                <div class="section-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+                    <div class="form-group">
+                        <label>ANTIBIOTICO</label>
+                        <input type="text" name="dynamic_antibioticos[0][antibiotico]" placeholder="Ej: Meropenem" onblur="this.value = normalizeToUpper(this.value)">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>DOSIS</label>
+                        <input type="text" name="dynamic_antibioticos[0][dosis]" placeholder="Ej: 1.0" onblur="this.value = normalizeToUpper(this.value)">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>UNIDAD</label>
+                        <select name="dynamic_antibioticos[0][unidad]">
+                            <option value="">Seleccionar...</option>
+                            <option value="G">G</option>
+                            <option value="MG">MG</option>
+                            <option value="MCG">MCG</option>
+                            <option value="UI">UI</option>
+                            <option value="ML">ML</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>VIA</label>
+                        <select name="dynamic_antibioticos[0][via]">
+                            <option value="">Seleccionar...</option>
+                            <option value="IV">IV</option>
+                            <option value="IV BOLUS">IV BOLUS</option>
+                            <option value="IV INFUSION">IV INFUSION</option>
+                            <option value="SC">SC</option>
+                            <option value="IM">IM</option>
+                            <option value="VO">VO</option>
+                            <option value="NGT">NGT</option>
+                            <option value="TOPICO">TOPICO</option>
+                            <option value="INHALADO">INHALADO</option>
+                            <option value="INTRATHECAL">INTRATHECAL</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>FRECUENCIA</label>
+                        <select name="dynamic_antibioticos[0][frecuencia]">
+                            <option value="">Seleccionar...</option>
+                            <option value="DU">DU (Dosis Unica)</option>
+                            <option value="1D">1D (1 vez al dia)</option>
+                            <option value="2D">2D (2 veces al dia)</option>
+                            <option value="3D">3D (3 veces al dia)</option>
+                            <option value="4D">4D (4 veces al dia)</option>
+                            <option value="CADA 6H">Cada 6h</option>
+                            <option value="CADA 8H">Cada 8h</option>
+                            <option value="CADA 12H">Cada 12h</option>
+                            <option value="CADA 24H">Cada 24h</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>FECHA INICIO</label>
+                        <input type="date" name="dynamic_antibioticos[0][fecha_inicio]">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>FECHA FIN</label>
+                        <input type="date" name="dynamic_antibioticos[0][fecha_fin]">
+                    </div>
+                    
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>INDICACION</label>
+                        <input type="text" name="dynamic_antibioticos[0][indicacion]" placeholder="Ej: Neumonia nosocomial" onblur="this.value = normalizeToUpper(this.value)">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- CATEGORIA 3: BANCO DE SANGRE -->
+<!-- ========================================== -->
+<div class="collapsible-group category-sangre">
+    
+    <div class="collapsible-header" onclick="toggleGroup(this)">
+        <span>🩸 Banco de Sangre <span class="category-header-sangre" style="font-size: 0.85em; font-weight: normal;">(Transfusiones, Derivados sanguineos)</span></span>
+        <span class="toggle-icon">▼</span>
+    </div>
+    
+    <div class="collapsible-body">
+        
+        <!-- Transfusiones -->
+        <div class="card-body" style="border-top: 1px solid var(--border);">
+            <h4 style="color: var(--accent); margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;">🩸 Transfusiones</h4>
+            
+            {% if transfusiones %}
+            <table style="width: 100%; margin-bottom: 20px; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: var(--bg-tertiary);">
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Componente</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Unidades</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Volumen (mL)</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Fecha</th>
+                        <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Reaccion Adversa</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in transfusiones %}
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ t.componente }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ t.dosis_unidades }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ t.dosis_ml }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ t.fecha_transfusion }}</td>
+                        <td style="padding: 8px; border: 1px solid var(--border);">{{ t.reaccion_adversa or '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endif %}
+            
+            
+            <div class="dynamic-form-section" style="background: var(--bg-tertiary); padding: 15px; border-radius: 4px; border: 1px solid var(--border); margin-top: 15px;">
+                <h5 style="margin-bottom: 15px; color: var(--text-secondary);">➕ Agregar Transfusiones</h5>
+                <div class="section-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                    
+                    <div class="form-group">
+                        <label>Componente</label>
+                        <select name="dynamic_transfusiones[0][componente]">
+                            <option value="">Seleccionar...</option>
+                            <option value="Globulos Rojos">Globulos Rojos</option>
+                            <option value="Plasma Fresco Congelado">Plasma Fresco Congelado</option>
+                            <option value="Plaquetas">Plaquetas</option>
+                            <option value="Crioprecipitados">Crioprecipitados</option>
+                            <option value="Sangre Total">Sangre Total</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Unidades</label>
+                        <input type="number" name="dynamic_transfusiones[0][dosis_unidades]" placeholder="Ej: 2">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Volumen (mL)</label>
+                        <input type="number" name="dynamic_transfusiones[0][dosis_ml]" placeholder="Ej: 450">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Fecha</label>
+                        <input type="date" name="dynamic_transfusiones[0][fecha_transfusion]">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Reaccion Adversa</label>
+                        <input type="text" name="dynamic_transfusiones[0][reaccion_adversa]" placeholder="Ej: Ninguna, Fiebre, Urticaria, SHTR" onblur="this.value = normalizeToUpper(this.value)">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- COMPONENTE DE TAGS PARA SENSIBILIDAD/RESISTENCIA -->
+<style>
+.tags-field {
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 8px;
+    min-height: 42px;
+    background: var(--bg);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    cursor: text;
+}
+.tags-field:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.2);
+}
+.tag-pill {
+    background: linear-gradient(135deg, var(--accent), #22c55e);
+    color: white;
+    padding: 4px 10px;
+    border-radius: 16px;
+    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    animation: tagPop 0.2s ease;
+}
+@keyframes tagPop {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+.tag-remove-btn {
+    cursor: pointer;
+    font-weight: bold;
+    opacity: 0.8;
+}
+.tag-remove-btn:hover {
+    opacity: 1;
+}
+.tag-text-input {
+    border: none;
+    outline: none;
+    background: transparent;
+    flex: 1;
+    min-width: 120px;
+    color: var(--text);
+    font-size: 0.9rem;
+    padding: 4px;
+}
+.suggestions-dropdown {
+    position: absolute;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    min-width: 200px;
+}
+.suggestion-item {
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.suggestion-item:hover {
+    background: var(--accent);
+    color: white;
+}
+</style>
+

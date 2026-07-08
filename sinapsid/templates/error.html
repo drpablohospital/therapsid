@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error | SINAPSID</title>
+    <style>
+        :root {
+            --bg-primary: #0d0d0d;
+            --bg-secondary: #141414;
+            --text-primary: #e0e0e0;
+            --text-secondary: #888;
+            --accent: #ff6b35;
+            --danger: #f87171;
+        }
+        body {
+            font-family: 'Consolas', 'Courier New', monospace;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+        }
+        .error-container {
+            text-align: center;
+            padding: 40px;
+            border: 2px solid var(--danger);
+            border-radius: 8px;
+            background: var(--bg-secondary);
+            max-width: 500px;
+        }
+        h1 { color: var(--danger); margin-bottom: 20px; }
+        p { color: var(--text-secondary); margin-bottom: 30px; }
+        a {
+            color: var(--accent);
+            text-decoration: none;
+            padding: 10px 20px;
+            border: 1px solid var(--accent);
+            border-radius: 4px;
+            display: inline-block;
+        }
+        a:hover { background: var(--accent); color: white; }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <h1>⚠️ Error</h1>
+        <p>{{ error }}</p>
+        <a href="/">← Volver al inicio</a>
+    </div>
+</body>
+</html>

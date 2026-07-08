@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Notas - {{ patient.nombre_completo }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .evolution-table tbody tr:hover {
+        background: rgba(255, 107, 53, 0.1);
+        transition: background 0.2s;
+    }
+    .notes-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    .notes-header h2 {
+        color: var(--accent);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="patient-header">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 20px;">
+        <div>
+            <h1>{{ patient.nombre_completo }}</h1>
+            <div class="patient-meta">
+                <div class="patient-meta-item">
+                    <strong>Expediente:</strong> {{ patient.expediente or 'N/A' }}
+                </div>
+                <div class="patient-meta-item">
+                    <strong>Cama:</strong> {{ patient.cama or 'N/A' }}
+                </div>
+                <div class="patient-meta-item">
+                    <strong>Estado:</strong>
+                    <span class="status-badge status-{{ patient.estado or 'ingreso' }}">{{ patient.estado or 'INGRESO' }}</span>
+                </div>
+            </div>
+        </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <a href="/patient/{{ patient.id }}" class="btn">← Volver al Paciente</a>
+            <a href="/patient/{{ patient.id }}/evolution" class="btn">📝 Nueva Evolución</a>
+        </div>
+    </div>
+</div>
+
+<!-- Tabla de Evoluciones -->
+<div class="card">
+    <div class="card-header notes-header">
+        <h2>📋 Historial de Notas y Evoluciones</h2>
+    </div>
+    <div class="card-body">
+        {% if evoluciones %}
+        <div class="table-container">
+            <table class="evolution-table">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Hora</th>
+                        <th>FC</th>
+                        <th>FR</th>
+                        <th>TAS</th>
+                        <th>TAD</th>
+                        <th>SpO2</th>
+                        <th>Glasgow</th>
+                        <th>Nota</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for evo in evoluciones %}
+                    <tr style="cursor: pointer;" onclick="window.location.href='/patient/{{ patient.id }}/evolution/{{ evo.id }}/edit'" title="Click para editar">
+                        <td>{{ evo.fecha or '-' }}</td>
+                        <td>{{ evo.hora or '-' }}</td>
+                        <td>{{ evo.fc or '-' }}</td>
+                        <td>{{ evo.fr or '-' }}</td>
+                        <td>{{ evo.tas or '-' }}</td>
+                        <td>{{ evo.tad or '-' }}</td>
+                        <td>{{ evo.spo2 or '-' }}</td>
+                        <td>{{ evo.glasgow or '-' }}</td>
+                        <td>{% if evo.nota %}{{ evo.nota[:50] }}{% if evo.nota|length > 50 %}...{% endif %}{% else %}-{% endif %}</td>
+                        <td>
+                            <a href="/patient/{{ patient.id }}/evolution/{{ evo.id }}/edit" class="btn" style="padding: 4px 8px; font-size: 0.8rem;">✏️ Editar</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p style="text-align: center; color: var(--text-secondary);">Sin evoluciones registradas</p>
+        <p style="text-align: center;">
+            <a href="/patient/{{ patient.id }}/evolution" class="btn">📝 Crear Primera Evolución</a>
+        </p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

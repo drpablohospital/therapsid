@@ -1,0 +1,2816 @@
+{% extends "base.html" %}
+
+{% block title %}Análisis de Tendencias | Sinapsid{% endblock %}
+
+{% block extra_css %}
+<style>
+  .ax-header {
+    border-left: 4px solid var(--accent);
+    padding-left: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .ax-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+  }
+  .ax-card-header {
+    background: var(--bg-tertiary);
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .ax-card-body {
+    padding: 1rem;
+    transition: max-height 0.3s ease-out, opacity 0.3s ease-out, padding 0.3s ease-out;
+    max-height: 3000px;
+    opacity: 1;
+    overflow: hidden;
+  }
+  .ax-card-body.collapsed {
+    max-height: 0;
+    opacity: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  /* Tabs de navegacion */
+  .nav-pills .nav-link {
+    color: var(--text-secondary);
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    margin-right: 0.5rem;
+    margin-bottom: 0.5rem;
+    border-radius: 0.375rem;
+    font-size: 0.85rem;
+    padding: 0.5rem 1rem;
+  }
+  .nav-pills .nav-link:hover {
+    background: var(--accent);
+    color: white;
+  }
+  .nav-pills .nav-link.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+  .tab-content {
+    padding-top: 1rem;
+  }
+  /* Tabs personalizadas */
+  .chart-tabs-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.5rem;
+  }
+  .chart-tab-btn {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 0.5rem 1rem;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+  }
+  .chart-tab-btn:hover {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+  .chart-tab-btn.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+  }
+  .chart-tabs-content {
+    position: relative;
+  }
+  .chart-tab-panel {
+    display: none;
+  }
+  .chart-tab-panel.active {
+    display: block;
+  }
+  .ax-metric {
+    text-align: center;
+    padding: 0.6rem 0.5rem;
+    background: var(--bg-tertiary);
+    border-radius: 0.5rem;
+    border: 1px solid var(--border);
+    transition: transform 0.15s, box-shadow 0.15s;
+    min-height: 90px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+  .ax-metric:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+  .ax-metric-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1.2;
+  }
+  .ax-metric-value.na {
+    font-size: 0.85rem;
+    font-weight: 400;
+    color: var(--text-secondary);
+    opacity: 0.6;
+  }
+  .ax-metric-label {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-top: 0.25rem;
+  }
+  .ax-metric-unit {
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+    opacity: 0.5;
+    margin-top: 0.1rem;
+  }
+  .ax-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  /* Fix iconos Font Awesome en modo claro */
+  body.light-mode .ax-metric i.fas,
+  body.light-mode .ax-metric i.far,
+  body.light-mode .ax-metric i.fab {
+    font-weight: 900 !important;
+    opacity: 1 !important;
+  }
+  body.light-mode .ax-metric-value {
+    color: var(--accent) !important;
+  }
+  body.light-mode .ax-badge-success { background: rgba(0,0,0,0.08); color: #000; }
+  body.light-mode .ax-badge-warning { background: rgba(251,191,36,0.2); color: #b45309; }
+  body.light-mode .ax-badge-danger { background: rgba(248,113,113,0.2); color: #dc2626; }
+  /* Grid de métricas — aprovecha todo el ancho */
+  #metrics-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 0.5rem;
+  }
+  #metrics-row > div {
+    padding: 0;
+  }
+  @media (min-width: 1400px) {
+    #metrics-row {
+      grid-template-columns: repeat(8, 1fr);
+    }
+  }
+  @media (max-width: 576px) {
+    #metrics-row {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  .ax-chart-container-lg {
+    position: relative;
+    height: 400px;
+    width: 100%;
+  }
+  .param-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 0.5rem;
+  }
+  .param-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.5rem;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: background 0.15s;
+    font-size: 0.85rem;
+  }
+  .param-item:hover { background: var(--bg-tertiary); }
+  .param-item input { cursor: pointer; }
+  .param-color {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .timeline-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+    overflow-x: auto;
+  }
+  .timeline-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+  }
+  .timeline-line {
+    height: 2px;
+    background: var(--border);
+    flex: 1;
+    min-width: 20px;
+  }
+
+  /* Compliance indicators */
+  .compliance-excellent { border-left: 4px solid #4ADE80; }
+  .compliance-regular { border-left: 4px solid #FACC15; }
+  .compliance-poor { border-left: 4px solid #F87171; }
+  #compliance-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+  }
+  @media (max-width: 1200px) {
+    #compliance-row {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+  @media (max-width: 992px) {
+    #compliance-row {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  @media (max-width: 576px) {
+    #compliance-row {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  /* Analytics metrics */
+  /* Desactivado - ahora usa flexbox inline en el JS */
+  /* #analytics-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.75rem;
+  } */
+  #analytics-row {
+    width: 100%;
+  }
+  .analytics-metric-value {
+    font-size: 1.3rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+  .analytics-metric-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+  }
+  .analytics-metric-detail {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    opacity: 0.8;
+  }
+
+  /* Category grid */
+  .analytics-category-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 0.5rem;
+  }
+  @media (max-width: 576px) {
+    .analytics-category-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+
+  <!-- Header -->
+  <div class="ax-header">
+    <h2 class="mb-1"><i class="fas fa-chart-line me-2" style="color: var(--accent)"></i>Análisis de Tendencias</h2>
+    <p class="text-muted mb-0">Monitoreo dinámico de variables críticas basado en evidencia</p>
+  </div>
+
+  <!-- Selector con Autocomplete -->
+  <style>
+    .patient-search-container {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .patient-search-input {
+      background-color: #2d3b55 !important;
+      border: 2px solid #4a90d9 !important;
+      color: #a8d4ff !important;
+      padding: 10px 15px 10px 40px !important;
+      border-radius: 8px !important;
+      font-size: 1rem !important;
+      width: 100% !important;
+      transition: all 0.2s ease !important;
+    }
+    .patient-search-input::placeholder {
+      color: #6ab3ff !important;
+      opacity: 0.6 !important;
+    }
+    .patient-search-input:focus {
+      background-color: #344866 !important;
+      border-color: #6ab3ff !important;
+      box-shadow: 0 0 0 4px rgba(74, 144, 217, 0.3) !important;
+      outline: none !important;
+    }
+    .patient-search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #6ab3ff;
+      font-size: 1.1rem;
+      pointer-events: none;
+      z-index: 2;
+    }
+    .patient-suggestions-box {
+      display: none;
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      background: #1a2332;
+      border: 2px solid #4a90d9;
+      border-radius: 8px;
+      max-height: 350px;
+      overflow-y: auto;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+    .patient-suggestion-item {
+      padding: 12px 16px;
+      cursor: pointer;
+      border-bottom: 1px solid rgba(74, 144, 217, 0.2);
+      transition: all 0.15s ease;
+      color: #a8d4ff;
+      font-size: 0.95rem;
+      line-height: 1.4;
+    }
+    .patient-suggestion-item:last-child {
+      border-bottom: none;
+    }
+    .patient-suggestion-item:hover {
+      background: #2d3b55;
+      color: #ffffff;
+    }
+    .patient-suggestion-item.selected {
+      background: #4a90d9 !important;
+      color: #ffffff !important;
+    }
+    .patient-selected-info {
+      display: none;
+      margin-top: 8px;
+      padding: 8px 12px;
+      background: #2d3b55;
+      border: 1px solid #4a90d9;
+      border-radius: 6px;
+      color: #a8d4ff;
+      font-size: 0.9rem;
+    }
+    .patient-selected-info strong {
+      color: #ffffff;
+    }
+    .patient-search-input.has-selection {
+      border-color: #4ade80 !important;
+      background-color: #1a3a1a !important;
+      color: #4ade80 !important;
+    }
+    .patient-search-input.has-selection::placeholder {
+      color: #4ade80 !important;
+      opacity: 0.7 !important;
+    }
+    /* Modo claro */
+    body.light-mode .patient-search-input {
+      background-color: #e3f2fd !important;
+      border-color: #1976d2 !important;
+      color: #0d47a1 !important;
+    }
+    body.light-mode .patient-search-input::placeholder {
+      color: #1976d2 !important;
+      opacity: 0.6 !important;
+    }
+    body.light-mode .patient-search-input:focus {
+      background-color: #bbdefb !important;
+      border-color: #1565c0 !important;
+      box-shadow: 0 0 0 4px rgba(25, 118, 210, 0.2) !important;
+    }
+    body.light-mode .patient-search-icon {
+      color: #1976d2;
+    }
+    body.light-mode .patient-suggestions-box {
+      background: #ffffff;
+      border-color: #1976d2;
+    }
+    body.light-mode .patient-suggestion-item {
+      color: #0d47a1;
+      border-bottom-color: rgba(25, 118, 210, 0.2);
+    }
+    body.light-mode .patient-suggestion-item:hover {
+      background: #e3f2fd;
+      color: #0d47a1;
+    }
+    body.light-mode .patient-suggestion-item.selected {
+      background: #1976d2 !important;
+      color: #ffffff !important;
+    }
+    body.light-mode .patient-selected-info {
+      background: #e3f2fd;
+      border-color: #1976d2;
+      color: #0d47a1;
+    }
+    body.light-mode .patient-search-input.has-selection {
+      border-color: #4ade80 !important;
+      background-color: #e8f5e9 !important;
+      color: #2e7d32 !important;
+    }
+  </style>
+
+  <div class="row mb-3">
+    <div class="col-md-8 col-lg-6">
+      <label class="form-label fw-bold">Paciente</label>
+      <div class="patient-search-container">
+        <span class="patient-search-icon">🔍</span>
+        <input type="text" id="patient-search" class="patient-search-input" placeholder="Escriba nombre, CURP o expediente..." autocomplete="off">
+        <button type="button" id="btn-clear-search" class="btn btn-sm btn-outline-secondary" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); border: none; background: transparent; color: var(--text-secondary);" title="Limpiar búsqueda">
+          <i class="fas fa-times"></i>
+        </button>
+        <input type="hidden" id="patient-select" value="">
+        <div id="patient-suggestions" class="patient-suggestions-box"></div>
+      </div>
+      <div id="patient-selected-name" class="patient-selected-info"></div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div id="loading-box" class="text-center py-5 d-none">
+    <div class="spinner-border text-primary" role="status"></div>
+    <p class="mt-2 text-muted">Cargando evoluciones...</p>
+  </div>
+
+  <!-- Dashboard del paciente -->
+  <div id="patient-dashboard" class="d-none">
+    
+    <!-- Info rápida -->
+    <div class="row mb-3">
+      <div class="col-12">
+        <div class="ax-card">
+          <div class="ax-card-header" style="cursor: pointer;" onclick="toggleChartSection('section-info-rapida', 'icon-info-rapida')">
+            <span><i class="fas fa-user-injured me-2"></i><strong id="dash-nombre">Paciente</strong> <i id="icon-info-rapida" class="fas fa-chevron-down ms-2"></i></span>
+            <span class="text-muted" id="dash-meta">—</span>
+          </div>
+          <div id="section-info-rapida" class="ax-card-body">
+            <div id="metrics-row">
+              <!-- Se llena dinámicamente -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- Indicadores Clave (Literature-based) -->
+    <div class="row mb-3">
+      <div class="col-12">
+        <div class="ax-card">
+          <div class="ax-card-header" style="cursor: pointer;" onclick="toggleChartSection('section-key-indicators', 'icon-key-indicators')">
+            <span><i class="fas fa-star text-warning me-2"></i><strong>Indicadores Pronósticos Clave</strong> <i id="icon-key-indicators" class="fas fa-chevron-down ms-2"></i></span>
+            <small class="text-muted">Basado en Park et al. 2023 (Sci Rep) — Lac-SOFA serial</small>
+          </div>
+          <div id="section-key-indicators" class="ax-card-body">
+            <div class="row g-3">
+              <div class="col-md-4">
+                <div class="ax-chart-container" id="chart-lactato"></div>
+                <p class="text-center text-muted small mt-1">Lactato serial (mmol/L) — Clearance &gt;10%/2h meta</p>
+              </div>
+              <div class="col-md-4">
+                <div class="ax-chart-container" id="chart-sofa"></div>
+                <p class="text-center text-muted small mt-1">SOFA / ΔSOFA — Δ &gt;2 en 48h asociado a mortalidad</p>
+              </div>
+              <div class="col-md-4">
+                <div class="ax-chart-container" id="chart-pafi"></div>
+                <p class="text-center text-muted small mt-1">PaFi ratio — &lt;200 SDRA, &lt;100 SDRA severo</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+        
+    <!-- Indicadores de Cumplimiento del Expediente -->
+    <div id="compliance-card" class="row mb-3 d-none">
+      <div class="col-12">
+        <div class="ax-card">
+          <div class="ax-card-header" style="cursor: pointer;" onclick="toggleChartSection('section-compliance', 'icon-compliance')">
+            <span><i class="fas fa-chart-pie text-info me-2"></i><strong>Cumplimiento del Expediente</strong> <i id="icon-compliance" class="fas fa-chevron-down ms-2"></i></span>
+            <small class="text-muted">Calidad de datos para análisis estadístico</small>
+          </div>
+          <div id="section-compliance" class="ax-card-body">
+            <div id="compliance-row">
+              <!-- Se llena dinámicamente -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    
+    
+    <!-- INDICADORES DE RIESGO DE MORTALIDAD EN UCI -->
+    <div id="analytics-card" class="row mb-3 d-none">
+      <div class="col-12">
+        <div class="ax-card">
+          <div class="ax-card-header" style="cursor: pointer;" onclick="toggleChartSection('section-analytics', 'icon-analytics')">
+            <span><i class="fas fa-skull-crossbones text-danger me-2"></i><strong>Indicadores de Riesgo de Mortalidad en UCI</strong> <i id="icon-analytics" class="fas fa-chevron-down ms-2"></i></span>
+            <small class="text-muted">Parámetros asociados a mortalidad y días de ventilación</small>
+          </div>
+          <div id="section-analytics" class="ax-card-body">
+            <div id="analytics-row">
+              <!-- Se llena dinámicamente -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MENU DESPLEGABLE UNIFICADO: Todas las graficas -->
+    <div class="row mb-3">
+      <div class="col-12">
+        <div class="ax-card">
+          <div class="ax-card-header" style="cursor: pointer;" onclick="toggleChartSection('section-all-charts', 'icon-all-charts')">
+            <span><i class="fas fa-chart-line text-primary me-2"></i><strong>Análisis de Tendencias</strong> <i id="icon-all-charts" class="fas fa-chevron-down ms-2"></i></span>
+            <small class="text-muted">Click para ver todas las categorías</small>
+          </div>
+          <div id="section-all-charts" class="ax-card-body collapsed">
+            
+            <!-- Tabs de navegacion interna -->
+            <div class="chart-tabs-nav mb-3">
+              <button class="chart-tab-btn active" onclick="switchChartTab('panel-vitals', this)"><i class="fas fa-heartbeat me-1"></i>Signos Vitales</button>
+              <button class="chart-tab-btn" onclick="switchChartTab('panel-liquids', this)"><i class="fas fa-tint me-1"></i>Balance</button>
+              <button class="chart-tab-btn" onclick="switchChartTab('panel-renal', this)"><i class="fas fa-kidney me-1"></i>Renal</button>
+              <button class="chart-tab-btn" onclick="switchChartTab('panel-labs', this)"><i class="fas fa-flask me-1"></i>Labs</button>
+              <button class="chart-tab-btn" onclick="switchChartTab('panel-gasometria', this)"><i class="fas fa-lungs me-1"></i>Gasometría</button>
+              <button class="chart-tab-btn" onclick="switchChartTab('panel-ventilacion', this)"><i class="fas fa-wind me-1"></i>Ventilación</button>
+              <button class="chart-tab-btn" onclick="switchChartTab('panel-custom', this)"><i class="fas fa-sliders-h me-1"></i>Personalizado</button>
+            </div>
+            
+            <!-- Contenido de tabs -->
+            <div class="chart-tabs-content">
+              
+              <!-- Signos Vitales -->
+              <div class="chart-tab-panel active" id="panel-vitals">
+                <div class="ax-chart-container-lg" id="chart-vitals"></div>
+              </div>
+              
+              <!-- Balance -->
+              <div class="chart-tab-panel" id="panel-liquids">
+                <div class="ax-chart-container-lg" id="chart-liquids"></div>
+              </div>
+              
+              <!-- Renal -->
+              <div class="chart-tab-panel" id="panel-renal">
+                <div class="ax-chart-container-lg" id="chart-renal"></div>
+              </div>
+              
+              <!-- Labs -->
+              <div class="chart-tab-panel" id="panel-labs">
+                <div class="ax-chart-container-lg" id="chart-labs"></div>
+              </div>
+              
+              <!-- Gasometria -->
+              <div class="chart-tab-panel" id="panel-gasometria">
+                <div class="ax-chart-container-lg" id="chart-gasometria"></div>
+              </div>
+              
+              <!-- Ventilacion -->
+              <div class="chart-tab-panel" id="panel-ventilacion">
+                <div class="ax-chart-container-lg" id="chart-ventilacion"></div>
+              </div>
+              
+              <!-- Personalizado -->
+              <div class="chart-tab-panel" id="panel-custom">
+                <div class="row">
+                  <div class="col-md-3">
+                    <p class="fw-bold mb-2 small">Parámetros disponibles:</p>
+                    <div class="param-grid" id="custom-params-list"></div>
+                    <button id="btn-generar-custom" class="btn btn-primary btn-sm w-100 mt-2" disabled>
+                      <i class="fas fa-chart-line me-1"></i>Generar Gráfica
+                    </button>
+                  </div>
+                  <div class="col-md-9">
+                    <div class="ax-chart-container-lg" id="chart-custom"></div>
+                  </div>
+                </div>
+              </div>
+              
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Exportar -->
+    <div class="row mb-4">
+      <div class="col-12 text-end">
+        <button id="btn-exportar" class="btn btn-outline-success btn-sm">
+          <i class="fas fa-file-csv me-1"></i>Exportar datos a CSV
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
+<script>
+// ============================================================
+// SINAPSID AX — Análisis de Tendencias con Chart.js
+// Basado en evidencia: SOFA serial, lactato clearance, PaFi
+// ============================================================
+
+const API_BASE = '/api/patient';
+let currentPatientId = null;
+let currentEvolutions = [];
+let customSelected = [];
+let charts = {};  // Registry de charts activos
+
+// Paleta de colores profesional
+const PALETTE = {
+  red: '#ef4444', orange: '#f97316', amber: '#f59e0b', yellow: '#eab308',
+  green: '#22c55e', emerald: '#10b981', teal: '#14b8a6', cyan: '#06b6d4',
+  blue: '#3b82f6', indigo: '#6366f1', violet: '#8b5cf6', purple: '#a855f7',
+  pink: '#ec4899', rose: '#f43f5e', slate: '#64748b'
+};
+
+// Parámetros organizados por categoría
+const PARAMS_DISPONIBLES = [
+  // Vitales
+  { campo: 'fc', label: 'FC', unit: 'lpm', color: PALETTE.red, cat: 'Vitales' },
+  { campo: 'fr', label: 'FR', unit: 'rpm', color: PALETTE.orange, cat: 'Vitales' },
+  { campo: 'tas', label: 'TAS', unit: 'mmHg', color: PALETTE.red, cat: 'Vitales' },
+  { campo: 'tad', label: 'TAD', unit: 'mmHg', color: PALETTE.blue, cat: 'Vitales' },
+  { campo: 'tam', label: 'PAM', unit: 'mmHg', color: PALETTE.violet, cat: 'Vitales' },,
+  { campo: 'temperatura', label: 'Temp', unit: '°C', color: PALETTE.amber, cat: 'Vitales' },
+  { campo: 'spo2', label: 'SpO2', unit: '%', color: PALETTE.emerald, cat: 'Vitales' },
+  { campo: 'fio2', label: 'FiO2', unit: '%', color: PALETTE.cyan, cat: 'Vitales' },
+  { campo: 'pafi', label: 'PaFi', unit: '', color: PALETTE.indigo, cat: 'Vitales' },
+  { campo: 'glasgow', label: 'Glasgow', unit: '', color: PALETTE.green, cat: 'Vitales' },
+  { campo: 'rass', label: 'RASS', unit: '', color: PALETTE.purple, cat: 'Vitales' },
+  // Líquidos
+  { campo: 'balance', label: 'Balance', unit: 'mL', color: PALETTE.teal, cat: 'Líquidos' },
+  { campo: 'diuresis', label: 'Diuresis', unit: 'mL', color: PALETTE.blue, cat: 'Líquidos' },
+  { campo: 'balance_global', label: 'Balance Global', unit: 'mL', color: PALETTE.amber, cat: 'Líquidos' },
+  // Labs
+  { campo: 'hemoglobina', label: 'Hb', unit: 'g/dL', color: PALETTE.red, cat: 'Labs' },
+  { campo: 'hematocrito', label: 'Hto', unit: '%', color: PALETTE.orange, cat: 'Labs' },
+  { campo: 'plaquetas', label: 'Plaquetas', unit: 'K/μL', color: PALETTE.violet, cat: 'Labs' },
+  { campo: 'leucocitos', label: 'Leucocitos', unit: 'K/μL', color: PALETTE.blue, cat: 'Labs' },
+  { campo: 'neutrofilos', label: 'Neutrófilos', unit: 'K/μL', color: PALETTE.pink, cat: 'Labs' },
+  { campo: 'linfocitos', label: 'Linfocitos', unit: 'K/μL', color: PALETTE.emerald, cat: 'Labs' },
+  { campo: 'glucosa', label: 'Glucosa', unit: 'mg/dL', color: PALETTE.amber, cat: 'Labs' },
+  { campo: 'urea', label: 'BUN', unit: 'mg/dL', color: PALETTE.green, cat: 'Labs' },
+  { campo: 'creatinina', label: 'Creatinina', unit: 'mg/dL', color: PALETTE.rose, cat: 'Labs' },
+  { campo: 'sodio', label: 'Na', unit: 'mEq/L', color: PALETTE.blue, cat: 'Labs' },
+  { campo: 'potasio', label: 'K', unit: 'mEq/L', color: PALETTE.purple, cat: 'Labs' },
+  { campo: 'cloro', label: 'Cl', unit: 'mEq/L', color: PALETTE.cyan, cat: 'Labs' },
+  { campo: 'calcio', label: 'Ca', unit: 'mg/dL', color: PALETTE.slate, cat: 'Labs' },
+  { campo: 'magnesio', label: 'Mg', unit: 'mg/dL', color: PALETTE.slate, cat: 'Labs' },
+  { campo: 'fosforo', label: 'P', unit: 'mg/dL', color: PALETTE.slate, cat: 'Labs' },
+  { campo: 'lactato', label: 'Lactato', unit: 'mmol/L', color: PALETTE.red, cat: 'Labs' },
+  { campo: 'pcr', label: 'PCR', unit: 'mg/L', color: PALETTE.orange, cat: 'Labs' },
+  { campo: 'pct', label: 'PCT', unit: 'ng/mL', color: PALETTE.yellow, cat: 'Labs' },
+  // Gasometría
+  { campo: 'ph', label: 'pH', unit: '', color: PALETTE.red, cat: 'Gasometría' },
+  { campo: 'pco2', label: 'pCO2', unit: 'mmHg', color: PALETTE.blue, cat: 'Gasometría' },
+  { campo: 'po2', label: 'pO2', unit: 'mmHg', color: PALETTE.green, cat: 'Gasometría' },
+  { campo: 'hco3', label: 'HCO3', unit: 'mEq/L', color: PALETTE.teal, cat: 'Gasometría' },
+  { campo: 'lactato', label: 'Lactato', unit: 'mmol/L', color: PALETTE.rose, cat: 'Gasometría' },
+  // Ventilación
+  { campo: 'safio2', label: 'SaFiO2', unit: '', color: PALETTE.emerald, cat: 'Ventilación' },
+  { campo: 'nif', label: 'NIF', unit: 'cmH2O', color: PALETTE.orange, cat: 'Ventilación' },
+  { campo: 'vt_ps', label: 'VT/PS', unit: '', color: PALETTE.purple, cat: 'Ventilación' },
+  { campo: 'dp', label: 'DP', unit: 'cmH2O', color: PALETTE.red, cat: 'Ventilación' },
+  { campo: 'pip', label: 'PIP', unit: 'cmH2O', color: PALETTE.rose, cat: 'Ventilación' },
+  // Coagulación
+  { campo: 'inr', label: 'INR', unit: '', color: PALETTE.red, cat: 'Coagulación' },
+  { campo: 'tp', label: 'TP', unit: 's', color: PALETTE.orange, cat: 'Coagulación' },
+  { campo: 'ttp', label: 'TTP', unit: 's', color: PALETTE.amber, cat: 'Coagulación' },
+  { campo: 'fibrinogeno', label: 'Fibrinógeno', unit: 'mg/dL', color: PALETTE.blue, cat: 'Coagulación' },
+  // Hepático
+  { campo: 'bilirrubina_total', label: 'Bili Total', unit: 'mg/dL', color: PALETTE.yellow, cat: 'Hepático' },
+  { campo: 'bilirrubina_directa', label: 'Bili Directa', unit: 'mg/dL', color: PALETTE.amber, cat: 'Hepático' },
+  { campo: 'alt', label: 'ALT', unit: 'U/L', color: PALETTE.red, cat: 'Hepático' },
+  { campo: 'ast', label: 'AST', unit: 'U/L', color: PALETTE.orange, cat: 'Hepático' },
+  { campo: 'albumina', label: 'Albúmina', unit: 'g/dL', color: PALETTE.blue, cat: 'Hepático' },
+];
+
+// ============================================================
+// UTILIDADES
+// ============================================================
+
+function destroyChart(id) {
+  if (charts[id]) {
+    charts[id].destroy();
+    delete charts[id];
+  }
+}
+
+function getThemeColors() {
+  const isLight = document.body.classList.contains('light-mode');
+  return {
+    bg: isLight ? '#ffffff' : '#0d1117',
+    card: isLight ? '#f6f8fa' : '#161b22',
+    text: isLight ? '#24292f' : '#c9d1d9',
+    grid: isLight ? '#d0d7de' : '#30363d',
+    tick: isLight ? '#57606a' : '#8b949e'
+  };
+}
+
+function parseFecha(fecha, hora) {
+  if (!fecha) return null;
+  try {
+    let d;
+    if (typeof fecha === 'string') {
+      d = new Date(fecha + (hora ? 'T' + hora : 'T00:00:00'));
+    } else if (fecha.isoformat) {
+      d = new Date(fecha.isoformat() + (hora ? 'T' + hora : 'T00:00:00'));
+    } else {
+      d = new Date(fecha);
+    }
+    return isNaN(d.getTime()) ? null : d;
+  } catch (e) { return null; }
+}
+
+function toggleChartSection(sectionId, iconId) {
+  const section = document.getElementById(sectionId);
+  const icon = document.getElementById(iconId);
+  if (!section || !icon) return;
+  
+  const isCollapsed = section.classList.contains('collapsed');
+  
+  if (isCollapsed) {
+    // Expandir
+    section.classList.remove('collapsed');
+    section.style.display = 'block';
+    icon.classList.remove('fa-chevron-right');
+    icon.classList.add('fa-chevron-down');
+  } else {
+    // Colapsar
+    section.classList.add('collapsed');
+    icon.classList.remove('fa-chevron-down');
+    icon.classList.add('fa-chevron-right');
+  }
+}
+
+function switchChartTab(panelId, btn) {
+  // Desactivar todos los botones y paneles
+  document.querySelectorAll('.chart-tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.chart-tab-panel').forEach(p => p.classList.remove('active'));
+  
+  // Activar el seleccionado
+  btn.classList.add('active');
+  document.getElementById(panelId).classList.add('active');
+  
+  // Forzar resize de charts para que se rendericen correctamente
+  Object.values(charts).forEach(chart => {
+    if (chart) chart.resize();
+  });
+}
+
+function extractSeries(evoluciones, campo, fallbackCalc = null) {
+  const data = [];
+  for (const evo of evoluciones) {
+    const fecha = parseFecha(evo.fecha, evo.hora);
+    if (!fecha) continue;
+    
+    // Intentar campo directo
+    let val = getFieldValue(evo, campo);
+    
+    // Si no hay valor y hay función fallback, calcular
+    if (val === null && fallbackCalc) {
+      val = fallbackCalc(evo);
+    }
+    
+    if (val === null) continue;
+    data.push({ x: fecha, y: val });
+  }
+  return data.sort((a, b) => a.x - b.x);
+}
+
+function extractNumeric(evoluciones, campo) {
+  const vals = [];
+  for (const evo of evoluciones) {
+    const val = evo[campo];
+    if (val === null || val === undefined || val === '') continue;
+    const num = parseFloat(val);
+    if (isNaN(num)) continue;
+    vals.push(num);
+  }
+  return vals;
+}
+
+function computeDelta(values) {
+  if (values.length < 2) return null;
+  return values[values.length - 1] - values[0];
+}
+
+function getFieldValue(obj, ...fields) {
+  for (const f of fields) {
+    const v = obj[f];
+    if (v !== null && v !== undefined && v !== '' && !isNaN(parseFloat(v))) {
+      return parseFloat(v);
+    }
+  }
+  return null;
+}
+
+// ============================================================
+// CHART FACTORY
+// ============================================================
+
+function createLineChart(canvasId, datasets, options = {}) {
+  destroyChart(canvasId);
+  const ctx = document.getElementById(canvasId).getContext('2d');
+  const theme = getThemeColors();
+  
+  const defaultOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: {
+        position: 'top',
+        labels: { color: theme.text, font: { size: 11 }, boxWidth: 10 }
+      },
+      tooltip: {
+        backgroundColor: theme.card,
+        titleColor: theme.text,
+        bodyColor: theme.text,
+        borderColor: theme.grid,
+        borderWidth: 1,
+        callbacks: {
+          title: (items) => {
+            const d = items[0].parsed.x;
+            return new Date(d).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+          },
+          label: (context) => {
+            const dataset = context.dataset;
+            const label = dataset.label || '';
+            const value = context.parsed.y;
+            
+            // Si hay realData, mostrar valor real
+            if (dataset.realData && dataset.realData[context.dataIndex] !== undefined) {
+              const realValue = dataset.realData[context.dataIndex];
+              return `${label}: ${realValue.toFixed(2)} (real)`;
+            }
+            
+            return `${label}: ${value}`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        type: 'time',
+        time: {
+          unit: 'day',
+          displayFormats: { day: 'dd/MM', hour: 'dd/MM HH:mm' }
+        },
+        grid: { color: theme.grid, alpha: 0.3 },
+        ticks: { color: theme.tick, font: { size: 10 } }
+      },
+      y: {
+        grid: { color: theme.grid, alpha: 0.3 },
+        ticks: { color: theme.tick, font: { size: 10 } }
+      }
+    }
+  };
+  
+  charts[canvasId] = new Chart(ctx, {
+    type: 'line',
+    data: { datasets },
+    options: { ...defaultOptions, ...options }
+  });
+  
+  return charts[canvasId];
+}
+
+// ============================================================
+// GRÁFICAS ESPECÍFICAS
+// ============================================================
+
+function renderLactato(evoluciones) {
+  const data = extractSeries(evoluciones, 'lactato');
+  if (data.length === 0) {
+    document.getElementById('chart-lactato').innerHTML = '<p class="text-muted text-center py-5"><i class="fas fa-info-circle me-1"></i>Lactato no capturado en las evoluciones</p>';
+    return;
+  }
+  
+  // Crear canvas si no existe
+  const container = document.getElementById('chart-lactato');
+  container.innerHTML = '<canvas id="canvas-lactato"></canvas>';
+  
+  // Lactato escalado x10 para visualizacion
+  const scaledData = data.map(d => ({ x: d.x, y: d.y * 10 }));
+  const realValues = data.map(d => d.y);
+  
+  createLineChart('canvas-lactato', [{
+    label: 'Lactato (x10 visual)',
+    data: scaledData,
+    realData: realValues,
+    borderColor: PALETTE.rose,
+    backgroundColor: PALETTE.rose + '20',
+    fill: true,
+    tension: 0.3,
+    pointRadius: 4,
+    pointHoverRadius: 6
+  }], {
+    plugins: {
+      annotation: {
+        annotations: {
+          line1: {
+            type: 'line',
+            yMin: 20,
+            yMax: 20,
+            borderColor: PALETTE.amber,
+            borderWidth: 1,
+            borderDash: [5, 5],
+            label: { content: 'Meta: <2 (real)', enabled: true, position: 'end' }
+          },
+          line2: {
+            type: 'line',
+            yMin: 40,
+            yMax: 40,
+            borderColor: PALETTE.red,
+            borderWidth: 1,
+            borderDash: [5, 5],
+            label: { content: 'Severo: >4 (real)', enabled: true, position: 'end' }
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderSOFA(evoluciones) {
+  // SOFA se calcula o se toma del campo sofa_ingreso/sofa_egreso
+  // Por ahora usamos campos proxy si no hay SOFA calculado
+  const sofaData = [];
+  for (const evo of evoluciones) {
+    const fecha = parseFecha(evo.fecha, evo.hora);
+    if (!fecha) continue;
+    // Intentar obtener SOFA de múltiples campos
+    let sofa = evo.sofa_ingreso || evo.sofa_egreso || evo.sofa || null;
+    if (sofa === null) {
+    // Proxy: usar PaFi, plaquetas, PAM (tam), creatinina, Glasgow, bilirrubina
+      let score = 0;
+      const pafi = getFieldValue(evo, 'pafi') || (() => {
+        const s = getFieldValue(evo, 'spo2');
+        const f = getFieldValue(evo, 'fio2');
+        if (s !== null && f !== null && f > 0) return (s / f) * 100;
+        return 400;
+      })();
+      if (pafi < 100) score += 4;
+      else if (pafi < 200) score += 3;
+      else if (pafi < 300) score += 2;
+      else if (pafi < 400) score += 1;
+      
+      const plt = getFieldValue(evo, 'plaquetas') || 150;
+      if (plt < 20) score += 4;
+      else if (plt < 50) score += 3;
+      else if (plt < 100) score += 2;
+      else if (plt < 150) score += 1;
+      
+      const pam = getFieldValue(evo, 'tam') || 70;
+      if (pam < 55) score += 3;
+      else if (pam < 70) score += 2;
+      
+      const crea = getFieldValue(evo, 'creatinina') || 1;
+      if (crea > 5) score += 4;
+      else if (crea > 3.5) score += 3;
+      else if (crea > 2) score += 2;
+      else if (crea > 1.2) score += 1;
+      
+      const gcs = getFieldValue(evo, 'glasgow') || 15;
+      if (gcs < 6) score += 4;
+      else if (gcs < 10) score += 3;
+      else if (gcs < 13) score += 2;
+      else if (gcs < 15) score += 1;
+      
+      const bili = getFieldValue(evo, 'bilirrubina_total') || 0;
+      if (bili > 12) score += 4;
+      else if (bili > 6) score += 3;
+      else if (bili > 3) score += 2;
+      else if (bili > 1.2) score += 1;
+      
+      sofa = score;
+    }
+    if (sofa !== null) sofaData.push({ x: fecha, y: parseFloat(sofa) });
+  }
+  
+  if (sofaData.length === 0) {
+    document.getElementById('chart-sofa').innerHTML = '<p class="text-muted text-center py-5">Sin datos SOFA</p>';
+    return;
+  }
+  
+  const container = document.getElementById('chart-sofa');
+  container.innerHTML = '<canvas id="canvas-sofa"></canvas>';
+  
+  createLineChart('canvas-sofa', [{
+    label: 'SOFA (proxy/calculado)',
+    data: sofaData,
+    borderColor: PALETTE.violet,
+    backgroundColor: PALETTE.violet + '20',
+    fill: true,
+    tension: 0.3,
+    pointRadius: 4,
+    pointHoverRadius: 6
+  }], {
+    plugins: {
+      annotation: {
+        annotations: {
+          line1: {
+            type: 'line',
+            yMin: 2,
+            yMax: 2,
+            borderColor: PALETTE.amber,
+            borderWidth: 1,
+            borderDash: [5, 5]
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderPaFi(evoluciones) {
+  // Fallback: calcular proxy si no hay pafi directo
+  const data = extractSeries(evoluciones, 'pafi', (evo) => {
+    const spo2 = getFieldValue(evo, 'spo2');
+    const fio2 = getFieldValue(evo, 'fio2');
+    if (spo2 !== null && fio2 !== null && fio2 > 0) {
+      return Math.round((spo2 / fio2) * 100);
+    }
+    return null;
+  });
+  
+  const hasProxy = data.length > 0 && !evoluciones.some(e => getFieldValue(e, 'pafi') !== null);
+  
+  if (data.length === 0) {
+    document.getElementById('chart-pafi').innerHTML = '<p class="text-muted text-center py-5">Sin datos PaFi</p>';
+    return;
+  }
+  
+  const container = document.getElementById('chart-pafi');
+  container.innerHTML = '<canvas id="canvas-pafi"></canvas>';
+  
+  createLineChart('canvas-pafi', [{
+    label: 'PaFi ratio',
+    data: data,
+    borderColor: PALETTE.indigo,
+    backgroundColor: PALETTE.indigo + '20',
+    fill: true,
+    tension: 0.3,
+    pointRadius: 4,
+    pointHoverRadius: 6
+  }], {
+    plugins: {
+      annotation: {
+        annotations: {
+          line1: {
+            type: 'line',
+            yMin: 300,
+            yMax: 300,
+            borderColor: PALETTE.green,
+            borderWidth: 1,
+            borderDash: [5, 5],
+            label: { content: 'Normal: >300', enabled: true }
+          },
+          line2: {
+            type: 'line',
+            yMin: 200,
+            yMax: 200,
+            borderColor: PALETTE.amber,
+            borderWidth: 1,
+            borderDash: [5, 5],
+            label: { content: 'SDRA: <200', enabled: true }
+          },
+          line3: {
+            type: 'line',
+            yMin: 100,
+            yMax: 100,
+            borderColor: PALETTE.red,
+            borderWidth: 1,
+            borderDash: [5, 5],
+            label: { content: 'Severo: <100', enabled: true }
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderVitals(evoluciones) {
+  const container = document.getElementById('chart-vitals');
+  container.innerHTML = '<canvas id="canvas-vitals"></canvas>';
+  
+  const datasets = [];
+  const params = [
+    { campo: 'fc', label: 'FC', color: PALETTE.red },
+    { campo: 'fr', label: 'FR', color: PALETTE.orange },
+    { campo: 'tam', label: 'PAM', color: PALETTE.violet },
+    { campo: 'temperatura', label: 'Temp', color: PALETTE.amber },
+    { campo: 'spo2', label: 'SpO2', color: PALETTE.emerald },
+  ];
+  
+  for (const p of params) {
+    const data = extractSeries(evoluciones, p.campo);
+    if (data.length > 0) {
+      datasets.push({
+        label: p.label,
+        data: data,
+        borderColor: p.color,
+        backgroundColor: p.color + '10',
+        fill: false,
+        tension: 0.3,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        yAxisID: p.campo === 'spo2' ? 'y1' : 'y'
+      });
+    }
+  }
+  
+  if (datasets.length === 0) {
+    container.innerHTML = '<p class="text-muted text-center py-5">Sin datos de signos vitales</p>';
+    return;
+  }
+  
+  createLineChart('canvas-vitals', datasets, {
+    scales: {
+      x: {
+        type: 'time',
+        time: { unit: 'day', displayFormats: { day: 'dd/MM' } },
+        grid: { color: getThemeColors().grid, alpha: 0.3 },
+        ticks: { color: getThemeColors().tick, font: { size: 10 } }
+      },
+      y: {
+        grid: { color: getThemeColors().grid, alpha: 0.3 },
+        ticks: { color: getThemeColors().tick, font: { size: 10 } },
+        position: 'left'
+      },
+      y1: {
+        position: 'right',
+        grid: { drawOnChartArea: false },
+        ticks: { color: PALETTE.emerald, font: { size: 10 } },
+        min: 60,
+        max: 100
+      }
+    }
+  });
+}
+
+function renderLiquids(evoluciones) {
+  const container = document.getElementById('chart-liquids');
+  container.innerHTML = '<canvas id="canvas-liquids"></canvas>';
+  
+  const datasets = [];
+  const params = [
+    { campo: 'balance', label: 'Balance', color: PALETTE.teal },
+    { campo: 'diuresis', label: 'Diuresis', color: PALETTE.blue },
+    { campo: 'balance_global', label: 'Balance Global', color: PALETTE.amber },
+  ];
+  
+  for (const p of params) {
+    const data = extractSeries(evoluciones, p.campo);
+    if (data.length > 0) {
+      datasets.push({
+        label: p.label + ' (mL)',
+        data: data,
+        borderColor: p.color,
+        backgroundColor: p.color + '10',
+        fill: false,
+        tension: 0.3,
+        pointRadius: 3,
+        pointHoverRadius: 5
+      });
+    }
+  }
+  
+  if (datasets.length === 0) {
+    container.innerHTML = '<p class="text-muted text-center py-5">Sin datos de balance</p>';
+    return;
+  }
+  
+  createLineChart('canvas-liquids', datasets);
+}
+
+function renderRenal(evoluciones) {
+  const container = document.getElementById('chart-renal');
+  container.innerHTML = '<canvas id="canvas-renal"></canvas>';
+  
+  const datasets = [];
+  
+  // Creatinina escalada x100 para visualizacion
+  const creatininaData = extractSeries(evoluciones, 'creatinina');
+  if (creatininaData.length > 0) {
+    datasets.push({
+      label: 'Creatinina (x100 visual)',
+      data: creatininaData.map(d => ({ x: d.x, y: d.y * 100 })),
+      realData: creatininaData.map(d => d.y),
+      borderColor: PALETTE.rose,
+      backgroundColor: PALETTE.rose + '10',
+      fill: false,
+      tension: 0.3,
+      pointRadius: 3,
+      pointHoverRadius: 5
+    });
+  }
+  
+  // Potasio escalado x50 para visualizacion
+  const potasioData = extractSeries(evoluciones, 'potasio');
+  if (potasioData.length > 0) {
+    datasets.push({
+      label: 'K+ (x50 visual)',
+      data: potasioData.map(d => ({ x: d.x, y: d.y * 50 })),
+      realData: potasioData.map(d => d.y),
+      borderColor: PALETTE.purple,
+      backgroundColor: PALETTE.purple + '10',
+      fill: false,
+      tension: 0.3,
+      pointRadius: 3,
+      pointHoverRadius: 5
+    });
+  }
+  
+  // Indice urinario escalado x300 para visualizacion
+  const indiceData = extractSeries(evoluciones, 'indice_urinario');
+  if (indiceData.length > 0) {
+    datasets.push({
+      label: 'Indice Urinario (x300 visual)',
+      data: indiceData.map(d => ({ x: d.x, y: d.y * 500 })),
+      realData: indiceData.map(d => d.y),
+      borderColor: PALETTE.amber,
+      backgroundColor: PALETTE.amber + '10',
+      fill: false,
+      tension: 0.3,
+      pointRadius: 3,
+      pointHoverRadius: 5
+    });
+  }
+  
+  const params = [
+    { campo: 'urea', label: 'BUN', color: PALETTE.green, unit: 'mg/dL' },
+    { campo: 'sodio', label: 'Na', color: PALETTE.blue, unit: 'mEq/L' },
+  ];
+  
+  for (const p of params) {
+    const data = extractSeries(evoluciones, p.campo);
+    if (data.length > 0) {
+      datasets.push({
+        label: p.label + ' (' + p.unit + ')',
+        data: data,
+        borderColor: p.color,
+        backgroundColor: p.color + '10',
+        fill: false,
+        tension: 0.3,
+        pointRadius: 3,
+        pointHoverRadius: 5
+      });
+    }
+  }
+  
+  if (datasets.length === 0) {
+    container.innerHTML = '<p class="text-muted text-center py-5">Sin datos renales</p>';
+    return;
+  }
+  
+  createLineChart('canvas-renal', datasets);
+}
+
+function renderLabs(evoluciones) {
+  const container = document.getElementById('chart-labs');
+  container.innerHTML = '<canvas id="canvas-labs"></canvas>';
+  
+  const datasets = [];
+  
+  // Hemoglobina escalada x10 para visualizacion
+  const hbData = extractSeries(evoluciones, 'hemoglobina');
+  if (hbData.length > 0) {
+    datasets.push({
+      label: 'Hb (x10 visual)',
+      data: hbData.map(d => ({ x: d.x, y: d.y * 10 })),
+      realData: hbData.map(d => d.y),
+      borderColor: PALETTE.red,
+      backgroundColor: PALETTE.red + '10',
+      fill: false,
+      tension: 0.3,
+      pointRadius: 3,
+      pointHoverRadius: 5
+    });
+  }
+  
+  // Leucocitos escalados x10 para visualizacion
+  const leucoData = extractSeries(evoluciones, 'leucocitos');
+  if (leucoData.length > 0) {
+    datasets.push({
+      label: 'Leucocitos (x10 visual)',
+      data: leucoData.map(d => ({ x: d.x, y: d.y * 10 })),
+      realData: leucoData.map(d => d.y),
+      borderColor: PALETTE.blue,
+      backgroundColor: PALETTE.blue + '10',
+      fill: false,
+      tension: 0.3,
+      pointRadius: 3,
+      pointHoverRadius: 5
+    });
+  }
+  
+  // PCR escalado x10 para visualizacion
+  const pcrData = extractSeries(evoluciones, 'pcr');
+  if (pcrData.length > 0) {
+    datasets.push({
+      label: 'PCR (x10 visual)',
+      data: pcrData.map(d => ({ x: d.x, y: d.y * 10 })),
+      realData: pcrData.map(d => d.y),
+      borderColor: PALETTE.orange,
+      backgroundColor: PALETTE.orange + '10',
+      fill: false,
+      tension: 0.3,
+      pointRadius: 3,
+      pointHoverRadius: 5
+    });
+  }
+  
+  const params = [
+    { campo: 'plaquetas', label: 'Plaquetas', color: PALETTE.violet },
+    { campo: 'glucosa', label: 'Glucosa', color: PALETTE.amber },
+  ];
+  
+  for (const p of params) {
+    const data = extractSeries(evoluciones, p.campo);
+    if (data.length > 0) {
+      datasets.push({
+        label: p.label,
+        data: data,
+        borderColor: p.color,
+        backgroundColor: p.color + '10',
+        fill: false,
+        tension: 0.3,
+        pointRadius: 3,
+        pointHoverRadius: 5
+      });
+    }
+  }
+  
+  if (datasets.length === 0) {
+    container.innerHTML = '<p class="text-muted text-center py-5">Sin datos de laboratorio</p>';
+    return;
+  }
+  
+  createLineChart('canvas-labs', datasets);
+}
+
+function renderGasometria(evoluciones) {
+  const container = document.getElementById('chart-gasometria');
+  container.innerHTML = '<canvas id="canvas-gasometria"></canvas>';
+  
+  const datasets = [];
+  const params = [
+    { campo: 'ph', label: 'pH', color: PALETTE.red },
+    { campo: 'pco2', label: 'pCO2', color: PALETTE.blue },
+    { campo: 'hco3', label: 'HCO3', color: PALETTE.teal },
+    { campo: 'lactato', label: 'Lactato', color: PALETTE.rose },
+  ];
+  
+  for (const p of params) {
+    const data = extractSeries(evoluciones, p.campo);
+    if (data.length > 0) {
+      datasets.push({
+        label: p.label,
+        data: data,
+        borderColor: p.color,
+        backgroundColor: p.color + '10',
+        fill: false,
+        tension: 0.3,
+        pointRadius: 3,
+        pointHoverRadius: 5,
+        yAxisID: p.campo === 'ph' ? 'y1' : 'y'
+      });
+    }
+  }
+  
+  if (datasets.length === 0) {
+    container.innerHTML = '<p class="text-muted text-center py-5">Sin datos de gasometría</p>';
+    return;
+  }
+  
+  createLineChart('canvas-gasometria', datasets, {
+    scales: {
+      x: {
+        type: 'time',
+        time: { unit: 'day', displayFormats: { day: 'dd/MM' } },
+        grid: { color: getThemeColors().grid, alpha: 0.3 },
+        ticks: { color: getThemeColors().tick, font: { size: 10 } }
+      },
+      y: {
+        grid: { color: getThemeColors().grid, alpha: 0.3 },
+        ticks: { color: getThemeColors().tick, font: { size: 10 } },
+        position: 'left'
+      },
+      y1: {
+        position: 'right',
+        grid: { drawOnChartArea: false },
+        ticks: { color: PALETTE.red, font: { size: 10 } },
+        min: 6.8,
+        max: 7.6
+      }
+    }
+  });
+}
+
+function renderVentilacion(evoluciones) {
+  const container = document.getElementById('chart-ventilacion');
+  container.innerHTML = '<canvas id="canvas-ventilacion"></canvas>';
+  
+  const datasets = [];
+  
+  // SaFiO2 (saturacion x FiO2) escalado x1 (ya es ratio)
+  const safio2Data = extractSeries(evoluciones, 'safio2');
+  if (safio2Data.length > 0) {
+    datasets.push({
+      label: 'SaFiO2',
+      data: safio2Data,
+      borderColor: PALETTE.emerald,
+      backgroundColor: PALETTE.emerald + '10',
+      fill: false,
+      tension: 0.3,
+      pointRadius: 3,
+      pointHoverRadius: 5
+    });
+  }
+  
+  // NIF (presion negativa inspiratoria) escalado x10
+  const nifData = extractSeries(evoluciones, 'nif');
+  if (nifData.length > 0) {
+    datasets.push({
+      label: 'NIF (x10 visual)',
+      data: nifData.map(d => ({ x: d.x, y: d.y * 10 })),
+      realData: nifData.map(d => d.y),
+      borderColor: PALETTE.orange,
+      backgroundColor: PALETTE.orange + '10',
+      fill: false,
+      tension: 0.3,
+      pointRadius: 3,
+      pointHoverRadius: 5
+    });
+  }
+  
+  // PO2 escalado x10
+  const po2Data = extractSeries(evoluciones, 'po2');
+  if (po2Data.length > 0) {
+    datasets.push({
+      label: 'pO2 (x5 visual)',
+      data: po2Data.map(d => ({ x: d.x, y: d.y * 5 })),
+      realData: po2Data.map(d => d.y),
+      borderColor: PALETTE.blue,
+      backgroundColor: PALETTE.blue + '10',
+      fill: false,
+      tension: 0.3,
+      pointRadius: 3,
+      pointHoverRadius: 5
+    });
+  }
+  
+  // VT/PS (volumen corriente / presion soporte) escalado x100
+  const vtpsData = extractSeries(evoluciones, 'vt_ps');
+  if (vtpsData.length > 0) {
+    datasets.push({
+      label: 'VT/PS (x100 visual)',
+      data: vtpsData.map(d => ({ x: d.x, y: d.y * 100 })),
+      realData: vtpsData.map(d => d.y),
+      borderColor: PALETTE.purple,
+      backgroundColor: PALETTE.purple + '10',
+      fill: false,
+      tension: 0.3,
+      pointRadius: 3,
+      pointHoverRadius: 5
+    });
+  }
+  
+  // DP (driving pressure) escalado x10
+  const dpData = extractSeries(evoluciones, 'dp');
+  if (dpData.length > 0) {
+    datasets.push({
+      label: 'DP (x10 visual)',
+      data: dpData.map(d => ({ x: d.x, y: d.y * 10 })),
+      realData: dpData.map(d => d.y),
+      borderColor: PALETTE.red,
+      backgroundColor: PALETTE.red + '10',
+      fill: false,
+      tension: 0.3,
+      pointRadius: 3,
+      pointHoverRadius: 5
+    });
+  }
+  
+  // PIP (presion inspiratoria pico) escalado x10
+  const pipData = extractSeries(evoluciones, 'pip');
+  if (pipData.length > 0) {
+    datasets.push({
+      label: 'PIP (x10 visual)',
+      data: pipData.map(d => ({ x: d.x, y: d.y * 10 })),
+      realData: pipData.map(d => d.y),
+      borderColor: PALETTE.rose,
+      backgroundColor: PALETTE.rose + '10',
+      fill: false,
+      tension: 0.3,
+      pointRadius: 3,
+      pointHoverRadius: 5
+    });
+  }
+  
+  // FiO2 escalado x10
+  const fio2Data = extractSeries(evoluciones, 'fio2');
+  if (fio2Data.length > 0) {
+    datasets.push({
+      label: 'FiO2 (x10 visual)',
+      data: fio2Data.map(d => ({ x: d.x, y: d.y * 10 })),
+      realData: fio2Data.map(d => d.y),
+      borderColor: PALETTE.cyan,
+      backgroundColor: PALETTE.cyan + '10',
+      fill: false,
+      tension: 0.3,
+      pointRadius: 3,
+      pointHoverRadius: 5
+    });
+  }
+  
+  if (datasets.length === 0) {
+    container.innerHTML = '<p class="text-muted text-center py-5">Sin datos de ventilación</p>';
+    return;
+  }
+  
+  createLineChart('canvas-ventilacion', datasets);
+}
+
+function renderCustom(evoluciones, params) {
+  const container = document.getElementById('chart-custom');
+  container.innerHTML = '<canvas id="canvas-custom"></canvas>';
+  
+  const datasets = [];
+  for (const p of params) {
+    const data = extractSeries(evoluciones, p.campo);
+    if (data.length > 0) {
+      datasets.push({
+        label: p.label,
+        data: data,
+        borderColor: p.color,
+        backgroundColor: p.color + '10',
+        fill: false,
+        tension: 0.3,
+        pointRadius: 3,
+        pointHoverRadius: 5
+      });
+    }
+  }
+  
+  if (datasets.length === 0) {
+    container.innerHTML = '<p class="text-muted text-center py-5">Sin datos para los parámetros seleccionados</p>';
+    return;
+  }
+  
+  createLineChart('canvas-custom', datasets);
+}
+
+// ============================================================
+// DASHBOARD METRICS
+// ============================================================
+
+function renderMetrics(evoluciones, patient) {
+  const row = document.getElementById('metrics-row');
+  row.innerHTML = '';
+  
+  if (evoluciones.length === 0) return;
+  
+  // Ordenar evoluciones por fecha descendente (mas reciente primero)
+  const evosSorted = [...evoluciones].sort((a, b) => {
+    const dateA = new Date(a.fecha + 'T' + (a.hora || '00:00'));
+    const dateB = new Date(b.fecha + 'T' + (b.hora || '00:00'));
+    return dateB - dateA; // Descendente
+  });
+  
+  const last = evosSorted[0];
+  const first = evosSorted[evosSorted.length - 1];
+  
+  // Helper para obtener valor de la ultima evolucion
+  function getVal(obj, ...fields) {
+    for (const f of fields) {
+      if (obj[f] !== null && obj[f] !== undefined && obj[f] !== '' && !isNaN(parseFloat(obj[f]))) {
+        return parseFloat(obj[f]);
+      }
+    }
+    return null;
+  }
+  
+  // Helper para obtener el ULTIMO valor valido (buscando desde la mas reciente)
+  function getLastValidVal(evolucionesSorted, ...fields) {
+    for (let i = 0; i < evolucionesSorted.length; i++) {
+      const obj = evolucionesSorted[i];
+      for (const f of fields) {
+        if (obj[f] !== null && obj[f] !== undefined && obj[f] !== '' && !isNaN(parseFloat(obj[f]))) {
+          return parseFloat(obj[f]);
+        }
+      }
+    }
+    return null;
+  }
+  
+  // Calcular PAFi proxy si no existe (buscando hacia atras)
+  let pafiVal = getLastValidVal(evosSorted, 'pafi');
+  if (pafiVal === null) {
+    const spo2 = getLastValidVal(evosSorted, 'spo2');
+    const fio2 = getLastValidVal(evosSorted, 'fio2');
+    if (spo2 !== null && fio2 !== null && fio2 > 0) {
+      pafiVal = Math.round((spo2 / fio2) * 100);
+    }
+  }
+  
+  const metrics = [
+    { label: 'FC última', value: getLastValidVal(evosSorted, 'fc'), unit: 'lpm', color: PALETTE.red, normal: [60, 100], icon: 'fa-heartbeat' },
+    { label: 'PAM última', value: getLastValidVal(evosSorted, 'tam'), unit: 'mmHg', color: PALETTE.violet, normal: [65, 105], icon: 'fa-tachometer-alt' },
+    { label: 'SpO₂ última', value: getLastValidVal(evosSorted, 'spo2'), unit: '%', color: PALETTE.emerald, normal: [92, 100], icon: 'fa-lungs' },
+    { label: 'Lactato último', value: getLastValidVal(evosSorted, 'lactato'), unit: 'mmol/L', color: PALETTE.rose, danger: [4, null], icon: 'fa-vial' },
+    { label: 'Creatinina última', value: getLastValidVal(evosSorted, 'creatinina'), unit: 'mg/dL', color: PALETTE.orange, normal: [0.6, 1.2], icon: 'fa-kidney' },
+    { label: 'Índice Urinario', value: getLastValidVal(evosSorted, 'indice_urinario'), unit: '', color: PALETTE.amber, icon: 'fa-flask' },
+    { label: 'PaFi último', value: pafiVal, unit: '', color: PALETTE.indigo, normal: [300, null], icon: 'fa-lungs-virus', proxy: getLastValidVal(evosSorted, 'pafi') === null && pafiVal !== null },
+    { label: 'Glasgow último', value: getLastValidVal(evosSorted, 'glasgow'), unit: '', color: PALETTE.green, normal: [13, 15], icon: 'fa-brain' },
+  ];
+  
+  for (const m of metrics) {
+    const val = m.value;
+    const isNA = val === null;
+    let badgeClass = '';
+    let badgeText = '';
+    
+    if (!isNA) {
+      if (m.normal) {
+        const [min, max] = m.normal;
+        if (min !== null && val < min) { badgeClass = 'ax-badge-warning'; badgeText = '↓'; }
+        else if (max !== null && val > max) { badgeClass = 'ax-badge-warning'; badgeText = '↑'; }
+        else { badgeClass = 'ax-badge-success'; badgeText = '●'; }
+      }
+      if (m.danger) {
+        const [min, max] = m.danger;
+        if (min !== null && val >= min) { badgeClass = 'ax-badge-danger'; badgeText = '⚠'; }
+        else if (max !== null && val <= max) { badgeClass = 'ax-badge-danger'; badgeText = '⚠'; }
+      }
+    }
+    
+    const badge = badgeClass ? `<span class="ax-badge ${badgeClass}">${badgeText}</span>` : '';
+    const proxyBadge = m.proxy ? '<span class="ax-badge ax-badge-warning" title="Calculado proxy: SpO2/FiO2×100">P</span>' : '';
+    
+    const valueDisplay = isNA 
+      ? '<div class="ax-metric-value na">No capturado</div>'
+      : `<div class="ax-metric-value" style="color: ${m.color}">${val}</div>`;
+    
+    row.innerHTML += `
+      <div>
+        <div class="ax-metric">
+          <i class="fas ${m.icon} mb-1" style="font-size:0.75rem; color:${m.color}; opacity:0.6"></i>
+          ${valueDisplay}
+          <div class="ax-metric-label">${m.label} ${badge}${proxyBadge}</div>
+          <div class="ax-metric-unit">${m.unit}</div>
+        </div>
+      </div>
+    `;
+  }
+}
+
+
+// ============================================================================
+// FUNCIONES DE COMPLEJIDAD
+// ============================================================================
+
+function calcularComplejidad(data) {
+  const d = data.details || {};
+  const diasEstancia = d.dias_estancia || 1;
+  const totalEvoluciones = d.total_evoluciones || 0;
+  const evoPorDia = d.evoluciones_por_dia || 0;
+  const ingresoFilled = d.ingreso_filled || 0;
+  const ingresoTotal = d.ingreso_total || 1;
+  const ingresoPct = (ingresoFilled / ingresoTotal) * 100;
+  
+  // Score base: más días = más complejo
+  let score = 0;
+  
+  // Factor días de estancia (normalizado: 0-30 días)
+  if (diasEstancia > 14) score += 30;
+  else if (diasEstancia > 7) score += 20;
+  else if (diasEstancia > 3) score += 10;
+  else score += 5;
+  
+  // Factor evoluciones por día
+  if (evoPorDia > 2) score += 25;
+  else if (evoPorDia > 1) score += 15;
+  else if (evoPorDia > 0.5) score += 10;
+  else score += 5;
+  
+  // Factor completitud de ingreso
+  if (ingresoPct >= 90) score += 20;
+  else if (ingresoPct >= 70) score += 15;
+  else if (ingresoPct >= 50) score += 10;
+  else score += 5;
+  
+  // Factor cobertura de evoluciones
+  const evoCoverage = data.evolution_coverage || 0;
+  if (evoCoverage >= 90) score += 20;
+  else if (evoCoverage >= 70) score += 15;
+  else if (evoCoverage >= 50) score += 10;
+  else score += 5;
+  
+  // Factor total de evoluciones (escala logarítmica)
+  if (totalEvoluciones > 30) score += 10;
+  else if (totalEvoluciones > 15) score += 7;
+  else if (totalEvoluciones > 7) score += 5;
+  else score += 3;
+  
+  // Normalizar a 0-100
+  const maxScore = 30 + 25 + 20 + 20 + 10; // 105
+  const normalized = Math.min(100, Math.round((score / maxScore) * 100));
+  
+  return normalized + '%';
+}
+
+function calcularComplejidadColor(data) {
+  const d = data.details || {};
+  const diasEstancia = d.dias_estancia || 0;
+  const evoPorDia = d.evoluciones_por_dia || 0;
+  const evoCoverage = data.evolution_coverage || 0;
+  
+  // Calcular score rápido para determinar color
+  let score = 0;
+  if (diasEstancia > 14) score += 30;
+  else if (diasEstancia > 7) score += 20;
+  else score += 10;
+  
+  if (evoPorDia > 2) score += 25;
+  else if (evoPorDia > 1) score += 15;
+  else score += 5;
+  
+  if (evoCoverage >= 90) score += 20;
+  else if (evoCoverage >= 70) score += 15;
+  else score += 10;
+  
+  const maxScore = 30 + 25 + 20;
+  const pct = (score / maxScore) * 100;
+  
+  if (pct >= 70) return '#7C3AED';   // Morado - Alta complejidad
+  if (pct >= 40) return '#3B82F6';   // Azul - Media complejidad
+  return '#10B981';                    // Verde - Baja complejidad
+}
+
+function calcularComplejidadDetail(data) {
+  const d = data.details || {};
+  const diasEstancia = d.dias_estancia || 0;
+  const evoPorDia = d.evoluciones_por_dia || 0;
+  
+  let nivel = 'Baja';
+  if (diasEstancia > 14 && evoPorDia > 2) nivel = 'Alta';
+  else if (diasEstancia > 7 || evoPorDia > 1.5) nivel = 'Media';
+  
+  return `${nivel} complejidad · ${diasEstancia} días · ${evoPorDia.toFixed ? evoPorDia.toFixed(1) : evoPorDia} evol./día`;
+}
+
+// ============================================================================
+// INDICADORES DE CUMPLIMIENTO (COMPLIANCE SCORING)
+// ============================================================================
+
+async function cargarCompliance(patientId) {
+  try {
+    const url = `${API_BASE}/${patientId}/compliance`;
+    const r = await fetch(url, { credentials: 'include' });
+    if (!r.ok) return;
+    const data = await r.json();
+    
+    const container = document.getElementById('compliance-row');
+    if (!container) return;
+    
+    // Color según overall
+    const overallColor = data.color_hex || '#6B7280';
+    const overallBg = data.color === 'green' ? 'rgba(74,222,128,0.15)' 
+                      : data.color === 'yellow' ? 'rgba(250,204,21,0.15)' 
+                      : 'rgba(248,113,113,0.15)';
+    
+    const metrics = [
+      { 
+        label: 'Cumplimiento Ingreso', 
+        value: data.ingreso_compliance + '%', 
+        icon: 'fa-clipboard-check',
+        color: data.ingreso_compliance >= 80 ? '#4ADE80' : data.ingreso_compliance >= 50 ? '#FACC15' : '#F87171',
+        detail: `${data.details.ingreso_filled}/${data.details.ingreso_total} campos`
+      },
+      { 
+        label: 'Cobertura Evoluciones', 
+        value: data.evolution_coverage + '%', 
+        icon: 'fa-calendar-check',
+        color: data.evolution_coverage >= 80 ? '#4ADE80' : data.evolution_coverage >= 50 ? '#FACC15' : '#F87171',
+        detail: `${data.details.dias_con_evolucion}/${data.details.dias_estancia} días`
+      },
+      { 
+        label: 'Completitud Evoluciones', 
+        value: data.evolution_compliance + '%', 
+        icon: 'fa-file-medical',
+        color: data.evolution_compliance >= 80 ? '#4ADE80' : data.evolution_compliance >= 50 ? '#FACC15' : '#F87171',
+        detail: `${data.details.avg_evo_filled.toFixed ? data.details.avg_evo_filled.toFixed(1) : data.details.avg_evo_filled}/${data.details.evo_total_fields} campos`
+      },
+      { 
+        label: 'Calificación General', 
+        value: data.overall_score + '%', 
+        icon: 'fa-award',
+        color: overallColor,
+        detail: data.label,
+        isOverall: true
+      },
+      { 
+        label: 'Días Estancia UCI', 
+        value: data.details.dias_estancia + ' días', 
+        icon: 'fa-calendar-alt',
+        color: '#60A5FA',
+        detail: `Ingreso: ${data.details.fecha_ingreso || 'N/A'}`
+      },
+      { 
+        label: 'Total Evoluciones', 
+        value: data.details.total_evoluciones + '', 
+        icon: 'fa-notes-medical',
+        color: '#A78BFA',
+        detail: `${data.details.evoluciones_por_dia ? (data.details.evoluciones_por_dia.toFixed ? data.details.evoluciones_por_dia.toFixed(2) : data.details.evoluciones_por_dia) : "0.00"} evol./día`
+      },
+      { 
+        label: 'Complejidad', 
+        value: calcularComplejidad(data), 
+        icon: 'fa-puzzle-piece',
+        color: calcularComplejidadColor(data),
+        detail: calcularComplejidadDetail(data)
+      },
+    ];
+    
+    container.innerHTML = '';
+    for (const m of metrics) {
+      const bgStyle = m.isOverall ? `background: ${overallBg}; border: 2px solid ${overallColor};` : '';
+      container.innerHTML += `
+        <div>
+          <div class="ax-metric" style="${bgStyle} border-radius: 0.5rem;">
+            <i class="fas ${m.icon} mb-1" style="font-size:0.75rem; color:${m.color}; opacity:0.8"></i>
+            <div class="ax-metric-value" style="color: ${m.color}; font-size: 1.4rem;">${m.value}</div>
+            <div class="ax-metric-label">${m.label}</div>
+            <div class="ax-metric-unit" style="font-size: 0.7rem; opacity: 0.8;">${m.detail}</div>
+          </div>
+        </div>
+      `;
+    }
+    
+    // Mostrar el contenedor
+    document.getElementById('compliance-card').classList.remove('d-none');
+  } catch (e) {
+    console.error('Error cargando compliance:', e);
+  }
+}
+
+
+
+    
+
+    
+    // Categorías de métricas para análisis clínico
+    
+    // Métricas de Análisis Clínico Avanzado
+const metricCategories = [
+  {
+    name: 'Scores Críticos',
+    icon: 'fa-heartbeat',
+    color: '#4ADE80',
+    important: true,
+    metrics: [
+      // SOFA: OHLC (Open, High, Low, Close) + tendencia
+      {key: 'sofa_ohlc', label: 'SOFA', unit: 'pts', format: 'ohlc', danger: [11, null], 
+       submetrics: {open: 'sofa_open', high: 'sofa_high', low: 'sofa_low', close: 'sofa_close', 
+                    delta: 'sofa_ohlc_delta', delta_pct: 'sofa_ohlc_delta_pct', trend: 'sofa_ohlc_trend'}},
+      {key: 'sofa_ohlc_delta', label: 'Δ SOFA', unit: 'pts', trend: true, inverse: true, important: true},
+      {key: 'sofa_slope', label: 'Tendencia SOFA', unit: 'pts/día', trend: true, inverse: true},
+      {key: 'sofa_auc', label: 'AUC SOFA', unit: 'pts·día'},
+      
+      // NEWS2: OHLC (Open, High, Low, Close) + tendencia
+      {key: 'news2_ohlc', label: 'NEWS2', unit: 'pts', format: 'ohlc', danger: [7, null],
+       submetrics: {open: 'news2_open', high: 'news2_high', low: 'news2_low', close: 'news2_close',
+                    delta: 'news2_ohlc_delta', delta_pct: 'news2_ohlc_delta_pct', trend: 'news2_ohlc_trend'}},
+      {key: 'news2_ohlc_delta', label: 'Δ NEWS2', unit: 'pts', trend: true, inverse: true, important: true},
+      {key: 'news2_slope', label: 'Tendencia NEWS2', unit: 'pts/día', trend: true, inverse: true},
+      
+      // Apache2
+      {key: 'apache2_range', label: 'APACHE2', unit: 'pts', format: 'range',
+       submetrics: {min: 'apache2_min', max: 'apache2_max', delta: 'apache2_delta'}},
+      
+      // SAPS3
+      {key: 'saps3_range', label: 'SAPS3', unit: 'pts', format: 'range',
+       submetrics: {min: 'saps3_min', max: 'saps3_max', delta: 'saps3_delta'}},
+    ]
+  },
+  {
+    name: 'Laboratorios Clave',
+    icon: 'fa-vial',
+    color: '#60A5FA',
+    important: true,
+    metrics: [
+      // Lactato
+      {key: 'lactato_range', label: 'Lactato', unit: 'mmol/L', format: 'range', danger: [4, null],
+       submetrics: {min: 'lactato_min', max: 'lactato_max', delta: 'lactato_delta', trend: 'lactato_trend'}},
+      {key: 'lactato_delta', label: 'Δ Lactato', unit: 'mmol/L', trend: true, inverse: true, important: true},
+      {key: 'lactato_slope', label: 'Tendencia Lactato', unit: 'mmol/L/día', trend: true, inverse: true},
+      {key: 'lactato_clearance_percent', label: 'Clearance Lactato', unit: '%', normal: [80, null], important: true},
+      
+      // Creatinina
+      {key: 'creatinina_range', label: 'Creatinina', unit: 'mg/dL', format: 'range', danger: [2, null],
+       submetrics: {min: 'creatinina_min', max: 'creatinina_max', delta: 'creatinina_delta', trend: 'creatinina_trend'}},
+      {key: 'creatinina_delta', label: 'Δ Creatinina', unit: 'mg/dL', trend: true, inverse: false},
+      {key: 'creatinina_aki_stage', label: 'Estadio AKI', unit: ''},
+      
+      // Glucosa
+      {key: 'glucosa_range', label: 'Glucosa', unit: 'mg/dL', format: 'range', danger: [180, null], normal: [70, null],
+       submetrics: {min: 'glucosa_min', max: 'glucosa_max', delta: 'glucosa_delta'}},
+      
+      // Hemoglobina
+      {key: 'hemoglobina_range', label: 'Hemoglobina', unit: 'g/dL', format: 'range', danger: [null, 7],
+       submetrics: {min: 'hemoglobina_min', max: 'hemoglobina_max', delta: 'hemoglobina_delta'}},
+      
+      // Leucocitos
+      {key: 'leucocitos_range', label: 'Leucocitos', unit: 'x10³/μL', format: 'range', danger: [12, null], normal: [4, null],
+       submetrics: {min: 'leucocitos_min', max: 'leucocitos_max', delta: 'leucocitos_delta', trend: 'leucocitos_trend'}},
+      
+      // Plaquetas
+      {key: 'plaquetas_range', label: 'Plaquetas', unit: 'x10³/μL', format: 'range', danger: [null, 100],
+       submetrics: {min: 'plaquetas_min', max: 'plaquetas_max', delta: 'plaquetas_delta', trend: 'plaquetas_trend'}},
+      {key: 'plaquetas_nadir', label: 'Nadir Plaquetas', unit: 'x10³/μL', danger: [null, 50]},
+      
+      // PCR
+      {key: 'pcr_range', label: 'PCR', unit: 'mg/L', format: 'range', danger: [100, null],
+       submetrics: {min: 'pcr_min', max: 'pcr_max', delta: 'pcr_delta'}},
+    ]
+  },
+  {
+    name: 'Hemodinámica',
+    icon: 'fa-heartbeat',
+    color: '#F87171',
+    important: true,
+    metrics: [
+      // Índice de choque
+      {key: 'shock_index_range', label: 'Índice de Choque', unit: '', format: 'range', danger: [1, null],
+       submetrics: {min: 'shock_index_min', max: 'shock_index_max', delta: 'shock_index_delta'}},
+      {key: 'shock_index_shock_ratio', label: 'Ratio Shock', unit: '', danger: [0.9, null], important: true},
+      
+      // PAM
+      {key: 'pam_range', label: 'PAM', unit: 'mmHg', format: 'range', danger: [65, null],
+       submetrics: {min: 'pam_min', max: 'pam_max', delta: 'pam_delta', trend: 'pam_trend'}},
+      {key: 'pam_shock', label: 'Shock', unit: 'boolean', danger: [1, null], important: true},
+      
+      // FC
+      {key: 'fc_range', label: 'Frecuencia Cardiaca', unit: 'lpm', format: 'range', danger: [120, null],
+       submetrics: {min: 'fc_min', max: 'fc_max', delta: 'fc_delta', trend: 'fc_trend'}},
+      
+      // TAS
+      {key: 'tas_range', label: 'TAS', unit: 'mmHg', format: 'range', danger: [180, null], normal: [90, null],
+       submetrics: {min: 'tas_min', max: 'tas_max', delta: 'tas_delta'}},
+      
+      // SpO2
+      {key: 'spo2_range', label: 'SpO₂', unit: '%', format: 'range', danger: [null, 90],
+       submetrics: {min: 'spo2_min', max: 'spo2_max', delta: 'spo2_delta'}},
+      {key: 'spo2_time_below_90', label: 'Tiempo SpO₂ <90%', unit: 'h', danger: [1, null]},
+    ]
+  },
+  {
+    name: 'Ventilación',
+    icon: 'fa-lungs',
+    color: '#A78BFA',
+    metrics: [
+      // FiO2
+      {key: 'fio2_range', label: 'FiO₂', unit: '%', format: 'range', danger: [60, null],
+       submetrics: {min: 'fio2_min', max: 'fio2_max', delta: 'fio2_delta'}},
+      
+      // PEEP
+      {key: 'peep_range', label: 'PEEP', unit: 'cmH₂O', format: 'range', danger: [12, null],
+       submetrics: {min: 'peep_min', max: 'peep_max', delta: 'peep_delta'}},
+      
+      // Ppico
+      {key: 'ppico_range', label: 'Ppico', unit: 'cmH₂O', format: 'range', danger: [35, null],
+       submetrics: {min: 'ppico_min', max: 'ppico_max', delta: 'ppico_delta'}},
+      
+      // Glasgow
+      {key: 'glasgow_range', label: 'Glasgow', unit: '/15', format: 'range', danger: [null, 8],
+       submetrics: {min: 'glasgow_min', max: 'glasgow_max', delta: 'glasgow_delta', trend: 'glasgow_trend'}},
+      
+      // VM
+      {key: 'vm_duracion_total', label: 'Días VM', unit: 'días'},
+      {key: 'vm_antes_icu', label: 'VM Pre-ICU', unit: 'boolean'},
+    ]
+  },
+  {
+    name: 'Balance y Renal',
+    icon: 'fa-balance-scale',
+    color: '#34D399',
+    metrics: [
+      // Balance
+      {key: 'balance_total', label: 'Balance Total', unit: 'mL'},
+      {key: 'balance_mean', label: 'Balance Medio', unit: 'mL/día'},
+      {key: 'balance_slope', label: 'Tendencia Balance', unit: 'mL/día', trend: true, inverse: true},
+      
+      // Diuresis
+      {key: 'diuresis_total', label: 'Diuresis Total', unit: 'mL'},
+      {key: 'diuresis_mean', label: 'Diuresis Media', unit: 'mL/día'},
+      {key: 'diuresis_slope', label: 'Tendencia Diuresis', unit: 'mL/día', trend: true, inverse: false},
+      
+      // Creatinina
+      {key: 'creatinina_max', label: 'Creatinina Máx', unit: 'mg/dL', danger: [2, null]},
+      {key: 'creatinina_aki_stage', label: 'Estadio AKI', unit: ''},
+      
+      // Filtrado
+      {key: 'filtrado_uf_total', label: 'UF Total', unit: 'mL'},
+    ]
+  },
+  {
+    name: 'Nutrición',
+    icon: 'fa-utensils',
+    color: '#F472B6',
+    metrics: [
+      // Albúmina
+      {key: 'albumina_range', label: 'Albúmina', unit: 'g/dL', format: 'range', danger: [null, 2.5],
+       submetrics: {min: 'albumina_min', max: 'albumina_max', delta: 'albumina_delta'}},
+      
+      // Proteínas totales
+      {key: 'proteinas_range', label: 'Proteínas', unit: 'g/dL', format: 'range',
+       submetrics: {min: 'proteinas_min', max: 'proteinas_max'}},
+      
+      // Bilirrubina
+      {key: 'bilirrubina_total_range', label: 'Bilirrubina Total', unit: 'mg/dL', format: 'range', danger: [3, null],
+       submetrics: {min: 'bilirrubina_total_min', max: 'bilirrubina_total_max', delta: 'bilirrubina_total_delta'}},
+      
+      // INR
+      {key: 'inr_range', label: 'INR', unit: '', format: 'range', danger: [1.5, null],
+       submetrics: {min: 'inr_min', max: 'inr_max'}},
+    ]
+  },
+];
+
+async function cargarAnalytics(patientId) {
+    console.log("Analytics v3.0 - Indicadores de Mortalidad UCI");
+    const container = document.getElementById("analytics-row");
+    const card = document.getElementById("analytics-card");
+    if (!container || !card) return;
+    
+    container.innerHTML = '<div class="text-center py-3"><i class="fas fa-spinner fa-spin me-2"></i>Cargando indicadores de riesgo...</div>';
+    card.classList.remove("d-none");
+    
+    try {
+        const [analyticsResp, trendsResp] = await Promise.all([
+            fetch(`${API_BASE}/${patientId}/analytics`, { credentials: 'include' }),
+            fetch(`${API_BASE}/${patientId}/trends?limit=1`, { credentials: 'include' })
+        ]);
+        
+        let metrics = {};
+        let patientData = {};
+        
+        if (analyticsResp.ok) {
+            const data = await analyticsResp.json();
+            metrics = data.metrics || data;
+        }
+        if (trendsResp.ok) {
+            const data = await trendsResp.json();
+            patientData = data;
+        }
+        
+        container.innerHTML = buildMortalityIndicators(metrics, patientData);
+        
+        // Renderizar tarjetas booleanas clínicas
+        if (metrics && patientData) {
+          setTimeout(() => renderBooleanCards(metrics, patientData), 100);
+        }
+        
+    } catch (err) {
+        console.error("Error cargando analytics:", err);
+        container.innerHTML = '<div class="text-center text-warning"><i class="fas fa-exclamation-triangle me-2"></i>Error cargando indicadores.</div>';
+    }
+}
+
+function buildMortalityIndicators(metrics, patientData) {
+    const m = metrics || {};
+    const p = patientData || {};
+    
+    const fmt = (v, decimals = 1) => {
+        if (v === undefined || v === null || v === '') return '—';
+        if (typeof v === 'number') return v % 1 === 0 ? v : v.toFixed(decimals);
+        return v;
+    };
+    
+    const getCandle = (field) => {
+        return {
+            initial: m[`${field}_open`],
+            min: m[`${field}_low`],
+            max: m[`${field}_high`],
+            final: m[`${field}_close`],
+            mean: m[`${field}_mean`],
+            delta: m[`${field}_ohlc_delta`]
+        };
+    };
+    
+    const sevBadge = (val, thresholds, labels) => {
+        if (val === undefined || val === null) return '<span class="badge bg-secondary">—</span>';
+        if (thresholds.green && val <= thresholds.green) return `<span class="badge bg-success">${labels.green}</span>`;
+        if (thresholds.yellow && val <= thresholds.yellow) return `<span class="badge bg-warning text-dark">${labels.yellow}</span>`;
+        return `<span class="badge bg-danger">${labels.red}</span>`;
+    };
+    
+    // Booleanos
+    const hasLRA = (m.diuresis_min !== undefined && m.diuresis_min < 400) || 
+                   (m.creatinina_max !== undefined && m.creatinina_max > 1.5);
+    
+    const pafiFinal = m.pafi_final || m.pafi_mean;
+    let sdraStatus = 'No';
+    let sdraClass = 'text-success';
+    if (pafiFinal !== undefined) {
+        if (pafiFinal < 100) { sdraStatus = 'Severo'; sdraClass = 'text-danger'; }
+        else if (pafiFinal < 200) { sdraStatus = 'Moderado'; sdraClass = 'text-danger'; }
+        else if (pafiFinal < 300) { sdraStatus = 'Leve'; sdraClass = 'text-warning'; }
+    }
+    
+    const tipoEgreso = p.tipo_egreso || p.egreso_tipo || '';
+    const isDeath = tipoEgreso.toLowerCase().includes('muerte') || 
+                    tipoEgreso.toLowerCase().includes('fallec') ||
+                    tipoEgreso.toLowerCase().includes('exitus');
+    
+    const hasShock = (m.shock_index_max !== undefined && m.shock_index_max > 0.9) ||
+                     (m.pam_min !== undefined && m.pam_min < 65);
+    
+    const diasVent = m.dias_ventilacion || m.ventilacion_dias || 0;
+    
+    // Score de riesgo
+    let score = 0;
+    if (isDeath) score += 50;
+    const sofaDelta = parseFloat(m.sofa_delta) || 0;
+    if (sofaDelta > 3) score += 15; else if (sofaDelta > 0) score += 5;
+    const lactClearance = parseFloat(m.lactato_clearance_percent) || 100;
+    if (lactClearance < 10) score += 10;
+    const siMax = parseFloat(m.shock_index_max) || 0;
+    if (siMax > 1.0) score += 10; else if (siMax > 0.9) score += 5;
+    const pamMin = parseFloat(m.pam_min) || 70;
+    if (pamMin < 65) score += 10;
+    const pafiF = parseFloat(m.pafi_final) || parseFloat(m.pafi_mean) || 300;
+    if (pafiF < 100) score += 15; else if (pafiF < 200) score += 10;
+    const glasgowMin = parseFloat(m.glasgow_min) || 15;
+    if (glasgowMin <= 8) score += 10; else if (glasgowMin < 13) score += 5;
+    if (hasLRA) score += 5;
+    if (hasShock) score += 5;
+    if (sdraStatus === 'Severo') score += 15; else if (sdraStatus === 'Moderado') score += 10; else if (sdraStatus === 'Leve') score += 5;
+    const pltNadir = parseFloat(m.plaquetas_nadir) || 150;
+    if (pltNadir < 50) score += 5;
+    score = Math.min(100, score);
+    
+    let riskLabel = 'RIESGO BAJO';
+    let riskColor = '#10B981';
+    if (score >= 60) { riskLabel = 'ALTO RIESGO'; riskColor = '#DC2626'; }
+    else if (score >= 30) { riskLabel = 'RIESGO MODERADO'; riskColor = '#F59E0B'; }
+    
+    // Indicadores
+    const indicators = [
+        { id: 'pafi', icon: 'fa-lungs', color: '#10B981', label: 'PaFiO2', unit: '', candle: getCandle('pafi'), thresholds: { green: 300, yellow: 200 }, labels: { green: 'Normal', yellow: 'Leve', red: 'Moderado+' }, boolLabel: 'SDRA:', boolValue: sdraStatus, boolClass: sdraClass },
+        { id: 'calcio', icon: 'fa-bone', color: '#8B5CF6', label: 'Calcio', unit: 'mg/dL', candle: getCandle('calcio'), thresholds: { green: 8.5, yellow: 7.5 }, labels: { green: 'Normal', yellow: 'Bajo', red: 'Crítico' }, boolLabel: 'Riesgo:', boolValue: m.calcio_risk_severe ? 'Severo' : m.calcio_risk_low ? 'Bajo' : 'Normal', boolClass: m.calcio_risk_severe ? 'text-danger' : m.calcio_risk_low ? 'text-warning' : 'text-success' },
+        { id: 'pam', icon: 'fa-heartbeat', color: '#EF4444', label: 'PAM', unit: 'mmHg', candle: getCandle('pam'), thresholds: { green: 70, yellow: 65 }, labels: { green: 'Normal', yellow: 'Baja', red: 'Hipotensión' }, boolLabel: 'Shock:', boolValue: hasShock ? 'Sí' : 'No', boolClass: hasShock ? 'text-danger' : 'text-success' },
+        { id: 'llenado-capilar', icon: 'fa-hand-pointer', color: '#F59E0B', label: 'Llenado Capilar', unit: 'seg', candle: getCandle('llenado_capilar'), thresholds: { green: 2, yellow: 3 }, labels: { green: 'Normal', yellow: 'Lento', red: 'Retrasado' }, boolLabel: 'Shock:', boolValue: m.llenado_capilar_max > 3 ? 'Posible' : 'No', boolClass: m.llenado_capilar_max > 3 ? 'text-warning' : 'text-success' },
+        { id: 'lactato', icon: 'fa-tint', color: '#EC4899', label: 'Lactato', unit: 'mmol/L', candle: getCandle('lactato'), thresholds: { green: 2, yellow: 4 }, labels: { green: 'Normal', yellow: 'Elevado', red: 'Severo' }, boolLabel: 'Clearance:', boolValue: m.lactato_clearance_adequate !== undefined ? (m.lactato_clearance_adequate ? 'Adecuado ✓' : 'Inadecuado ✗') : '—', boolClass: m.lactato_clearance_adequate ? 'text-success' : 'text-warning' },
+        { id: 'sofa', icon: 'fa-activity', color: '#3B82F6', label: 'SOFA', unit: 'pts', candle: getCandle('sofa'), thresholds: { green: 6, yellow: 11 }, labels: { green: 'Bajo', yellow: 'Moderado', red: 'Alto' }, boolLabel: 'Delta:', boolValue: m.sofa_delta > 0 ? '+' + fmt(m.sofa_delta) : fmt(m.sofa_delta), boolClass: m.sofa_delta > 3 ? 'text-danger' : m.sofa_delta > 0 ? 'text-warning' : 'text-success' },
+        { id: 'shock-index', icon: 'fa-bolt', color: '#DC2626', label: 'Índice de Choque', unit: '', candle: getCandle('shock_index'), thresholds: { green: 0.7, yellow: 0.9 }, labels: { green: 'Normal', yellow: 'Elevado', red: 'Shock' }, boolLabel: 'Shock:', boolValue: m.shock_index_max > 0.9 ? 'Sí ⚠' : 'No ✓', boolClass: m.shock_index_max > 0.9 ? 'text-danger' : 'text-success' },
+        { id: 'creatinina', icon: 'fa-kidney', color: '#06B6D4', label: 'Creatinina', unit: 'mg/dL', candle: getCandle('creatinina'), thresholds: { green: 1.2, yellow: 2 }, labels: { green: 'Normal', yellow: 'Elevada', red: 'LRA' }, boolLabel: 'LRA:', boolValue: hasLRA ? 'Sí ⚠' : 'No ✓', boolClass: hasLRA ? 'text-danger' : 'text-success' },
+        { id: 'diuresis', icon: 'fa-tint', color: '#60A5FA', label: 'Diuresis', unit: 'mL/día', candle: getCandle('diuresis'), thresholds: { green: 800, yellow: 400 }, labels: { green: 'Normal', yellow: 'Oliguria', red: 'Anuria' }, boolLabel: 'LRA:', boolValue: m.diuresis_min < 400 ? 'Sí ⚠' : 'No ✓', boolClass: m.diuresis_min < 400 ? 'text-danger' : 'text-success' },
+        { id: 'glasgow', icon: 'fa-brain', color: '#A78BFA', label: 'Glasgow', unit: 'pts', candle: getCandle('glasgow'), thresholds: { green: 13, yellow: 9 }, labels: { green: 'Leve', yellow: 'Moderado', red: 'Severo' }, boolLabel: 'Coma:', boolValue: m.glasgow_min <= 8 ? 'Sí ⚠' : 'No ✓', boolClass: m.glasgow_min <= 8 ? 'text-danger' : 'text-success' }
+    ];
+    
+    let html = '<div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">';
+    
+    // Header con score
+    html += '<div style="flex: 0 0 100%; margin-bottom: 0.5rem;">';
+    html += '<div class="d-flex align-items-center justify-content-between p-2 rounded" style="background: linear-gradient(90deg, ' + riskColor + '20 0%, ' + riskColor + '05 100%); border-left: 4px solid ' + riskColor + ';">';
+    html += '<div class="d-flex align-items-center">';
+    html += '<span class="badge fs-5 me-3" style="background: ' + riskColor + ';">' + score + '</span>';
+    html += '<div><div class="fw-bold">Score de Riesgo de Mortalidad UCI</div>';
+    html += '<div class="small text-muted">' + riskLabel + '</div></div>';
+    html += '</div>';
+    html += '<div class="text-end small text-muted">';
+    html += '<div>' + (isDeath ? '⚠️ Paciente falleció en UCI' : '✓ Paciente vivo o egresado') + '</div>';
+    html += '<div>Días VM: ' + fmt(diasVent, 0) + '</div>';
+    html += '</div>';
+    html += '</div>';
+    html += '</div>';
+    
+    // Cards
+    indicators.forEach(ind => {
+        const c = ind.candle;
+        const hasData = c.initial !== undefined || c.min !== undefined || c.max !== undefined || c.final !== undefined;
+        if (!hasData) return;
+        
+        const finalVal = c.final !== undefined ? c.final : c.mean;
+        const isGood = ind.thresholds.green && finalVal <= ind.thresholds.green;
+        const isWarning = ind.thresholds.yellow && finalVal <= ind.thresholds.yellow;
+        const velaColor = isGood ? '#4ADE80' : isWarning ? '#FACC15' : '#F87171';
+        
+        // Tendencia: delta como metrica principal
+        const deltaVal = c.delta !== undefined ? c.delta : 0;
+        const isRising = deltaVal > 0;
+        const isFalling = deltaVal < 0;
+        const isStable = deltaVal === 0;
+        
+        // Color segun direccion de tendencia Y severidad:
+        // Para indicadores donde SUBIR es malo (lactato, sofa, shock-index, creatinina):
+        const isBadWhenRising = ['lactato', 'sofa', 'shock-index', 'creatinina', 'calcio'].includes(ind.id);
+        // Para indicadores donde BAJAR es malo (pam, diuresis, glasgow, pafi):
+        const isBadWhenFalling = ['pam', 'diuresis', 'glasgow', 'pafi', 'llenado-capilar'].includes(ind.id);
+        
+        let trendColor, trendArrow, trendText;
+        if (isStable) {
+            trendColor = '#6B7280'; trendArrow = '→'; trendText = 'Sin cambio';
+        } else if (isRising && isBadWhenRising) {
+            // Subio y es malo = ROJO
+            trendColor = '#F87171'; trendArrow = '↑'; trendText = '+' + fmt(deltaVal);
+        } else if (isRising && isBadWhenFalling) {
+            // Subio y es bueno = VERDE
+            trendColor = '#4ADE80'; trendArrow = '↑'; trendText = '+' + fmt(deltaVal);
+        } else if (isFalling && isBadWhenRising) {
+            // Bajo y es bueno = VERDE
+            trendColor = '#4ADE80'; trendArrow = '↓'; trendText = fmt(deltaVal);
+        } else if (isFalling && isBadWhenFalling) {
+            // Bajo y es malo = ROJO
+            trendColor = '#F87171'; trendArrow = '↓'; trendText = fmt(deltaVal);
+        } else {
+            // Caso neutro = AMARILLO
+            trendColor = '#FACC15'; trendArrow = isRising ? '↑' : '↓'; trendText = (isRising ? '+' : '') + fmt(deltaVal);
+        }
+        
+        html += '<div style="flex: 0 0 calc(33.333% - 0.5rem); min-width: 250px;">';
+        html += '<div class="ax-metric" style="border-radius: 0.5rem;">';
+        html += '<i class="fas ' + ind.icon + ' mb-1" style="font-size:0.75rem; color:' + ind.color + '; opacity:0.8"></i>';
+        html += '<div class="ax-metric-value" style="color: ' + trendColor + '; font-size: 1.4rem;">' + trendArrow + ' ' + trendText + '</div>';
+        html += '<div class="ax-metric-label">' + ind.label + '</div>';
+        html += '<div class="ax-metric-unit" style="font-size: 0.7rem; opacity: 0.8;">';
+        html += 'F:' + fmt(c.final) + ' · I:' + fmt(c.initial) + ' · ↓' + fmt(c.min) + ' · ↑' + fmt(c.max);
+        html += '</div>';
+        html += '</div>';
+        html += '</div>';
+    });
+    
+    html += '</div>';
+    return html;
+}
+
+// ============================================================
+// CARGAR PACIENTE
+// ============================================================
+
+async function cargarPaciente(patientId) {
+  currentPatientId = patientId;
+  
+  // UI reset
+  $('#error-box').addClass('d-none');
+  $('#patient-dashboard').addClass('d-none');
+  $('#loading-box').removeClass('d-none');
+  $('#status-box').addClass('d-none');
+  
+  // Limpiar charts previos
+  Object.keys(charts).forEach(id => destroyChart(id));
+  
+  try {
+    const url = `${API_BASE}/${patientId}/trends?limit=10000`;
+    const r = await fetch(url, { credentials: 'include' });
+    
+    if (r.status === 401 || r.status === 302) {
+      throw new Error('Sesión expirada. Recarga la página e inicia sesión de nuevo.');
+    }
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      throw new Error(err.error || `Error ${r.status}`);
+    }
+    
+    const data = await r.json();
+    currentEvolutions = data.evoluciones || [];
+    
+    if (currentEvolutions.length === 0) {
+      throw new Error('Este paciente no tiene evoluciones registradas.');
+    }
+    
+    // Mostrar dashboard
+    $('#dash-nombre').text(data.nombre_completo || 'Paciente');
+    $('#dash-meta').text(data.expediente ? `Exp: ${data.expediente}` : '');
+    $('#patient-dashboard').removeClass('d-none');
+    $('#status-box').removeClass('d-none');
+    $('#status-text').text(`${currentEvolutions.length} evoluciones cargadas`);
+    // Cargar indicadores de cumplimiento
+    cargarCompliance(patientId);
+    
+    // Cargar métricas analíticas avanzadas
+    cargarAnalytics(patientId);
+
+    
+    // Renderizar métricas
+    renderMetrics(currentEvolutions, data);
+    
+    // Renderizar gráficas
+    renderLactato(currentEvolutions);
+    renderSOFA(currentEvolutions);
+    renderPaFi(currentEvolutions);
+    renderVitals(currentEvolutions);
+    renderLiquids(currentEvolutions);
+    renderRenal(currentEvolutions);
+    renderLabs(currentEvolutions);
+    renderGasometria(currentEvolutions);
+    renderVentilacion(currentEvolutions);
+    
+  } catch (err) {
+    console.error(err);
+    $('#error-text').text(err.message);
+    $('#error-box').removeClass('d-none');
+  } finally {
+    $('#loading-box').addClass('d-none');
+  }
+}
+
+// ============================================================
+// PANEL PERSONALIZADO
+// ============================================================
+
+function initCustomParams() {
+  const container = document.getElementById('custom-params-list');
+  container.innerHTML = '';
+  
+  const cats = {};
+  PARAMS_DISPONIBLES.forEach(p => {
+    if (!cats[p.cat]) cats[p.cat] = [];
+    cats[p.cat].push(p);
+  });
+  
+  Object.keys(cats).forEach(cat => {
+    const div = document.createElement('div');
+    div.innerHTML = `<div class="fw-bold text-primary mt-2 mb-1" style="font-size:0.75rem; text-transform:uppercase;">${cat}</div>`;
+    cats[cat].forEach(p => {
+      div.innerHTML += `
+        <div class="param-item" onclick="toggleParam('${p.campo}', '${p.label}', '${p.color}')">
+          <span class="param-color" style="background:${p.color}"></span>
+          <input type="checkbox" id="chk-${p.campo}" value="${p.campo}" data-color="${p.color}" data-label="${p.label}">
+          <span>${p.label}</span>
+        </div>`;
+    });
+    container.appendChild(div);
+  });
+}
+
+function toggleParam(campo, label, color) {
+  const chk = document.getElementById(`chk-${campo}`);
+  chk.checked = !chk.checked;
+  updateCustomSelection();
+}
+
+function updateCustomSelection() {
+  customSelected = [];
+  document.querySelectorAll('#custom-params-list input:checked').forEach(el => {
+    customSelected.push({
+      campo: el.value,
+      label: el.dataset.label,
+      color: el.dataset.color
+    });
+  });
+  document.getElementById('btn-generar-custom').disabled = customSelected.length === 0;
+}
+
+function generarCustom() {
+  if (!currentPatientId || customSelected.length === 0) return;
+  renderCustom(currentEvolutions, customSelected);
+}
+
+// ============================================================
+// EXPORTAR CSV
+// ============================================================
+
+async function exportarCSV() {
+  if (!currentPatientId) {
+    alert("Selecciona un paciente primero");
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/api/patient/${currentPatientId}/complete`);
+    if (!response.ok) throw new Error("Error obteniendo datos");
+    const data = await response.json();
+    
+    let csvParts = [];
+    
+    if (data.patient) {
+      csvParts.push("=== DATOS DEL PACIENTE ===");
+      const patientHeaders = Object.keys(data.patient);
+      csvParts.push(patientHeaders.join(","));
+      const patientRow = patientHeaders.map(h => {
+        const v = data.patient[h];
+        if (v === null || v === undefined) return "";
+        const s = String(v).replace(/"/g, '""');
+        if (s.includes(",") || s.includes("\n") || s.includes('"')) return `"${s}"`;
+        return s;
+      }).join(",");
+      csvParts.push(patientRow);
+    }
+    
+    if (data.evoluciones && data.evoluciones.length) {
+      csvParts.push("");
+      csvParts.push("=== EVOLUCIONES ===");
+      const evoHeaders = Object.keys(data.evoluciones[0]);
+      csvParts.push(evoHeaders.join(","));
+      data.evoluciones.forEach(evo => {
+        const row = evoHeaders.map(h => {
+          const v = evo[h];
+          if (v === null || v === undefined) return "";
+          const s = String(v).replace(/"/g, '""');
+          if (s.includes(",") || s.includes("\n") || s.includes('"')) return `"${s}"`;
+          return s;
+        }).join(",");
+        csvParts.push(row);
+      });
+    }
+    
+    if (data.cultivos && data.cultivos.length) {
+      csvParts.push("");
+      csvParts.push("=== CULTIVOS ===");
+      const cultHeaders = Object.keys(data.cultivos[0]);
+      csvParts.push(cultHeaders.join(","));
+      data.cultivos.forEach(cult => {
+        const row = cultHeaders.map(h => {
+          const v = cult[h];
+          if (v === null || v === undefined) return "";
+          const s = String(v).replace(/"/g, '""');
+          if (s.includes(",") || s.includes("\n") || s.includes('"')) return `"${s}"`;
+          return s;
+        }).join(",");
+        csvParts.push(row);
+      });
+    }
+    
+    const csv = csvParts.join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `paciente_completo_${currentPatientId}_${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    console.error("Error exportando:", error);
+    alert("Error al exportar datos completos");
+  }
+}
+
+// ============================================================
+// AUTOCOMPLETE DE PACIENTES
+// ============================================================
+
+const patientsData = [
+  {% for p in patients %}
+  { id: {{ p.id }}, nombre: {{ (p.nombre_completo or p.nombre)|tojson }}, curp: {{ (p.curp or '')|tojson }}, expediente: {{ (p.expediente or '')|tojson }} },
+  {% endfor %}
+];
+
+function initPatientAutocomplete() {
+  const searchInput = document.getElementById('patient-search');
+  const suggestionsBox = document.getElementById('patient-suggestions');
+  const hiddenSelect = document.getElementById('patient-select');
+  const selectedName = document.getElementById('patient-selected-name');
+  
+  let selectedIndex = -1;
+  
+  searchInput.addEventListener('input', function() {
+    const query = this.value.trim().toLowerCase();
+    selectedIndex = -1;
+    
+    if (query.length < 2) {
+      suggestionsBox.style.display = 'none';
+      return;
+    }
+    
+    const matches = patientsData.filter(p => {
+      const nombre = (p.nombre || '').toLowerCase();
+      const curp = (p.curp || '').toLowerCase();
+      const exp = (p.expediente || '').toLowerCase();
+      return nombre.includes(query) || curp.includes(query) || exp.includes(query);
+    }).slice(0, 10); // Max 10 sugerencias
+    
+    if (matches.length === 0) {
+      suggestionsBox.innerHTML = '<div style="padding: 10px; color: var(--text-secondary);">No se encontraron pacientes</div>';
+      suggestionsBox.style.display = 'block';
+      return;
+    }
+    
+    suggestionsBox.innerHTML = matches.map((p, i) => {
+      const highlight = (text, query) => {
+        if (!text) return '';
+        const idx = text.toLowerCase().indexOf(query);
+        if (idx === -1) return text;
+        return text.substring(0, idx) + '<strong style="color: var(--accent);">' + text.substring(idx, idx + query.length) + '</strong>' + text.substring(idx + query.length);
+      };
+      
+      let displayText = p.nombre;
+      if (p.expediente) displayText += ` — Exp: ${p.expediente}`;
+      if (p.curp) displayText += ` — CURP: ${p.curp}`;
+      
+      return `<div class="patient-suggestion-item" data-id="${p.id}" data-index="${i}">
+        ${highlight(displayText, query)}
+      </div>`;
+    }).join('');
+    
+    suggestionsBox.style.display = 'block';
+    
+    // Agregar event listeners a sugerencias
+    suggestionsBox.querySelectorAll('.patient-suggestion-item').forEach(el => {
+      el.addEventListener('click', function() {
+        const patientId = this.getAttribute('data-id');
+        const patientName = patientsData.find(p => p.id == patientId)?.nombre || '';
+        
+        hiddenSelect.value = patientId;
+        searchInput.value = patientName;
+        searchInput.classList.add('has-selection');
+        suggestionsBox.style.display = 'none';
+        selectedName.innerHTML = '✅ <strong>' + patientName + '</strong>';
+        selectedName.style.display = 'block';
+        
+        // Disparar carga del paciente
+        cargarPaciente(patientId);
+      });
+      
+      el.addEventListener('mouseenter', function() {
+        this.classList.add('selected');
+      });
+      
+      el.addEventListener('mouseleave', function() {
+        this.classList.remove('selected');
+      });
+    });
+  });
+  
+  // Cerrar sugerencias al hacer click fuera
+  document.addEventListener('click', function(e) {
+    if (!searchInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
+      suggestionsBox.style.display = 'none';
+    }
+  });
+  
+  // Navegacion con teclado
+  searchInput.addEventListener('keydown', function(e) {
+    const items = suggestionsBox.querySelectorAll('.patient-suggestion-item');
+    if (items.length === 0) return;
+    
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+      highlightItem(items, selectedIndex);
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      selectedIndex = Math.max(selectedIndex - 1, 0);
+      highlightItem(items, selectedIndex);
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      if (selectedIndex >= 0 && items[selectedIndex]) {
+        items[selectedIndex].click();
+      }
+    } else if (e.key === 'Escape') {
+      suggestionsBox.style.display = 'none';
+    }
+  });
+  
+  function highlightItem(items, index) {
+    items.forEach((item, i) => {
+      if (i === index) {
+        item.classList.add('selected');
+      } else {
+        item.classList.remove('selected');
+      }
+    });
+    if (items[index]) {
+      items[index].scrollIntoView({ block: 'nearest' });
+    }
+  }
+  
+  // Boton limpiar busqueda
+  const btnClear = document.getElementById('btn-clear-search');
+  if (btnClear) {
+    btnClear.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Limpiar campos
+      searchInput.value = '';
+      hiddenSelect.value = '';
+      selectedName.innerHTML = '';
+      selectedName.style.display = 'none';
+      searchInput.classList.remove('has-selection');
+      suggestionsBox.style.display = 'none';
+      
+      // Ocultar dashboard y limpiar graficas
+      document.getElementById('patient-dashboard').classList.add('d-none');
+      document.getElementById('loading-box').classList.add('d-none');
+      
+      // Destruir todos los charts
+      Object.keys(charts).forEach(key => {
+        destroyChart(key);
+      });
+      
+      // Resetear variables globales
+      currentPatientId = null;
+      currentEvolutions = [];
+      
+      // Focus al input
+      searchInput.focus();
+    });
+  }
+}
+
+// ============================================================
+// TARJETAS BOOLEANAS CLÍNICAS
+// ============================================================
+
+function renderBooleanCards(metrics, patientData) {
+  if (!metrics) return;
+  
+  const m = metrics;
+  const cards = [];
+  
+  // Helper para formatear
+  const fmt = (v, d=1) => {
+    if (v === undefined || v === null || v === '') return '—';
+    if (typeof v === 'number') return v % 1 === 0 ? v : v.toFixed(d);
+    return v;
+  };
+  
+  // 1. LRA
+  const creatMax = m.creatinina_max || 0;
+  const diuresisMin = m.diuresis_min || 9999;
+  if (creatMax > 1.5 || diuresisMin < 400) {
+    cards.push({
+      icon: 'fa-kidney', color: '#EF4444', label: 'LRA',
+      value: 'Sí', detail: creatMax > 1.5 ? `Cr: ${fmt(creatMax)}` : `Diuresis: ${fmt(diuresisMin)}`,
+      borderColor: '#EF4444'
+    });
+  }
+  
+  // 2. SDRA
+  const pafiFinal = m.pafi_final || m.pafi_mean || 999;
+  if (pafiFinal < 300) {
+    const level = pafiFinal < 100 ? 'Severo' : pafiFinal < 200 ? 'Moderado' : 'Leve';
+    cards.push({
+      icon: 'fa-lungs-virus', color: pafiFinal < 200 ? '#DC2626' : '#F59E0B',
+      label: 'SDRA', value: level, detail: `PaFi: ${fmt(pafiFinal)}`,
+      borderColor: pafiFinal < 200 ? '#DC2626' : '#F59E0B'
+    });
+  }
+  
+  // 3. Choque
+  const siMax = m.shock_index_max || 0;
+  const pamMin = m.pam_min || 999;
+  if (siMax > 0.9 || pamMin < 65) {
+    cards.push({
+      icon: 'fa-bolt', color: '#F59E0B', label: 'Choque',
+      value: 'Sí', detail: siMax > 0.9 ? `SI: ${fmt(siMax)}` : `PAM: ${fmt(pamMin)}`,
+      borderColor: '#F59E0B'
+    });
+  }
+  
+  // 4. VM
+  const vmDias = m.dias_ventilacion || 0;
+  if (vmDias > 0) {
+    cards.push({
+      icon: 'fa-lungs', color: '#3B82F6', label: 'VM',
+      value: `${fmt(vmDias, 0)} días`, detail: 'Ventilación mecánica',
+      borderColor: '#3B82F6'
+    });
+  }
+  
+  // 5. Coma
+  const glasgowMin = m.glasgow_min || 15;
+  if (glasgowMin <= 8) {
+    cards.push({
+      icon: 'fa-brain', color: '#7C3AED', label: 'Coma',
+      value: `GCS ${fmt(glasgowMin)}`, detail: 'Glasgow ≤ 8',
+      borderColor: '#7C3AED'
+    });
+  }
+  
+  // 6. Hiperlactatemia
+  const lactatoMax = m.lactato_max || 0;
+  if (lactatoMax > 4) {
+    cards.push({
+      icon: 'fa-vial', color: '#BE185D', label: 'Lactato',
+      value: 'Alto', detail: `Max: ${fmt(lactatoMax)} mmol/L`,
+      borderColor: '#BE185D'
+    });
+  }
+  
+  // 7. Coagulopatía
+  const plaqNadir = m.plaquetas_nadir || 999;
+  if (plaqNadir < 100) {
+    cards.push({
+      icon: 'fa-droplet', color: '#DC2626', label: 'Coagulopatía',
+      value: 'Severa', detail: `Plaq: ${fmt(plaqNadir)}`,
+      borderColor: '#DC2626'
+    });
+  } else if (plaqNadir < 150) {
+    cards.push({
+      icon: 'fa-droplet', color: '#F59E0B', label: 'Trombocitopenia',
+      value: 'Leve', detail: `Plaq: ${fmt(plaqNadir)}`,
+      borderColor: '#F59E0B'
+    });
+  }
+  
+  // 8. Vasopresor
+  if (pamMin < 60) {
+    cards.push({
+      icon: 'fa-syringe', color: '#991B1B', label: 'Vasopresor',
+      value: 'Requerido', detail: `PAM: ${fmt(pamMin)} mmHg`,
+      borderColor: '#991B1B'
+    });
+  }
+  
+  // Renderizar
+  if (cards.length === 0) return;
+  
+  let html = '<div style="display:flex; flex-wrap:wrap; gap:0.75rem; margin-top:0.75rem;">';
+  cards.forEach(card => {
+    html += '<div style="flex:0 0 calc(33.333% - 0.5rem); min-width:250px;">';
+    html += '<div class="ax-metric" style="border-radius:0.5rem; border-left:4px solid ' + card.borderColor + ';">';
+    html += '<i class="fas ' + card.icon + ' mb-1" style="font-size:0.75rem; color:' + card.color + '; opacity:0.8"></i>';
+    html += '<div class="ax-metric-value" style="color:' + card.borderColor + '; font-size:1.4rem;">' + card.value + '</div>';
+    html += '<div class="ax-metric-label">' + card.label + '</div>';
+    html += '<div class="ax-metric-unit" style="font-size:0.7rem; opacity:0.8;">' + card.detail + '</div>';
+    html += '</div></div>';
+  });
+  html += '</div>';
+  
+  // Insertar después del analytics-row
+  const container = document.getElementById('analytics-row');
+  if (container) {
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = html;
+    container.parentNode.insertBefore(wrapper, container.nextSibling);
+  }
+}
+
+// ============================================================
+// INICIALIZAR
+// ============================================================
+
+$(function() {
+  initCustomParams();
+  initPatientAutocomplete();
+  
+  // El hidden select ahora dispara el change manualmente cuando se selecciona
+  // La funcion cargarPaciente se llama directamente desde el click de sugerencia
+  
+  $('#btn-generar-custom').on('click', generarCustom);
+  $('#btn-exportar').on('click', exportarCSV);
+  
+  // URL param
+  const url = new URL(window.location.href);
+  const pid = url.searchParams.get('patient_id');
+  if (pid) {
+    const patient = patientsData.find(p => p.id == pid);
+    if (patient) {
+      $('#patient-search').val(patient.nombre);
+      $('#patient-search').addClass('has-selection');
+      $('#patient-select').val(pid);
+      $('#patient-selected-name').html('✅ <strong>' + patient.nombre + '</strong>').show();
+      cargarPaciente(pid);
+    }
+  }
+});
+</script>
+{% endblock %}

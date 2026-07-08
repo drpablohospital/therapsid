@@ -1,0 +1,1202 @@
+{% extends "base.html" %}
+
+{% block title %}AX - Análisis de Tendencias{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+  <div class="row mb-3">
+    <div class="col-12">
+      <h2 class="mb-0"><i class="icon-chart text-primary me-2"></i>Análisis de Tendencias Clínicas</h2>
+      <p class="text-muted">Visualización temporal de variables clínicas</p>
+    </div>
+  </div>
+
+  <!-- Controles -->
+  <div class="card bg-dark border-secondary mb-3">
+    <div class="card-body">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-6">
+          <label class="form-label">Paciente</label>
+          <select id="patient-select" class="form-select theme-input">
+            <option value="">Seleccionar paciente...</option>
+            {% for p in patients %}
+            <option value="{{ p.id }}">{{ p.nombre_completo or p.nombre }} (Exp: {{ p.expediente }})</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <button id="btn-exportar" class="btn btn-outline-light w-100" disabled>
+            <i class="icon-download me-1"></i>CSV
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SECCIÓN MÉTRICAS RÁPIDAS (ANALYTICS) ============ -->
+  <div id="analytics-section" class="d-none">
+    <!-- Header de Analytics -->
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h5 class="mb-0"><i class="icon-gauge me-2"></i>Métricas de Tendencias Clínicas</h5>
+      <div>
+        <button id="btn-recalcular" class="btn btn-sm btn-outline-warning me-2" title="Recalcular métricas">
+          <i class="icon-refresh me-1"></i>Recalcular
+        </button>
+        <span id="analytics-timestamp" class="text-muted small"></span>
+      </div>
+    </div>
+
+    <!-- Panel de Compliance -->
+    <div id="compliance-panel" class="row mb-3">
+      <div class="col-12">
+        <div class="card border-0" id="compliance-card">
+          <div class="card-body py-2 px-3">
+            <div class="d-flex align-items-center justify-content-between">
+              <div>
+                <span class="fw-bold me-2">Completitud del Expediente:</span>
+                <span id="compliance-label" class="badge fs-6">--</span>
+              </div>
+              <div class="text-end">
+                <small class="text-muted d-block">
+                  Ingreso: <span id="compliance-ingreso">--</span>% | 
+                  Evoluciones: <span id="compliance-evoluciones">--</span>% | 
+                  Cobertura: <span id="compliance-coverage">--</span>%
+                </small>
+              </div>
+            </div>
+            <div class="progress mt-2" style="height: 8px;">
+              <div id="compliance-bar" class="progress-bar" role="progressbar" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cards de Métricas Clave -->
+    <div class="row g-3 mb-3" id="metrics-cards">
+      <!-- Estancia -->
+      <div class="col-md-3 col-lg-2">
+        <div class="card metric-card h-100">
+          <div class="card-body text-center p-3">
+            <div class="metric-icon mb-2"><i class="icon-calendar"></i></div>
+            <div class="metric-value" id="metric-dias-estancia">--</div>
+            <div class="metric-label">Días Estancia</div>
+            <div class="metric-sub small text-muted" id="metric-evoluciones-dia">-- evo/día</div>
+          </div>
+        </div>
+      </div>
+      <!-- Δ SOFA -->
+      <div class="col-md-3 col-lg-2">
+        <div class="card metric-card h-100" id="card-sofa">
+          <div class="card-body text-center p-3">
+            <div class="metric-icon mb-2"><i class="icon-activity"></i></div>
+            <div class="metric-value" id="metric-sofa-delta">--</div>
+            <div class="metric-label">Δ SOFA</div>
+            <div class="metric-sub small" id="metric-sofa-trend">--</div>
+          </div>
+        </div>
+      </div>
+      <!-- Índice de Choque -->
+      <div class="col-md-3 col-lg-2">
+        <div class="card metric-card h-100" id="card-shock">
+          <div class="card-body text-center p-3">
+            <div class="metric-icon mb-2"><i class="icon-zap"></i></div>
+            <div class="metric-value" id="metric-shock-index">--</div>
+            <div class="metric-label">Índice de Choque</div>
+            <div class="metric-sub small" id="metric-shock-status">--</div>
+          </div>
+        </div>
+      </div>
+      <!-- Clearance Lactato -->
+      <div class="col-md-3 col-lg-2">
+        <div class="card metric-card h-100" id="card-lactato">
+          <div class="card-body text-center p-3">
+            <div class="metric-icon mb-2"><i class="icon-droplet"></i></div>
+            <div class="metric-value" id="metric-lactato-clearance">--</div>
+            <div class="metric-label">Clearance Lactato</div>
+            <div class="metric-sub small" id="metric-lactato-status">--</div>
+          </div>
+        </div>
+      </div>
+      <!-- PAM -->
+      <div class="col-md-3 col-lg-2">
+        <div class="card metric-card h-100" id="card-pam">
+          <div class="card-body text-center p-3">
+            <div class="metric-icon mb-2"><i class="icon-heart"></i></div>
+            <div class="metric-value" id="metric-pam">--</div>
+            <div class="metric-label">PAM Promedio</div>
+            <div class="metric-sub small" id="metric-pam-status">--</div>
+          </div>
+        </div>
+      </div>
+      <!-- PaFi -->
+      <div class="col-md-3 col-lg-2">
+        <div class="card metric-card h-100" id="card-pafi">
+          <div class="card-body text-center p-3">
+            <div class="metric-icon mb-2"><i class="icon-lungs"></i></div>
+            <div class="metric-value" id="metric-pafi">--</div>
+            <div class="metric-label">PA/FiO2</div>
+            <div class="metric-sub small" id="metric-pafi-status">--</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Métricas secundarias -->
+    <div class="row g-3 mb-3" id="metrics-secondary">
+      <div class="col-md-4">
+        <div class="card metric-card h-100">
+          <div class="card-header py-2"><i class="icon-droplet me-2"></i>Hepático-Coagulación</div>
+          <div class="card-body p-3">
+            <div class="d-flex justify-content-between mb-1">
+              <span>Bilirrubina/INR:</span>
+              <span id="metric-bili-inr" class="fw-bold">--</span>
+            </div>
+            <div class="d-flex justify-content-between mb-1">
+              <span>Plaquetas Nadir:</span>
+              <span id="metric-plaquetas-nadir" class="fw-bold">--</span>
+            </div>
+            <div class="d-flex justify-content-between">
+              <span>Trombocitopenia:</span>
+              <span id="metric-trombo-status" class="badge">--</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card metric-card h-100">
+          <div class="card-header py-2"><i class="icon-kidney me-2"></i>Renal</div>
+          <div class="card-body p-3">
+            <div class="d-flex justify-content-between mb-1">
+              <span>Creatinina Máx:</span>
+              <span id="metric-creatinina" class="fw-bold">--</span>
+            </div>
+            <div class="d-flex justify-content-between mb-1">
+              <span>Balance Total:</span>
+              <span id="metric-balance-total" class="fw-bold">--</span>
+            </div>
+            <div class="d-flex justify-content-between">
+              <span>Días +Balance:</span>
+              <span id="metric-balance-pos" class="fw-bold">--</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card metric-card h-100">
+          <div class="card-header py-2"><i class="icon-thermometer me-2"></i>Otros</div>
+          <div class="card-body p-3">
+            <div class="d-flex justify-content-between mb-1">
+              <span>Clearance PCT:</span>
+              <span id="metric-pct-clearance" class="fw-bold">--</span>
+            </div>
+            <div class="d-flex justify-content-between mb-1">
+              <span>Calcio Riesgo:</span>
+              <span id="metric-calcio" class="fw-bold">--</span>
+            </div>
+            <div class="d-flex justify-content-between">
+              <span>Lactato/Alb:</span>
+              <span id="metric-lar" class="fw-bold">--</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel de Predicción de Mortalidad -->
+    <div class="card border-danger mb-3" id="mortality-panel">
+      <div class="card-header bg-danger bg-opacity-10 border-danger">
+        <h5 class="mb-0"><i class="icon-alert-triangle me-2"></i>Predicción de Riesgo Clínico</h5>
+      </div>
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-md-3 text-center">
+            <div class="display-4 fw-bold" id="mortality-score">--</div>
+            <div class="text-muted">Score de Riesgo</div>
+            <div id="mortality-risk-badge" class="badge fs-5 mt-2">--</div>
+          </div>
+          <div class="col-md-9">
+            <div class="row g-2" id="mortality-factors">
+              <!-- Se llena por JS -->
+            </div>
+            <div class="alert alert-secondary mt-2 mb-0">
+              <small><i class="icon-info me-1"></i><strong>Nota:</strong> Este score es una estimación basada en tendencias. No sustituye el juicio clínico. Basado en: ΔSOFA, clearance lactato, índice de choque, PAM nadir, PaFi, bilirrubina/INR, plaquetas.</small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <ul class="nav nav-tabs mb-3" id="chart-tabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="tab-vitals" data-bs-toggle="tab" data-bs-target="#content-vitals" type="button" role="tab">
+        <i class="icon-heart me-1"></i>Signos Vitales
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="tab-liquids" data-bs-toggle="tab" data-bs-target="#content-liquids" type="button" role="tab">
+        <i class="icon-droplet me-1"></i>Balance Hídrico
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="tab-labs" data-bs-toggle="tab" data-bs-target="#content-labs" type="button" role="tab">
+        <i class="icon-flask me-1"></i>Laboratorios
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="tab-custom" data-bs-toggle="tab" data-bs-target="#content-custom" type="button" role="tab">
+        <i class="icon-sliders me-1"></i>Personalizado
+      </button>
+    </li>
+  </ul>
+
+  <div class="tab-content" id="chart-content">
+    <!-- Signos Vitales -->
+    <div class="tab-pane fade show active" id="content-vitals" role="tabpanel">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <h5 class="mb-0">Signos Vitales</h5>
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" id="theme-toggle">
+          <label class="form-check-label" for="theme-toggle">Modo claro</label>
+        </div>
+      </div>
+      <div id="chart-vitals" class="chart-container bg-dark rounded p-3 text-center mb-3">
+        <p class="text-muted">Selecciona un paciente para cargar las gráficas</p>
+      </div>
+      <!-- Tabla de valores -->
+      <div class="table-responsive">
+        <table class="table table-sm table-dark table-striped" id="table-vitals">
+          <thead><tr><th>Fecha</th><th>FC</th><th>FR</th><th>TAS</th><th>TAD</th><th>PAM</th><th>Temp</th><th>SpO2</th><th>FiO2</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Balance Hídrico -->
+    <div class="tab-pane fade" id="content-liquids" role="tabpanel">
+      <h5 class="mb-2">Balance Hídrico</h5>
+      <div id="chart-liquids" class="chart-container bg-dark rounded p-3 text-center mb-3">
+        <p class="text-muted">Selecciona un paciente para cargar las gráficas</p>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm table-dark table-striped" id="table-liquids">
+          <thead><tr><th>Fecha</th><th>Ingresos</th><th>Egresos</th><th>Balance</th><th>Diuresis</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Laboratorios -->
+    <div class="tab-pane fade" id="content-labs" role="tabpanel">
+      <h5 class="mb-2">Laboratorios Importantes</h5>
+      <div id="chart-labs" class="chart-container bg-dark rounded p-3 text-center mb-3">
+        <p class="text-muted">Selecciona un paciente para cargar las gráficas</p>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm table-dark table-striped" id="table-labs">
+          <thead><tr><th>Fecha</th><th>Hb</th><th>Hto</th><th>Plt</th><th>Leu</th><th>Cr</th><th>Na</th><th>K</th><th>Lact</th><th>Gluc</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Personalizado -->
+    <div class="tab-pane fade" id="content-custom" role="tabpanel">
+      <div class="row">
+        <div class="col-md-3">
+          <div class="card theme-card">
+            <div class="card-header">
+              <h6 class="mb-0">Parámetros disponibles</h6>
+            </div>
+            <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+              <div id="custom-params-list">
+                <!-- Se llena por JS -->
+              </div>
+            </div>
+            <div class="card-footer">
+              <button id="btn-guardar-perfil" class="btn btn-sm btn-outline-primary w-100">
+                <i class="icon-save me-1"></i>Guardar Perfil
+              </button>
+              <select id="perfil-select" class="form-select form-select-sm bg-dark text-light border-secondary mt-2">
+                <option value="">Cargar perfil...</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-9">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <h5 class="mb-0">Gráfica Personalizada</h5>
+            <button id="btn-generar-custom" class="btn btn-sm btn-primary" disabled>
+              <i class="icon-chart me-1"></i>Generar
+            </button>
+          </div>
+          <div id="chart-custom" class="chart-container bg-dark rounded p-3 text-center mb-3">
+            <p class="text-muted">Selecciona parámetros de la lista y presiona Generar</p>
+          </div>
+          <div class="table-responsive">
+            <table class="table table-sm table-dark table-striped" id="table-custom">
+              <thead><tr><th>Fecha</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Info del paciente -->
+  <div id="patient-info" class="mt-3 d-none">
+    <div class="alert alert-info">
+      <strong id="info-nombre"></strong> — <span id="info-expediente"></span>
+      <span class="float-end">Evoluciones: <span id="info-count"></span></span>
+    </div>
+  </div>
+</div>
+
+<style>
+.chart-container {
+  min-height: 400px;
+}
+.chart-container img {
+  max-width: 100%;
+  border-radius: 8px;
+}
+.param-checkbox {
+  margin-bottom: 0.5rem;
+}
+
+/* Cards de métricas */
+.metric-card {
+  background: linear-gradient(145deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid #334155;
+  transition: transform 0.2s, border-color 0.2s;
+}
+.metric-card:hover {
+  transform: translateY(-2px);
+  border-color: #64748b;
+}
+.metric-icon {
+  font-size: 1.5rem;
+  color: #60a5fa;
+}
+.metric-value {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+.metric-label {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Estados de severidad */
+.status-green { color: #4ade80 !important; border-color: #4ade80 !important; }
+.status-yellow { color: #facc15 !important; border-color: #facc15 !important; }
+.status-red { color: #f87171 !important; border-color: #f87171 !important; }
+.status-gray { color: #94a3b8 !important; }
+
+.bg-green { background-color: #4ade80 !important; }
+.bg-yellow { background-color: #facc15 !important; }
+.bg-red { background-color: #f87171 !important; }
+
+/* Compliance */
+#compliance-card {
+  background: linear-gradient(90deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid #334155;
+}
+
+/* Tablas */
+.table-dark {
+  --bs-table-bg: #0f172a;
+  --bs-table-striped-bg: #1e293b;
+  --bs-table-border-color: #334155;
+}
+.table-dark th {
+  color: #94a3b8;
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+.table-dark td {
+  font-size: 0.85rem;
+  vertical-align: middle;
+}
+
+/* Light mode overrides */
+body.light-mode .metric-card {
+  background: linear-gradient(145deg, #f8fafc 0%, #e2e8f0 100%);
+  border-color: #cbd5e1;
+}
+body.light-mode .metric-value { color: #0f172a; }
+body.light-mode .metric-label { color: #64748b; }
+body.light-mode .table-dark {
+  --bs-table-bg: #ffffff;
+  --bs-table-striped-bg: #f1f5f9;
+  --bs-table-color: #0f172a;
+  --bs-table-border-color: #cbd5e1;
+}
+body.light-mode .table-dark th { color: #475569; }
+body.light-mode #compliance-card {
+  background: linear-gradient(90deg, #f8fafc 0%, #e2e8f0 100%);
+  border-color: #cbd5e1;
+}
+</style>
+
+<script>
+// ============================================================
+// AX - ANÁLISIS DE TENDENCIAS v2.0
+// Con métricas avanzadas, compliance, alertas y predicción
+// ============================================================
+
+const API_BASE = '/api/patient';
+let currentPatientId = null;
+let currentEvolutions = [];
+let currentAnalytics = null;
+let customSelected = [];
+
+// Parámetros disponibles para gráfica personalizada
+const PARAMS_DISPONIBLES = [
+  { campo: 'fc', label: 'Frecuencia Cardiaca (lpm)', color: '#ef4444' },
+  { campo: 'fr', label: 'Frecuencia Respiratoria (rpm)', color: '#f97316' },
+  { campo: 'pas', label: 'PAS (mmHg)', color: '#ef4444' },
+  { campo: 'pad', label: 'PAD (mmHg)', color: '#60a5fa' },
+  { campo: 'pam', label: 'PAM (mmHg)', color: '#8b5cf6' },
+  { campo: 'temperatura', label: 'Temperatura (°C)', color: '#f59e0b' },
+  { campo: 'spo2', label: 'SpO2 (%)', color: '#10b981' },
+  { campo: 'fio2', label: 'FiO2 (%)', color: '#06b6d4' },
+  { campo: 'safio2', label: 'SA/FiO2', color: '#ec4899' },
+  { campo: 'glasgow', label: 'Glasgow', color: '#84cc16' },
+  { campo: 'rass', label: 'RASS', color: '#a855f7' },
+  { campo: 'balance', label: 'Balance (mL)', color: '#4ade80' },
+  { campo: 'diuresis', label: 'Diuresis (mL)', color: '#60a5fa' },
+  { campo: 'balance_global', label: 'Balance Global (mL)', color: '#f59e0b' },
+  { campo: 'hemoglobina', label: 'Hemoglobina (g/dL)', color: '#ef4444' },
+  { campo: 'hematocrito', label: 'Hematocrito (%)', color: '#f97316' },
+  { campo: 'plaquetas', label: 'Plaquetas (×10³/μL)', color: '#8b5cf6' },
+  { campo: 'leucocitos', label: 'Leucocitos (×10³/μL)', color: '#60a5fa' },
+  { campo: 'glucosa', label: 'Glucosa (mg/dL)', color: '#f59e0b' },
+  { campo: 'urea', label: 'BUN (mg/dL)', color: '#10b981' },
+  { campo: 'creatinina', label: 'Creatinina (mg/dL)', color: '#ec4899' },
+  { campo: 'sodio', label: 'Sodio (mEq/L)', color: '#06b6d4' },
+  { campo: 'potasio', label: 'Potasio (mEq/L)', color: '#84cc16' },
+  { campo: 'lactato', label: 'Lactato (mmol/L)', color: '#f43f5e' },
+  { campo: 'ph', label: 'pH', color: '#a855f7' },
+  { campo: 'pco2', label: 'pCO2', color: '#6366f1' },
+  { campo: 'hco3', label: 'HCO3', color: '#14b8a6' },
+];
+
+// ============================================================
+// INICIALIZACIÓN
+// ============================================================
+
+$(function() {
+  initCustomParams();
+  loadPerfiles();
+
+  $('#patient-select').on('change', cargarPaciente);
+  $('#btn-exportar').on('click', exportarCSV);
+  $('#btn-generar-custom').on('click', generarCustom);
+  $('#btn-guardar-perfil').on('click', guardarPerfil);
+  $('#perfil-select').on('change', cargarPerfil);
+  $('#btn-recalcular').on('click', recalcularAnalytics);
+  $('#theme-toggle').on('change', function() {
+    if (currentPatientId) {
+      cargarTodasLasGraficas();
+      // Recargar tablas con tema
+      fillTables();
+    }
+  });
+
+  // Auto-cargar si hay paciente en URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const patientId = urlParams.get('patient_id');
+  if (patientId) {
+    $('#patient-select').val(patientId);
+    cargarPaciente();
+  }
+});
+
+// ============================================================
+// CARGAR PACIENTE + ANALYTICS
+// ============================================================
+
+async function cargarPaciente() {
+  const patientId = $('#patient-select').val();
+  if (!patientId) {
+    $('#analytics-section').addClass('d-none');
+    return;
+  }
+
+  currentPatientId = patientId;
+
+  try {
+    // Cargar evoluciones y analytics en paralelo
+    const [trendsResp, analyticsResp, complianceResp] = await Promise.all([
+      fetch(`${API_BASE}/${patientId}/trends`, { credentials: 'include' }),
+      fetch(`${API_BASE}/${patientId}/analytics`, { credentials: 'include' }),
+      fetch(`${API_BASE}/${patientId}/compliance`, { credentials: 'include' })
+    ]);
+
+    const trendsData = await trendsResp.json();
+    currentEvolutions = trendsData.evoluciones || [];
+
+    // Mostrar info
+    $('#info-nombre').text(trendsData.nombre_completo || 'Paciente');
+    $('#info-expediente').text(`Exp: ${trendsData.expediente || 'N/A'}`);
+    $('#info-count').text(currentEvolutions.length);
+    $('#patient-info').removeClass('d-none');
+    $('#btn-exportar').prop('disabled', currentEvolutions.length === 0);
+
+    // Mostrar analytics
+    $('#analytics-section').removeClass('d-none');
+
+    if (analyticsResp.ok) {
+      const analytics = await analyticsResp.json();
+      currentAnalytics = analytics.metrics || analytics;
+      renderAnalytics(currentAnalytics);
+    }
+
+    if (complianceResp.ok) {
+      const compliance = await complianceResp.json();
+      renderCompliance(compliance);
+    }
+
+    // Cargar gráficas y tablas
+    await cargarTodasLasGraficas();
+    fillTables();
+
+  } catch (err) {
+    console.error('Error cargando paciente:', err);
+    // Intentar solo con evoluciones si analytics falla
+    try {
+      const response = await fetch(`${API_BASE}/${patientId}/trends`, { credentials: 'include' });
+      const data = await response.json();
+      currentEvolutions = data.evoluciones || [];
+      $('#info-nombre').text(data.nombre_completo || 'Paciente');
+      $('#info-expediente').text(`Exp: ${data.expediente || 'N/A'}`);
+      $('#info-count').text(currentEvolutions.length);
+      $('#patient-info').removeClass('d-none');
+      $('#btn-exportar').prop('disabled', currentEvolutions.length === 0);
+      await cargarTodasLasGraficas();
+      fillTables();
+    } catch (e) {
+      alert('Error al cargar datos del paciente');
+    }
+  }
+}
+
+async function recalcularAnalytics() {
+  if (!currentPatientId) return;
+  $('#btn-recalcular').html('<i class="icon-loading spin me-1"></i>Recalculando...').prop('disabled', true);
+
+  try {
+    const response = await fetch(`${API_BASE}/${currentPatientId}/analytics/recalculate`, {
+      method: 'POST',
+      credentials: 'include'
+    });
+    if (response.ok) {
+      const data = await response.json();
+      currentAnalytics = data.metrics;
+      renderAnalytics(currentAnalytics);
+      if (data.compliance) renderCompliance(data.compliance);
+      $('#analytics-timestamp').text('Recalculado: ' + new Date().toLocaleTimeString());
+    }
+  } catch (e) {
+    console.error('Error recalculando:', e);
+  } finally {
+    $('#btn-recalcular').html('<i class="icon-refresh me-1"></i>Recalcular').prop('disabled', false);
+  }
+}
+
+// ============================================================
+// RENDERIZAR COMPLIANCE
+// ============================================================
+
+function renderCompliance(data) {
+  if (!data) return;
+
+  const overall = data.overall_score || 0;
+  const color = data.color || 'gray';
+  const label = data.label || 'N/A';
+
+  $('#compliance-label')
+    .text(`${overall}% — ${label}`)
+    .removeClass('bg-success bg-warning bg-danger bg-secondary')
+    .addClass(color === 'green' ? 'bg-success' : color === 'yellow' ? 'bg-warning' : color === 'red' ? 'bg-danger' : 'bg-secondary');
+
+  $('#compliance-ingreso').text(data.ingreso_compliance || 0);
+  $('#compliance-evoluciones').text(data.evolution_compliance || 0);
+  $('#compliance-coverage').text(data.evolution_coverage || 0);
+
+  $('#compliance-bar')
+    .css('width', overall + '%')
+    .removeClass('bg-success bg-warning bg-danger bg-secondary')
+    .addClass(color === 'green' ? 'bg-success' : color === 'yellow' ? 'bg-warning' : color === 'red' ? 'bg-danger' : 'bg-secondary');
+}
+
+// ============================================================
+// RENDERIZAR ANALYTICS (MÉTRICAS RÁPIDAS)
+// ============================================================
+
+function renderAnalytics(metrics) {
+  if (!metrics) return;
+
+  // Estancia
+  $('#metric-dias-estancia').text(metrics.dias_estancia || '--');
+  $('#metric-evoluciones-dia').text((metrics.evoluciones_por_dia || 0) + ' evo/día');
+
+  // SOFA
+  const sofaDelta = metrics.sofa_delta;
+  if (sofaDelta !== undefined && sofaDelta !== null) {
+    const sofaTrend = metrics.sofa_trend || 'stable';
+    const sofaVal = parseFloat(sofaDelta);
+    $('#metric-sofa-delta').text(sofaVal > 0 ? '+' + sofaDelta : sofaDelta);
+    $('#metric-sofa-telta').text(sofaTrend === 'worsening' ? 'Empeorando ↗' : sofaTrend === 'improving' ? 'Mejorando ↘' : 'Estable →');
+    $('#metric-sofa-trend').addClass(sofaVal > 2 ? 'status-red' : sofaVal > 0 ? 'status-yellow' : 'status-green');
+    $('#card-sofa').addClass(sofaVal > 2 ? 'border-danger' : sofaVal > 0 ? 'border-warning' : 'border-success');
+  }
+
+  // Índice de Choque
+  const siMax = metrics.shock_index_max;
+  if (siMax !== undefined && siMax !== null) {
+    $('#metric-shock-index').text(siMax.toFixed(2));
+    const siStatus = siMax > 1.0 ? 'CRÍTICO' : siMax > 0.9 ? 'Alto' : 'Normal';
+    $('#metric-shock-status').text(siStatus);
+    $('#metric-shock-status').addClass(siMax > 0.9 ? 'status-red' : 'status-green');
+    $('#card-shock').addClass(siMax > 0.9 ? 'border-danger' : 'border-success');
+  }
+
+  // Clearance Lactato
+  const lactClearance = metrics.lactato_clearance_percent;
+  if (lactClearance !== undefined && lactClearance !== null) {
+    $('#metric-lactato-clearance').text(lactClearance.toFixed(1) + '%');
+    const lactAdequate = metrics.lactato_clearance_adequate;
+    $('#metric-lactato-status').text(lactAdequate ? 'Adecuado ✓' : 'Inadecuado ✗');
+    $('#metric-lactato-status').addClass(lactAdequate ? 'status-green' : 'status-red');
+    $('#card-lactato').addClass(!lactAdequate ? 'border-danger' : 'border-success');
+  } else {
+    $('#metric-lactato-clearance').text('N/A');
+    $('#metric-lactato-status').text('Sin datos').addClass('status-gray');
+  }
+
+  // PAM
+  const pamMean = metrics.pam_mean;
+  if (pamMean !== undefined && pamMean !== null) {
+    $('#metric-pam').text(pamMean.toFixed(0));
+    const pamRisk = metrics.pam_hypotension_ratio || 0;
+    const pamStatus = pamMean < 65 ? 'Hipotensión' : pamRisk > 0.3 ? 'Riesgo ↑' : 'Estable';
+    $('#metric-pam-status').text(pamStatus);
+    $('#metric-pam-status').addClass(pamMean < 65 ? 'status-red' : pamRisk > 0.3 ? 'status-yellow' : 'status-green');
+    $('#card-pam').addClass(pamMean < 65 ? 'border-danger' : 'border-success');
+  }
+
+  // PaFi
+  const pafiMean = metrics.pafi_mean;
+  if (pafiMean !== undefined && pafiMean !== null) {
+    $('#metric-pafi').text(pafiMean.toFixed(0));
+    const pafiStatus = pafiMean < 100 ? 'Severo' : pafiMean < 200 ? 'Moderado' : pafiMean < 300 ? 'Leve' : 'Normal';
+    $('#metric-pafi-status').text(pafiStatus);
+    $('#metric-pafi-status').addClass(pafiMean < 200 ? 'status-red' : pafiMean < 300 ? 'status-yellow' : 'status-green');
+    $('#card-pafi').addClass(pafiMean < 200 ? 'border-danger' : pafiMean < 300 ? 'border-warning' : 'border-success');
+  }
+
+  // Hepático-Coagulación
+  const biliInr = metrics.hepatic_coag_risk_score;
+  if (biliInr !== undefined && biliInr !== null) {
+    $('#metric-bili-inr').text(biliInr.toFixed(1));
+    $('#metric-bili-inr').addClass(biliInr > 2 ? 'status-red' : 'status-green');
+  }
+
+  const pltNadir = metrics.plaquetas_nadir;
+  if (pltNadir !== undefined && pltNadir !== null) {
+    $('#metric-plaquetas-nadir').text(pltNadir.toFixed(0));
+    const thrombo = metrics.plaquetas_thrombocytopenia;
+    $('#metric-trombo-status')
+      .text(thrombo ? 'Sí ⚠' : 'No ✓')
+      .removeClass('bg-success bg-warning bg-danger')
+      .addClass(thrombo ? 'bg-danger' : 'bg-success');
+  }
+
+  // Renal
+  const creaMax = metrics.creatinina_max;
+  if (creaMax !== undefined && creaMax !== null) {
+    $('#metric-creatinina').text(creaMax.toFixed(2));
+    $('#metric-creatinina').addClass(creaMax > 2 ? 'status-red' : creaMax > 1.5 ? 'status-yellow' : 'status-green');
+  }
+
+  const balanceTotal = metrics.balance_total;
+  if (balanceTotal !== undefined) {
+    $('#metric-balance-total').text((balanceTotal > 0 ? '+' : '') + balanceTotal.toFixed(0) + ' mL');
+    $('#metric-balance-total').addClass(balanceTotal > 1000 ? 'status-red' : balanceTotal > 500 ? 'status-yellow' : 'status-green');
+  }
+  $('#metric-balance-pos').text(metrics.balance_positivo_dias || 0);
+
+  // Otros
+  const pctClearance = metrics.pct_clearance_percent;
+  if (pctClearance !== undefined && pctClearance !== null) {
+    $('#metric-pct-clearance').text(pctClearance.toFixed(1) + '%');
+    $('#metric-pct-clearance').addClass(metrics.pct_clearance_adequate ? 'status-green' : 'status-yellow');
+  } else {
+    $('#metric-pct-clearance').text('N/A');
+  }
+
+  const calcioRisk = metrics.calcio_risk_low;
+  if (calcioRisk !== undefined) {
+    $('#metric-calcio').text(calcioRisk ? 'Alto ⚠' : 'Normal ✓');
+    $('#metric-calcio').addClass(calcioRisk ? 'status-red' : 'status-green');
+  }
+
+  const lar = metrics.lactato_albumina_ratio;
+  if (lar !== undefined && lar !== null) {
+    $('#metric-lar').text(lar.toFixed(2));
+    const larHigh = metrics.lactato_albumina_high_risk;
+    $('#metric-lar').addClass(larHigh ? 'status-red' : 'status-green');
+  }
+
+  // Predicción de mortalidad
+  calcularMortalityScore(metrics);
+}
+
+// ============================================================
+// PREDICCIÓN DE MORTALIDAD (SCORE PROPIO)
+// ============================================================
+
+function calcularMortalityScore(metrics) {
+  let score = 0;
+  const factors = [];
+
+  // Δ SOFA
+  const sofaDelta = parseFloat(metrics.sofa_delta) || 0;
+  if (sofaDelta > 3) {
+    score += 25;
+    factors.push({ name: 'ΔSOFA >3', value: sofaDelta.toFixed(1), severity: 'red' });
+  } else if (sofaDelta > 0) {
+    score += 10;
+    factors.push({ name: 'ΔSOFA >0', value: sofaDelta.toFixed(1), severity: 'yellow' });
+  }
+
+  // Clearance lactato
+  const lactClearance = parseFloat(metrics.lactato_clearance_percent) || 0;
+  if (lactClearance < 10 && metrics.lactato_max > 2) {
+    score += 20;
+    factors.push({ name: 'Clearance lactato inadecuado', value: lactClearance.toFixed(1) + '%', severity: 'red' });
+  }
+
+  // Índice de choque
+  const siMax = parseFloat(metrics.shock_index_max) || 0;
+  if (siMax > 1.0) {
+    score += 15;
+    factors.push({ name: 'Índice de choque >1.0', value: siMax.toFixed(2), severity: 'red' });
+  } else if (siMax > 0.9) {
+    score += 5;
+    factors.push({ name: 'Índice de choque >0.9', value: siMax.toFixed(2), severity: 'yellow' });
+  }
+
+  // PAM
+  const pamMin = parseFloat(metrics.pam_min) || 70;
+  if (pamMin < 65) {
+    score += 15;
+    factors.push({ name: 'PAM nadir <65', value: pamMin.toFixed(0), severity: 'red' });
+  }
+
+  // PaFi
+  const pafiMin = parseFloat(metrics.pafi_min) || 300;
+  if (pafiMin < 100) {
+    score += 20;
+    factors.push({ name: 'PaFi <100', value: pafiMin.toFixed(0), severity: 'red' });
+  } else if (pafiMin < 200) {
+    score += 10;
+    factors.push({ name: 'PaFi <200', value: pafiMin.toFixed(0), severity: 'yellow' });
+  }
+
+  // Plaquetas
+  const pltNadir = parseFloat(metrics.plaquetas_nadir) || 150;
+  if (pltNadir < 50) {
+    score += 10;
+    factors.push({ name: 'Plaquetas nadir <50', value: pltNadir.toFixed(0), severity: 'red' });
+  } else if (pltNadir < 100) {
+    score += 5;
+    factors.push({ name: 'Plaquetas nadir <100', value: pltNadir.toFixed(0), severity: 'yellow' });
+  }
+
+  // Hepático
+  const biliInr = parseFloat(metrics.hepatic_coag_risk_score) || 0;
+  if (biliInr > 2) {
+    score += 10;
+    factors.push({ name: 'Riesgo hepático-coag alto', value: biliInr.toFixed(1), severity: 'red' });
+  }
+
+  // Creatinina
+  const creaMax = parseFloat(metrics.creatinina_max) || 1;
+  if (creaMax > 3) {
+    score += 10;
+    factors.push({ name: 'Creatinina >3', value: creaMax.toFixed(2), severity: 'red' });
+  }
+
+  score = Math.min(100, score);
+
+  // Render
+  $('#mortality-score').text(score);
+  const riskBadge = $('#mortality-risk-badge');
+  if (score >= 60) {
+    riskBadge.text('ALTO RIESGO').removeClass('bg-success bg-warning').addClass('bg-danger');
+    $('#mortality-score').addClass('text-danger');
+  } else if (score >= 30) {
+    riskBadge.text('RIESGO MODERADO').removeClass('bg-success bg-danger').addClass('bg-warning');
+    $('#mortality-score').addClass('text-warning');
+  } else {
+    riskBadge.text('RIESGO BAJO').removeClass('bg-warning bg-danger').addClass('bg-success');
+    $('#mortality-score').addClass('text-success');
+  }
+
+  // Factores
+  const factorsContainer = $('#mortality-factors');
+  factorsContainer.empty();
+  if (factors.length === 0) {
+    factorsContainer.append('<div class="col-12"><div class="alert alert-success mb-0"><i class="icon-check me-2"></i>No se identificaron factores de riesgo mayores</div></div>');
+  } else {
+    factors.forEach(f => {
+      const badgeClass = f.severity === 'red' ? 'bg-danger' : 'bg-warning';
+      factorsContainer.append(`
+        <div class="col-md-4">
+          <div class="d-flex align-items-center border rounded p-2 ${f.severity === 'red' ? 'border-danger bg-danger bg-opacity-10' : 'border-warning bg-warning bg-opacity-10'}">
+            <span class="badge ${badgeClass} me-2">!</span>
+            <div>
+              <div class="small fw-bold">${f.name}</div>
+              <div class="small">${f.value}</div>
+            </div>
+          </div>
+        </div>
+      `);
+    });
+  }
+}
+
+// ============================================================
+// GRÁFICAS
+// ============================================================
+
+async function cargarTodasLasGraficas() {
+  if (!currentPatientId) return;
+  const theme = $('#theme-toggle').is(':checked') ? 'light' : 'dark';
+
+  await cargarGrafica('vitals', 'chart-vitals', theme);
+  await cargarGrafica('liquids', 'chart-liquids', theme);
+  await cargarGrafica('labs', 'chart-labs', theme);
+}
+
+async function cargarGrafica(tipo, containerId, theme) {
+  const container = $(`#${containerId}`);
+  container.html('<p class="text-muted"><i class="icon-loading me-2"></i>Generando gráfica...</p>');
+
+  try {
+    const response = await fetch(
+      `${API_BASE}/${currentPatientId}/trends/chart?type=${tipo}&theme=${theme}&limit=50`,
+      { credentials: 'include' }
+    );
+
+    if (!response.ok) throw new Error('Error generando gráfica');
+
+    const data = await response.json();
+    if (data.image) {
+      container.html(`<img src="${data.image}" alt="${data.title}" class="img-fluid">`);
+    } else {
+      container.html('<p class="text-warning">No hay datos suficientes</p>');
+    }
+  } catch (err) {
+    console.error(`Error en gráfica ${tipo}:`, err);
+    container.html('<p class="text-danger">Error al generar gráfica</p>');
+  }
+}
+
+// ============================================================
+// TABLAS DE VALORES NUMÉRICOS
+// ============================================================
+
+function fillTables() {
+  if (!currentEvolutions || currentEvolutions.length === 0) return;
+
+  // Ordenar por fecha
+  const sorted = [...currentEvolutions].sort((a, b) => {
+    const fa = a.fecha || '';
+    const fb = b.fecha || '';
+    return String(fa).localeCompare(String(fb));
+  });
+
+  // Tabla Signos Vitales
+  const vitalsBody = $('#table-vitals tbody');
+  vitalsBody.empty();
+  sorted.forEach(evo => {
+    vitalsBody.append(`
+      <tr>
+        <td>${formatFecha(evo.fecha)}</td>
+        <td>${val(evo.fc)}</td>
+        <td>${val(evo.fr)}</td>
+        <td>${val(evo.tas)}</td>
+        <td>${val(evo.tad)}</td>
+        <td>${val(evo.tam || evo.pam)}</td>
+        <td>${val(evo.temperatura)}</td>
+        <td>${val(evo.spo2)}</td>
+        <td>${val(evo.fio2)}</td>
+      </tr>
+    `);
+  });
+
+  // Tabla Balance
+  const liquidsBody = $('#table-liquids tbody');
+  liquidsBody.empty();
+  sorted.forEach(evo => {
+    const balance = calculateBalance(evo);
+    liquidsBody.append(`
+      <tr>
+        <td>${formatFecha(evo.fecha)}</td>
+        <td>${val(evo.ingresos)}</td>
+        <td>${val(evo.egresos)}</td>
+        <td class="${balance > 500 ? 'text-warning' : balance > 1000 ? 'text-danger' : ''}">${balance !== null ? balance + ' mL' : '--'}</td>
+        <td>${val(evo.diuresis)}</td>
+      </tr>
+    `);
+  });
+
+  // Tabla Labs
+  const labsBody = $('#table-labs tbody');
+  labsBody.empty();
+  sorted.forEach(evo => {
+    labsBody.append(`
+      <tr>
+        <td>${formatFecha(evo.fecha)}</td>
+        <td>${val(evo.hemoglobina)}</td>
+        <td>${val(evo.hematocrito)}</td>
+        <td>${val(evo.plaquetas)}</td>
+        <td>${val(evo.leucocitos)}</td>
+        <td>${val(evo.creatinina)}</td>
+        <td>${val(evo.sodio)}</td>
+        <td>${val(evo.potasio)}</td>
+        <td>${val(evo.lactato)}</td>
+        <td>${val(evo.glucosa)}</td>
+      </tr>
+    `);
+  });
+}
+
+function formatFecha(fecha) {
+  if (!fecha) return '--';
+  const d = new Date(fecha);
+  if (isNaN(d.getTime())) return String(fecha).slice(0, 10);
+  return d.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: '2-digit' });
+}
+
+function val(v) {
+  if (v === null || v === undefined || v === '') return '--';
+  if (typeof v === 'number') return v % 1 === 0 ? v : v.toFixed(1);
+  return v;
+}
+
+function calculateBalance(evo) {
+  const ingresos = parseFloat(evo.ingresos) || 0;
+  const egresos = parseFloat(evo.egresos) || 0;
+  if (ingresos || egresos) return ingresos - egresos;
+  return evo.balance !== undefined && evo.balance !== null ? parseFloat(evo.balance) : null;
+}
+
+// ============================================================
+// GRÁFICA PERSONALIZADA
+// ============================================================
+
+async function generarCustom() {
+  if (!currentPatientId || customSelected.length === 0) return;
+
+  const container = $('#chart-custom');
+  container.html('<p class="text-muted"><i class="icon-loading me-2"></i>Generando gráfica personalizada...</p>');
+
+  const theme = $('#theme-toggle').is(':checked') ? 'light' : 'dark';
+
+  const params = new URLSearchParams();
+  params.append('type', 'custom');
+  params.append('theme', theme);
+  params.append('limit', '50');
+
+  customSelected.forEach((p) => {
+    params.append(`param_${p.campo}`, '1');
+    params.append(`label_${p.campo}`, p.label);
+    params.append(`color_${p.campo}`, p.color);
+  });
+
+  try {
+    const response = await fetch(
+      `${API_BASE}/${currentPatientId}/trends/chart?${params.toString()}`,
+      { credentials: 'include' }
+    );
+
+    if (!response.ok) throw new Error('Error generando gráfica');
+
+    const data = await response.json();
+    if (data.image) {
+      container.html(`<img src="${data.image}" alt="Personalizado" class="img-fluid">`);
+      // Llenar tabla custom
+      fillCustomTable();
+    } else {
+      container.html('<p class="text-warning">No hay datos suficientes</p>');
+    }
+  } catch (err) {
+    console.error('Error gráfica custom:', err);
+    container.html('<p class="text-danger">Error al generar gráfica personalizada</p>');
+  }
+}
+
+function fillCustomTable() {
+  if (!currentEvolutions || customSelected.length === 0) return;
+
+  const thead = $('#table-custom thead tr');
+  thead.empty().append('<th>Fecha</th>');
+  customSelected.forEach(p => {
+    thead.append(`<th>${p.label}</th>`);
+  });
+
+  const tbody = $('#table-custom tbody');
+  tbody.empty();
+
+  const sorted = [...currentEvolutions].sort((a, b) => {
+    return String(a.fecha || '').localeCompare(String(b.fecha || ''));
+  });
+
+  sorted.forEach(evo => {
+    let row = `<td>${formatFecha(evo.fecha)}</td>`;
+    customSelected.forEach(p => {
+      row += `<td>${val(evo[p.campo])}</td>`;
+    });
+    tbody.append(`<tr>${row}</tr>`);
+  });
+}
+
+// ============================================================
+// PARÁMETROS PERSONALIZADOS
+// ============================================================
+
+function initCustomParams() {
+  const container = $('#custom-params-list');
+  container.empty();
+  PARAMS_DISPONIBLES.forEach(p => {
+    container.append(`
+      <div class="param-checkbox form-check">
+        <input class="form-check-input" type="checkbox" value="${p.campo}" id="chk-${p.campo}" data-color="${p.color}">
+        <label class="form-check-label" for="chk-${p.campo}">${p.label}</label>
+      </div>
+    `);
+  });
+
+  $('#custom-params-list').on('change', 'input[type="checkbox"]', function() {
+    customSelected = [];
+    $('#custom-params-list input:checked').each(function() {
+      const campo = $(this).val();
+      const param = PARAMS_DISPONIBLES.find(p => p.campo === campo);
+      if (param) customSelected.push(param);
+    });
+    $('#btn-generar-custom').prop('disabled', customSelected.length === 0);
+  });
+}
+
+// ============================================================
+// PERFILES GUARDABLES
+// ============================================================
+
+function guardarPerfil() {
+  if (customSelected.length === 0) {
+    alert('Selecciona al menos un parámetro');
+    return;
+  }
+
+  const nombre = prompt('Nombre del perfil:');
+  if (!nombre) return;
+
+  const perfiles = JSON.parse(localStorage.getItem('ax_perfiles') || '[]');
+  perfiles.push({
+    id: Date.now(),
+    nombre: nombre,
+    parametros: customSelected.map(p => p.campo),
+    creado: new Date().toISOString()
+  });
+
+  localStorage.setItem('ax_perfiles', JSON.stringify(perfiles));
+  loadPerfiles();
+  alert('Perfil guardado');
+}
+
+function loadPerfiles() {
+  const perfiles = JSON.parse(localStorage.getItem('ax_perfiles') || '[]');
+  const select = $('#perfil-select');
+  select.empty().append('<option value="">Cargar perfil...</option>');
+
+  perfiles.forEach(p => {
+    select.append(`<option value="${p.id}">${p.nombre} (${p.parametros.length} params)</option>`);
+  });
+}
+
+function cargarPerfil() {
+  const perfilId = parseInt($('#perfil-select').val());
+  if (!perfilId) return;
+
+  const perfiles = JSON.parse(localStorage.getItem('ax_perfiles') || '[]');
+  const perfil = perfiles.find(p => p.id === perfilId);
+  if (!perfil) return;
+
+  $('#custom-params-list input').prop('checked', false);
+  perfil.parametros.forEach(campo => {
+    $(`#chk-${campo}`).prop('checked', true);
+  });
+
+  customSelected = [];
+  $('#custom-params-list input:checked').each(function() {
+    const campo = $(this).val();
+    const param = PARAMS_DISPONIBLES.find(p => p.campo === campo);
+    if (param) customSelected.push(param);
+  });
+
+  $('#btn-generar-custom').prop('disabled', false);
+}
+
+// ============================================================
+// EXPORTAR CSV
+// ============================================================
+
+function exportarCSV() {
+  if (!currentEvolutions.length) {
+    alert('No hay datos para exportar');
+    return;
+  }
+
+  const headers = Object.keys(currentEvolutions[0]);
+  const rows = currentEvolutions.map(evo => {
+    return headers.map(h => {
+      const val = evo[h];
+      if (val === null || val === undefined) return '';
+      if (typeof val === 'string' && val.includes(',')) return `"${val}"`;
+      return val;
+    }).join(',');
+  });
+
+  const csv = [headers.join(','), ...rows].join('\n');
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `evoluciones_${currentPatientId}_${new Date().toISOString().split('T')[0]}.csv`;
+  link.click();
+}
+
+// ============================================================
+// EVENTOS DE UI
+// ============================================================
+
+$('button[data-bs-toggle="tab"]').on('shown.bs.tab', function(e) {
+  const target = $(e.target).attr('data-bs-target');
+  if (target === '#content-custom' && currentPatientId && customSelected.length > 0) {
+    generarCustom();
+  }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,651 @@
+{% extends "base.html" %}
+
+{% block title %}Dar de Alta - {{ patient.nombre_completo }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header" style="background: rgba(248, 113, 113, 0.2); border-color: var(--danger);">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h2>🏥 Proceso de Egreso / Alta</h2>
+                <p style="color: var(--text-secondary); margin-top: 5px;">
+                    Paciente: <strong>{{ patient.nombre_completo }}</strong> | 
+                    Expediente: <strong>{{ patient.expediente or 'N/A' }}</strong> | 
+                    Cama: <strong>{{ patient.cama or 'N/A' }}</strong>
+                </p>
+            </div>
+            <a href="/patient/{{ patient.id }}" class="btn btn-secondary">← Volver al Paciente</a>
+        </div>
+    </div>
+    <div class="card-body">
+        <form method="POST" action="/patient/{{ patient.id }}/discharge" id="dischargeForm">
+            
+            <!-- Alerta de confirmación -->
+            <div class="alert alert-danger" style="margin-bottom: 20px;">
+                <strong>⚠️ ATENCIÓN:</strong> Este proceso marcará al paciente como egresado y registrará la fecha de egreso de UCI. 
+                Esta acción no se puede deshacer. Asegúrese de tener todos los datos completos.
+            </div>
+
+            <!-- Tabs Navigation -->
+            <div class="tabs">
+                <div class="tab active" onclick="showTab('datos')">📋 Datos de Egreso</div>
+                <div class="tab" onclick="showTab('vitales')">🩺 Signos Vitales</div>
+                <div class="tab" onclick="showTab('labs')">🧪 Laboratorio</div>
+                <div class="tab" onclick="showTab('gasometria')">🫧 Gasometría</div>
+                <div class="tab" onclick="showTab('escalas')">📊 Escalas</div>
+            </div>
+
+            <!-- Tab: Datos de Egreso -->
+            <div id="tab-datos" class="tab-content active">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Información del Egreso</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="section-grid">
+                            <div class="form-group">
+                                <label>Fecha de Egreso UCI *</label>
+                                <input type="date" name="fecha_egreso_uci" required
+                                       value="{{ today }}">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Fecha de Egreso Hospital</label>
+                                <input type="date" name="fecha_egreso_hospital">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Tipo de Egreso *</label>
+                                <select name="tipo_egreso" required>
+                                    <option value="">Seleccionar...</option>
+                                    <option value="Mejoría">Mejoría</option>
+                                    <option value="Alta voluntaria">Alta voluntaria</option>
+                                    <option value="Fallecimiento">Fallecimiento</option>
+                                    <option value="Traslado">Traslado a otro hospital</option>
+                                    <option value="Otro">Otro</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Servicio de Egreso</label>
+                                <input type="text" name="servicio_egreso" 
+                                       placeholder="Ej: Piso, Hospitalización, Otro hospital...">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Fecha de Defunción (si aplica)</label>
+                                <input type="date" name="fecha_defuncion">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Fecha Retiro CVC</label>
+                                <input type="date" name="fecha_retiro_cvc">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Fecha Retiro Sonda Urinaria</label>
+                                <input type="date" name="fecha_retiro_sonda_urinaria">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Fecha Extubación</label>
+                                <input type="date" name="fecha_extubacion">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Condición al Egreso</label>
+                                <select name="condicion_egreso">
+                                    <option value="">Seleccionar...</option>
+                                    <option value="Estable">Estable</option>
+                                    <option value="Inestable">Inestable</option>
+                                    <option value="Crítico">Crítico</option>
+                                    <option value="Grave">Grave</option>
+                                    <option value="Fallecido">Fallecido</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Destino del Egreso</label>
+                                <select name="destino_egreso">
+                                    <option value="">Seleccionar...</option>
+                                    <option value="Domicilio">Domicilio</option>
+                                    <option value="Hospitalización">Hospitalización</option>
+                                    <option value="Otra UCI">Otra UCI</option>
+                                    <option value="Cirugía">Cirugía</option>
+                                    <option value="Paliativos">Cuidados Paliativos</option>
+                                    <option value="Otro hospital">Otro Hospital</option>
+                                    <option value="Defunción">Defunción</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        
+                        <div class="form-group" style="margin-top: 20px;">
+                            <label>Diagnóstico de Egreso</label>
+                            <textarea name="diagnostico_egreso" rows="4" 
+                                      placeholder="Describa el diagnóstico principal y secundarios al egreso..."></textarea>
+                        </div>
+                        
+                        
+                        <div class="form-group" style="margin-top: 15px;">
+                            <label>Plan de Egreso</label>
+                            <textarea name="plan_egreso" rows="4" 
+                                      placeholder="Indique recomendaciones, tratamiento de salida, citas, etc..."></textarea>
+                        </div>
+                        
+                        <!-- Campos adicionales de egreso -->
+                        <div class="section-grid" style="margin-top: 25px; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                            <div class="form-group">
+                                <label>Días de Ventilación Mecánica</label>
+                                <input type="number" name="dias_ventilacion_mecanica" min="0" placeholder="días"
+                                       value="{{ patient.dias_ventilacion_mecanica|default('') }}">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Días de Sonda Urinaria</label>
+                                <input type="number" name="dias_sonda_urinaria_egreso" min="0" placeholder="días"
+                                       value="{{ patient.dias_sonda_urinaria_egreso|default('') }}">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Infección Asociada a Cuidados de Salud (HAI)</label>
+                                <select name="infeccion_hai" onchange="toggleHaiTipo(this.value)">
+                                    <option value="">Seleccionar...</option>
+                                    <option value="No" {% if patient.infeccion_hai == 'No' %}selected{% endif %}>No</option>
+                                    <option value="Sí" {% if patient.infeccion_hai == 'Sí' %}selected{% endif %}>Sí</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group" id="hai_tipo_container" style="display: none;">
+                                <label>Tipo de Infección HAI</label>
+                                <select name="hai_tipo">
+                                    <option value="">Seleccionar...</option>
+                                    <option value="NAVM" {% if patient.hai_tipo == 'NAVM' %}selected{% endif %}>NAVM (Neumonía Asociada a VM)</option>
+                                    <option value="IVU" {% if patient.hai_tipo == 'IVU' %}selected{% endif %}>IVU (Infección de Vías Urinarias)</option>
+                                    <option value="Catéter" {% if patient.hai_tipo == 'Catéter' %}selected{% endif %}>Infección de Catéter/CVC</option>
+                                    <option value="Otra" {% if patient.hai_tipo == 'Otra' %}selected{% endif %}>Otra</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Lesión Renal Aguda (LRA)</label>
+                                <select name="lesion_renal_aguda">
+                                    <option value="">Seleccionar...</option>
+                                    <option value="No" {% if patient.lesion_renal_aguda == 'No' %}selected{% endif %}>No</option>
+                                    <option value="Sí" {% if patient.lesion_renal_aguda == 'Sí' %}selected{% endif %}>Sí</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Evento Quirúrgico durante Estancia</label>
+                                <select name="evento_quirurgico_estancia">
+                                    <option value="">Seleccionar...</option>
+                                    <option value="No" {% if patient.evento_quirurgico_estancia == 'No' %}selected{% endif %}>No</option>
+                                    <option value="Sí" {% if patient.evento_quirurgico_estancia == 'Sí' %}selected{% endif %}>Sí</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Es Reingreso</label>
+                                <select name="es_reingreso">
+                                    <option value="">Seleccionar...</option>
+                                    <option value="No" {% if patient.es_reingreso == 'No' %}selected{% endif %}>No</option>
+                                    <option value="Sí" {% if patient.es_reingreso == 'Sí' %}selected{% endif %}>Sí</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Muerte Encefálica</label>
+                                <select name="muerte_encefalica">
+                                    <option value="">Seleccionar...</option>
+                                    <option value="No" {% if patient.muerte_encefalica == 'No' %}selected{% endif %}>No</option>
+                                    <option value="Sí" {% if patient.muerte_encefalica == 'Sí' %}selected{% endif %}>Sí</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Diagnóstico Final Codificado -->
+                        <div class="form-group" style="margin-top: 25px; padding: 20px; background: rgba(255, 107, 53, 0.05); border: 2px solid var(--accent); border-radius: 8px;">
+                            <label style="color: var(--accent); font-weight: 700; font-size: 1.1rem;">
+                                🏷️ Diagnóstico Final Codificado
+                            </label>
+                            <p style="color: var(--text-secondary); margin: 8px 0 12px 0; font-size: 0.9rem;">
+                                Seleccione la categoría diagnóstica principal para análisis epidemiológico y agrupación de pacientes.
+                            </p>
+                            <select name="diagnostico_codificado" style="font-size: 1rem; padding: 10px;">
+                                <option value="">Seleccionar categoría principal...</option>
+                                <option value="Sepsis/Shock Septico" {% if patient.diagnostico_codificado == 'Sepsis/Shock Septico' %}selected{% endif %}>
+                                    1. Sepsis / Shock Séptico
+                                </option>
+                                <option value="SDRA" {% if patient.diagnostico_codificado == 'SDRA' %}selected{% endif %}>
+                                    2. Síndrome de Distrés Respiratorio Agudo (SDRA)
+                                </option>
+                                <option value="TCE" {% if patient.diagnostico_codificado == 'TCE' %}selected{% endif %}>
+                                    3. Traumatismo Craneoencefálico (TCE)
+                                </option>
+                                <option value="Politraumatismo" {% if patient.diagnostico_codificado == 'Politraumatismo' %}selected{% endif %}>
+                                    4. Politraumatismo
+                                </option>
+                                <option value="ACV" {% if patient.diagnostico_codificado == 'ACV' %}selected{% endif %}>
+                                    5. Accidente Cerebrovascular (ACV)
+                                </option>
+                                <option value="Sindrome Coronario Agudo" {% if patient.diagnostico_codificado == 'Sindrome Coronario Agudo' %}selected{% endif %}>
+                                    6. Síndrome Coronario Agudo
+                                </option>
+                                <option value="Paro Cardiaco/Post-CPR" {% if patient.diagnostico_codificado == 'Paro Cardiaco/Post-CPR' %}selected{% endif %}>
+                                    7. Paro Cardíaco / Post-CPR
+                                </option>
+                                <option value="Insuficiencia Respiratoria" {% if patient.diagnostico_codificado == 'Insuficiencia Respiratoria' %}selected{% endif %}>
+                                    8. Insuficiencia Respiratoria Aguda
+                                </option>
+                                <option value="Pancreatitis Aguda" {% if patient.diagnostico_codificado == 'Pancreatitis Aguda' %}selected{% endif %}>
+                                    9. Pancreatitis Aguda Severa
+                                </option>
+                                <option value="Intoxicacion/Sobredosis" {% if patient.diagnostico_codificado == 'Intoxicacion/Sobredosis' %}selected{% endif %}>
+                                    10. Intoxicación / Sobredosis
+                                </option>
+                                <option value="Hemorragia Digestiva" {% if patient.diagnostico_codificado == 'Hemorragia Digestiva' %}selected{% endif %}>
+                                    11. Hemorragia Digestiva Alta
+                                </option>
+                                <option value="Embolia Pulmonar" {% if patient.diagnostico_codificado == 'Embolia Pulmonar' %}selected{% endif %}>
+                                    12. Embolia Pulmonar Masiva
+                                </option>
+                                <option value="Otros" {% if patient.diagnostico_codificado == 'Otros' %}selected{% endif %}>
+                                    13. Otros
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Signos Vitales de Egreso -->
+            <div id="tab-vitales" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Signos Vitales al Egreso</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="section-grid">
+                            <div class="form-group">
+                                <label>FC (lpm)</label>
+                                <input type="number" name="fc_egreso" min="30" max="200" 
+                                       placeholder="60-100">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>FR (rpm)</label>
+                                <input type="number" name="fr_egreso" min="8" max="50" 
+                                       placeholder="12-20">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>TAS (mmHg)</label>
+                                <input type="number" name="tas_egreso" min="60" max="220" 
+                                       placeholder="Sistólica">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>TAD (mmHg)</label>
+                                <input type="number" name="tad_egreso" min="40" max="140" 
+                                       placeholder="Diastólica">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>TAM (mmHg)</label>
+                                <input type="number" name="tam_egreso" step="0.1" 
+                                       placeholder="Media calculada">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>SaO2 (%)</label>
+                                <input type="number" name="sao2_egreso" min="50" max="100" 
+                                       placeholder="> 95%">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>FiO2 (%)</label>
+                                <input type="number" name="fio2_egreso" min="21" max="100" 
+                                       placeholder="21-100">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>PaFi</label>
+                                <input type="number" name="pafi_egreso" step="0.1" 
+                                       placeholder="Ratio PaO2/FiO2">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Temperatura (°C)</label>
+                                <input type="number" name="temperatura_egreso" step="0.1" min="32" max="42" 
+                                       placeholder="36.0-37.5">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Laboratorio de Egreso -->
+            <div id="tab-labs" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Laboratorio de Egreso</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="section-grid">
+                            <!-- Hematología -->
+                            <div class="form-group">
+                                <label>Hemoglobina (g/dL)</label>
+                                <input type="number" name="hemoglobina_egreso" step="0.1" 
+                                       placeholder="12-16">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Hematocrito (%)</label>
+                                <input type="number" name="hematocrito_egreso" step="0.1" 
+                                       placeholder="36-48">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Leucocitos (x10³/μL)</label>
+                                <input type="number" name="leucocitos_egreso" step="0.01" 
+                                       placeholder="4.5-11.0">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Plaquetas (x10³/μL)</label>
+                                <input type="number" name="plaquetas_egreso" step="0.1" 
+                                       placeholder="150-450">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Neutrófilos (%)</label>
+                                <input type="number" name="neutrofilos_egreso" step="0.1" 
+                                       placeholder="40-70">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Linfocitos (%)</label>
+                                <input type="number" name="linfocitos_egreso" step="0.1" 
+                                       placeholder="20-40">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>PCR (mg/L)</label>
+                                <input type="number" name="pcr_egreso" step="0.01" 
+                                       placeholder="< 5">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>PCT (ng/mL)</label>
+                                <input type="number" name="pct_egreso" step="0.01" 
+                                       placeholder="< 0.5">
+                            </div>
+                            
+                            <!-- Electrolitos -->
+                            <div class="form-group">
+                                <label>Sodio (mEq/L)</label>
+                                <input type="number" name="sodio_egreso" step="0.1" 
+                                       placeholder="135-145">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Potasio (mEq/L)</label>
+                                <input type="number" name="potasio_egreso" step="0.01" 
+                                       placeholder="3.5-5.0">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Cloro (mEq/L)</label>
+                                <input type="number" name="cloro_egreso" step="0.1" 
+                                       placeholder="98-106">
+                            </div>
+                            
+                            <!-- Función Renal -->
+                            <div class="form-group">
+                                <label>Creatinina (mg/dL)</label>
+                                <input type="number" name="creatinina_egreso" step="0.01" 
+                                       placeholder="0.6-1.2">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>BUN (mg/dL)</label>
+                                <input type="number" name="bun_egreso" step="0.1" 
+                                       placeholder="7-20">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Urea (mg/dL)</label>
+                                <input type="number" name="urea_egreso" step="0.1" 
+                                       placeholder="10-50">
+                            </div>
+                            
+                            <!-- Metabolismo -->
+                            <div class="form-group">
+                                <label>Glucosa (mg/dL)</label>
+                                <input type="number" name="glucosa_egreso" step="0.1" 
+                                       placeholder="70-110">
+                            </div>
+                            
+                            <!-- Función Hepática -->
+                            <div class="form-group">
+                                <label>Bilirrubina Total (mg/dL)</label>
+                                <input type="number" name="bilirrubina_total_egreso" step="0.01" 
+                                       placeholder="0.1-1.2">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Bilirrubina Directa (mg/dL)</label>
+                                <input type="number" name="bilirrubina_directa_egreso" step="0.01" 
+                                       placeholder="< 0.3">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Albumina (g/dL)</label>
+                                <input type="number" name="albumina_egreso" step="0.01" 
+                                       placeholder="3.5-5.0">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Gasometría de Egreso -->
+            <div id="tab-gasometria" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Gasometría de Egreso</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="section-grid">
+                            <div class="form-group">
+                                <label>pH</label>
+                                <input type="number" name="gasometria_ph_egreso" step="0.01" min="6.8" max="7.8" 
+                                       placeholder="7.35-7.45">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>pCO2 (mmHg)</label>
+                                <input type="number" name="gasometria_pco2_egreso" step="0.1" min="10" max="80" 
+                                       placeholder="35-45">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>pO2 (mmHg)</label>
+                                <input type="number" name="gasometria_po2_egreso" step="0.1" min="30" max="500" 
+                                       placeholder="80-100">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>HCO3 (mEq/L)</label>
+                                <input type="number" name="gasometria_hco3_egreso" step="0.1" min="5" max="50" 
+                                       placeholder="22-26">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Lactato (mmol/L)</label>
+                                <input type="number" name="gasometria_lactato_egreso" step="0.01" min="0.1" max="20" 
+                                       placeholder="0.5-1.6">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Escalas de Egreso -->
+            <div id="tab-escalas" class="tab-content">
+                <div class="card">
+                    <div class="card-header">
+                        <h3>Escalas de Severidad al Egreso</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="section-grid">
+                            <div class="form-group">
+                                <label>NEWS2 (0-20)</label>
+                                <input type="number" name="news2_egreso" min="0" max="20" 
+                                       placeholder="Score NEWS2">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>SOFA (0-24)</label>
+                                <input type="number" name="sofa_egreso" min="0" max="24" 
+                                       placeholder="Score SOFA">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>SOFA2 (0-24)</label>
+                                <input type="number" name="sofa2_egreso" min="0" max="24" 
+                                       placeholder="Score SOFA2">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>APACHE II (0-71)</label>
+                                <input type="number" name="apache2_egreso" min="0" max="71" 
+                                       placeholder="Score APACHE II">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>SAPS (0-217)</label>
+                                <input type="number" name="saps_egreso" min="0" max="217" 
+                                       placeholder="Score SAPS">
+                            </div>
+                        </div>
+                        
+                        
+                        <div class="alert" style="margin-top: 20px;">
+                            <strong>💡 Información:</strong> Las escalas de severidad ayudan a documentar 
+                            el estado del paciente al momento del egreso y son útiles para análisis estadísticos 
+                            y de calidad.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid var(--danger); display: flex; gap: 10px; justify-content: space-between;">
+                <div>
+                    <a href="/patient/{{ patient.id }}" class="btn btn-secondary">← Cancelar y Volver</a>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('dischargeForm').reset()">Limpiar Formulario</button>
+                    <button type="submit" class="btn btn-danger" 
+                            onclick="return confirm('¿Está seguro de dar de alta a este paciente? Esta acción no se puede deshacer.')
+                                   && confirm('Por favor confirme nuevamente: ¿Todos los datos están completos y correctos?')">
+                        🏥 Confirmar Egreso / Alta
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+// Tab navigation
+function showTab(tabName) {
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    document.querySelectorAll('.tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    document.getElementById('tab-' + tabName).classList.add('active');
+    event.target.classList.add('active');
+}
+
+// Auto-calculate TAM
+document.querySelector('[name="tas_egreso"]').addEventListener('input', calculateTAM);
+document.querySelector('[name="tad_egreso"]').addEventListener('input', calculateTAM);
+
+function calculateTAM() {
+    const tas = parseFloat(document.querySelector('[name="tas_egreso"]').value);
+    const tad = parseFloat(document.querySelector('[name="tad_egreso"]').value);
+    
+    if (tas && tad) {
+        const tam = ((tas - tad) / 3) + tad;
+        document.querySelector('[name="tam_egreso"]').value = tam.toFixed(1);
+    }
+}
+
+// Show/hide fecha_defuncion based on tipo_egreso
+document.querySelector('[name="tipo_egreso"]').addEventListener('change', function() {
+    const fechaDefuncion = document.querySelector('[name="fecha_defuncion"]');
+    if (this.value === 'Fallecimiento') {
+        fechaDefuncion.parentElement.style.display = 'block';
+        fechaDefuncion.required = true;
+    } else {
+        fechaDefuncion.required = false;
+    }
+});
+
+// Set current date if not set
+document.addEventListener('DOMContentLoaded', function() {
+    const dateInput = document.querySelector('[name="fecha_egreso_uci"]');
+    if (!dateInput.value) {
+        const now = new Date();
+        dateInput.value = now.toISOString().split('T')[0];
+    }
+    
+    // Inicializar visibilidad de HAI tipo
+    const haiSelect = document.querySelector('[name="infeccion_hai"]');
+    if (haiSelect) {
+        toggleHaiTipo(haiSelect.value);
+    }
+});
+
+// Toggle tipo de HAI
+function toggleHaiTipo(valor) {
+    const container = document.getElementById('hai_tipo_container');
+    if (container) {
+        container.style.display = (valor === 'Sí') ? 'block' : 'none';
+    }
+}
+
+// Form validation
+document.getElementById('dischargeForm').addEventListener('submit', function(e) {
+    const tipoEgreso = document.querySelector('[name="tipo_egreso"]').value;
+    const fechaEgreso = document.querySelector('[name="fecha_egreso_uci"]').value;
+    
+    if (!tipoEgreso || !fechaEgreso) {
+        e.preventDefault();
+        alert('Los campos Fecha de Egreso UCI y Tipo de Egreso son obligatorios.');
+        showTab('datos');
+        return false;
+    }
+    
+    if (tipoEgreso === 'Fallecimiento') {
+        const fechaDefuncion = document.querySelector('[name="fecha_defuncion"]').value;
+        if (!fechaDefuncion) {
+            e.preventDefault();
+            alert('Por favor indique la fecha de defunción.');
+            return false;
+        }
+    }
+    
+    return true;
+});
+</script>
+{% endblock %}
+
+{% endblock %}

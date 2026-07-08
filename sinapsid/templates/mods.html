@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+
+{% block title %}Mods - Herramientas Clínicas{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2>🔧 Mods - Herramientas y Calculadoras</h2>
+    </div>
+    <div class="card-body">
+        <p style="color: var(--text-secondary); margin-bottom: 20px;">
+            Herramientas de soporte para el cálculo de scores y escalas clínicas.
+        </p>
+
+        <!-- 🧮 Calculadora de Escalas -->
+        <div class="escalas-section" style="background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 4px; padding: 20px; margin-bottom: 20px;">
+            <h4 style="color: var(--accent); margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;">🧮 Calculadora de Escalas (SOFA, APACHE II, NEWS2)</h4>
+            <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 15px;">Ingresa los valores para calcular automáticamente los scores de gravedad.</p>
+            
+            <div class="section-grid">
+                <div class="form-group">
+                    <label for="calc_edad">Edad (años)</label>
+                    <input type="number" id="calc_edad" class="form-control" placeholder="Ej: 65">
+                </div>
+                <div class="form-group">
+                    <label for="calc_glasgow">Glasgow (3-15)</label>
+                    <input type="number" id="calc_glasgow" class="form-control" min="3" max="15" placeholder="Ej: 14">
+                </div>
+                <div class="form-group">
+                    <label for="calc_tas">TAS (mmHg)</label>
+                    <input type="number" id="calc_tas" class="form-control" placeholder="Ej: 120">
+                </div>
+                <div class="form-group">
+                    <label for="calc_tad">TAD (mmHg)</label>
+                    <input type="number" id="calc_tad" class="form-control" placeholder="Ej: 80">
+                </div>
+                <div class="form-group">
+                    <label for="calc_fc">FC (lpm)</label>
+                    <input type="number" id="calc_fc" class="form-control" placeholder="Ej: 85">
+                </div>
+                <div class="form-group">
+                    <label for="calc_fr">FR (rpm)</label>
+                    <input type="number" id="calc_fr" class="form-control" placeholder="Ej: 18">
+                </div>
+                <div class="form-group">
+                    <label for="calc_temperatura">Temperatura (°C)</label>
+                    <input type="number" step="0.1" id="calc_temperatura" class="form-control" placeholder="Ej: 37.2">
+                </div>
+                <div class="form-group">
+                    <label for="calc_pafi">PaO2/FiO2 (PaFi)</label>
+                    <input type="number" step="0.1" id="calc_pafi" class="form-control" placeholder="Ej: 300">
+                </div>
+                <div class="form-group">
+                    <label for="calc_plaquetas">Plaquetas (x10³/μL)</label>
+                    <input type="number" step="0.01" id="calc_plaquetas" class="form-control" placeholder="Ej: 150">
+                </div>
+                <div class="form-group">
+                    <label for="calc_bilirrubina">Bilirrubina Total (mg/dL)</label>
+                    <input type="number" step="0.1" id="calc_bilirrubina" class="form-control" placeholder="Ej: 1.2">
+                </div>
+                <div class="form-group">
+                    <label for="calc_creatinina">Creatinina (mg/dL)</label>
+                    <input type="number" step="0.01" id="calc_creatinina" class="form-control" placeholder="Ej: 1.1">
+                </div>
+            </div>
+
+            <div style="margin-top: 20px; text-align: center;">
+                <button type="button" class="btn" onclick="calcularEscalas()" style="background: var(--accent); color: var(--bg-primary); font-weight: bold;">🧮 Calcular Escalas</button>
+            </div>
+
+            <!-- Resultados -->
+            <div id="resultados-escalas" style="margin-top: 20px; display: none;">
+                <div style="background: var(--bg-secondary); border-left: 3px solid var(--accent); padding: 15px; margin-bottom: 15px;">
+                    <h5 style="color: var(--accent); margin-bottom: 10px;">📊 Resultados Calculados</h5>
+                    <div class="section-grid">
+                        <div class="form-group">
+                            <label>SOFA Score</label>
+                            <div id="res_sofa" style="font-size: 1.5rem; color: var(--text-primary); font-weight: bold;">--</div>
+                            <small style="color: var(--text-secondary);">0-24 puntos</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Mortalidad Estimada (SOFA)</label>
+                            <div id="res_sofa_mort" style="font-size: 1.2rem; color: var(--text-primary);">--</div>
+                        </div>
+                        <div class="form-group">
+                            <label>NEWS2 Score</label>
+                            <div id="res_news2" style="font-size: 1.5rem; color: var(--text-primary); font-weight: bold;">--</div>
+                            <small style="color: var(--text-secondary);">0-20 puntos</small>
+                        </div>
+                        <div class="form-group">
+                            <label>APACHE II Score</label>
+                            <div id="res_apache" style="font-size: 1.5rem; color: var(--text-primary); font-weight: bold;">--</div>
+                            <small style="color: var(--text-secondary);">0-71 puntos</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Mortalidad Estimada (APACHE II)</label>
+                            <div id="res_apache_mort" style="font-size: 1.2rem; color: var(--text-primary);">--</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.3); border-radius: 4px; padding: 15px;">
+                    <h6 style="color: #ffc107; margin-bottom: 8px;">⚠️ Disclaimer / Aviso Legal</h6>
+                    <p style="color: var(--text-secondary); font-size: 0.8rem; margin: 0;">
+                        Los scores calculados son estimaciones automáticas y <strong>no reemplazan el juicio clínico</strong>.
+                        Verifique los valores antes de usarlos para decisiones médicas. Esta herramienta es solo de soporte.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Espacio para futuras herramientas -->
+        <div style="background: var(--bg-tertiary); border: 1px dashed var(--border); border-radius: 4px; padding: 30px; text-align: center;">
+            <p style="color: var(--text-secondary); font-size: 0.9rem;">
+                🚧 Más herramientas en desarrollo...<br>
+                <span style="font-size: 0.8rem;">Calculadoras de dosis, conversores, scores adicionales</span>
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+function calcularEscalas() {
+    const edad = parseInt(document.getElementById('calc_edad').value) || 0;
+    const glasgow = parseInt(document.getElementById('calc_glasgow').value) || 15;
+    const tas = parseInt(document.getElementById('calc_tas').value) || 120;
+    const tad = parseInt(document.getElementById('calc_tad').value) || 80;
+    const fc = parseInt(document.getElementById('calc_fc').value) || 70;
+    const fr = parseInt(document.getElementById('calc_fr').value) || 16;
+    const temp = parseFloat(document.getElementById('calc_temperatura').value) || 37;
+    const pafi = parseFloat(document.getElementById('calc_pafi').value) || 400;
+    const plaquetas = parseFloat(document.getElementById('calc_plaquetas').value) || 150;
+    const bilirrubina = parseFloat(document.getElementById('calc_bilirrubina').value) || 0.8;
+    const creatinina = parseFloat(document.getElementById('calc_creatinina').value) || 0.9;
+
+    // Calcular SOFA Score
+    let sofa = 0;
+    
+    // Respiratorio (PaO2/FiO2)
+    if (pafi < 100) sofa += 4;
+    else if (pafi < 200) sofa += 3;
+    else if (pafi < 300) sofa += 2;
+    else if (pafi < 400) sofa += 1;
+    
+    // Coagulación (Plaquetas)
+    if (plaquetas < 20) sofa += 4;
+    else if (plaquetas < 50) sofa += 3;
+    else if (plaquetas < 100) sofa += 2;
+    else if (plaquetas < 150) sofa += 1;
+    
+    // Hepático (Bilirrubina en mg/dL)
+    if (bilirrubina >= 12.0) sofa += 4;
+    else if (bilirrubina >= 6.0) sofa += 3;
+    else if (bilirrubina >= 2.0) sofa += 2;
+    else if (bilirrubina >= 1.2) sofa += 1;
+    
+    // Cardiovascular (presión arterial)
+    const tam = tad + (tas - tad) / 3;
+    if (tam < 70) sofa += 3;
+    else if (tas < 90) sofa += 1;
+    
+    // Renal (Creatinina en mg/dL)
+    if (creatinina >= 5.0) sofa += 4;
+    else if (creatinina >= 3.5) sofa += 3;
+    else if (creatinina >= 2.0) sofa += 2;
+    else if (creatinina >= 1.2) sofa += 1;
+    
+    // Neurológico (Glasgow)
+    if (glasgow < 6) sofa += 4;
+    else if (glasgow < 10) sofa += 3;
+    else if (glasgow < 13) sofa += 2;
+    else if (glasgow < 15) sofa += 1;
+
+    // Calcular NEWS2
+    let news2 = 0;
+    
+    // Respiración
+    if (fr <= 8 || fr >= 25) news2 += 3;
+    else if (fr >= 21) news2 += 2;
+    else if (fr >= 9 && fr <= 11) news2 += 1;
+    
+    // SpO2 (estimado del PaFi)
+    if (pafi < 200) news2 += 3;
+    else if (pafi < 300) news2 += 2;
+    else if (pafi < 400) news2 += 1;
+    
+    // Presión arterial sistólica
+    if (tas <= 90 || tas >= 220) news2 += 3;
+    else if (tas < 100) news2 += 2;
+    else if (tas < 110) news2 += 1;
+    
+    // Frecuencia cardíaca
+    if (fc <= 40 || fc >= 131) news2 += 3;
+    else if (fc >= 111) news2 += 2;
+    else if (fc >= 91) news2 += 1;
+    
+    // Temperatura
+    if (temp <= 35.0 || temp >= 39.1) news2 += 3;
+    else if (temp >= 38.1) news2 += 2;
+    else if (temp >= 37.6 || temp <= 36.0) news2 += 1;
+
+    // Calcular APACHE II (simplificado)
+    let apache = 0;
+    
+    // Edad
+    if (edad >= 75) apache += 6;
+    else if (edad >= 65) apache += 5;
+    else if (edaw >= 55) apache += 3;
+    else if (edad >= 45) apache += 2;
+    
+    // Temperatura
+    if (temp >= 41 || temp < 30) apache += 4;
+    else if (temp >= 39) apache += 3;
+    else if (temp >= 38.5) apache += 1;
+    else if (temp >= 36) apache += 0;
+    else if (temp >= 34) apache += 1;
+    else if (temp >= 32) apache += 2;
+    else if (temp >= 30) apache += 3;
+    
+    // FC
+    if (fc >= 180 || fc < 40) apache += 4;
+    else if (fc >= 140) apache += 3;
+    else if (fc >= 110) apache += 2;
+    else if (fc >= 70) apache += 0;
+    else if (fc >= 55) apache += 2;
+    else if (fc >= 40) apache += 3;
+    
+    // FR
+    if (fr >= 50 || fr < 6) apache += 4;
+    else if (fr >= 35) apache += 3;
+    else if (fr >= 25) apache += 1;
+    else if (fr >= 12) apache += 0;
+    else if (fr >= 10) apache += 1;
+    else if (fr >= 6) apache += 2;
+    
+    // Glasgow
+    if (glasgow <= 5) apache += 16;
+    else if (glasgow <= 7) apache += 13;
+    else if (glasgow <= 9) apache += 10;
+    else if (glasgow <= 11) apache += 7;
+    else if (glasgow <= 13) apache += 4;
+    else if (glasgow < 15) apache += 2;
+    
+    // Creatinina
+    if (creatinina >= 3.5) apache += 4;
+    else if (creatinina >= 2.0) apache += 2;
+    else if (creatinina >= 0.6) apache += 0;
+    else apache += 2;
+
+    // Mortalidad estimada
+    const sofaMort = sofa >= 15 ? ">90%" : sofa >= 11 ? "50-90%" : sofa >= 7 ? "30-50%" : sofa >= 3 ? "10-30%" : "<10%";
+    const apacheMort = apache >= 35 ? "80-100%" : apache >= 25 ? "50-80%" : apache >= 15 ? "20-50%" : apache >= 10 ? "10-20%" : "<10%";
+
+    // Mostrar resultados
+    document.getElementById('res_sofa').textContent = sofa;
+    document.getElementById('res_sofa_mort').textContent = sofaMort;
+    document.getElementById('res_news2').textContent = news2;
+    document.getElementById('res_apache').textContent = apache;
+    document.getElementById('res_apache_mort').textContent = apacheMort;
+    document.getElementById('resultados-escalas').style.display = 'block';
+}
+</script>
+{% endblock %}

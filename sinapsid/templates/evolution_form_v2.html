@@ -1,0 +1,2515 @@
+{% extends "base.html" %}
+
+{% block title %}Evolución Diaria - {{ patient.nombre_completo }}{% endblock %}
+
+<!-- VERSION TEMPLATE: 2026-05-27-0840-CACHEBUST-1 -->
+<!-- CACHE-Control: no-cache, no-store, must-revalidate -->
+
+{% block extra_css %}
+    <!-- v1.5.5 - CACHEBUST: 202605270909 -->
+<style>
+    /* Forzar ocultación de tabs no activos */
+    .tab-content {
+        display: none !important;
+    }
+    .tab-content.active {
+        display: block !important;
+    }
+    .section-title {
+        color: var(--accent);
+        font-size: 1.1rem;
+        margin: 20px 0 15px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--border);
+    }
+    .lab-parser-box {
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 15px;
+        margin: 15px 0;
+    }
+    .lab-result {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        background: rgba(255, 107, 53, 0.1);
+        border: 1px solid var(--accent);
+        padding: 5px 10px;
+        border-radius: 3px;
+        margin: 3px;
+        font-size: 0.9rem;
+    }
+    .lab-result .value {
+        font-weight: bold;
+        color: var(--accent);
+    }
+    .nota-preview {
+        background: var(--bg-tertiary);
+        border-left: 3px solid var(--accent);
+        padding: 15px;
+        margin: 15px 0;
+        font-family: 'Consolas', monospace;
+        white-space: pre-wrap;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    .vital-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 15px;
+    }
+    .btn-generate {
+        background: var(--success);
+        color: #000;
+    }
+    .btn-generate:hover {
+        background: #5ee67d;
+    }
+    .lab-section {
+        margin-bottom: 20px;
+    }
+    .lab-section h4 {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        margin: 15px 0 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    /* Layout de 2 columnas para formularios */
+    .form-grid-2col {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+    }
+    
+    @media (max-width: 768px) {
+        .form-grid-2col {
+            grid-template-columns: 1fr;
+        }
+    }
+    
+    .form-group {
+        margin-bottom: 15px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 500;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+    
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        padding: 8px 12px;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        font-size: 0.95rem;
+    }
+    
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+        outline: none;
+        border-color: var(--accent);
+    }
+    
+    .form-group input[readonly] {
+        background: var(--bg-tertiary);
+        color: var(--accent);
+        font-weight: 600;
+    }
+    
+    /* Campos calculados resaltados */
+    .field-calculated {
+        background: var(--bg-tertiary) !important;
+        color: var(--accent) !important;
+        font-weight: 600;
+        border: 2px solid var(--accent) !important;
+    }
+    
+    /* Validaciones HTML5 - solo inválidos en rojo */
+    .form-group input:invalid {
+        border-color: #ff6b6b;
+    }
+    
+    /* No aplicar borde verde a válidos - usar default del tema */
+    
+    /* Indicador de auto-guardado */
+    .autosave-indicator {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 8px 16px;
+        background: var(--bg-tertiary);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        z-index: 10000;
+    }
+    
+    .autosave-indicator.visible {
+        opacity: 1;
+    }
+    
+    .autosave-indicator.saving {
+        color: var(--accent);
+    }
+    
+    .autosave-indicator.saved {
+        color: var(--success);
+    }
+    /* Forzar ocultación de tabs no activos - FIX v1.5.4 */
+    .tab-content {
+        display: none !important;
+    }
+    .tab-content.active {
+        display: block !important;
+    }
+    
+    /* Ocultar botones de agregar cuando no están en tab activo */
+    .tab-content:not(.active) button[onclick*="addNewRow"] {
+        display: none !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2>📈 Evolución Diaria - {{ patient.nombre_completo }}</h2>
+        <a href="/patient/{{ patient.id }}" class="btn btn-secondary">← Volver</a>
+    </div>
+    <div class="card-body">
+        
+        <!-- Tabs -->
+        <div class="tabs">
+    
+            <button type="button" class="tab active" data-tab="signos" onclick="showTab('signos')">🩺</button>
+            <button type="button" class="tab" data-tab="dispositivos" onclick="showTab('dispositivos')">🔌</button>
+            <button type="button" class="tab" data-tab="liquidos" onclick="showTab('liquidos')">💧</button>
+            <button type="button" class="tab" data-tab="laboratorios" onclick="showTab('laboratorios')">🧪</button>
+            <button type="button" class="tab" data-tab="ventilacion" onclick="showTab('ventilacion')">🫁</button>
+            <button type="button" class="tab" data-tab="imagen" onclick="showTab('imagen')">📷</button>
+            <button type="button" class="tab" data-tab="tablas" onclick="showTab('tablas')">🧮</button>
+            <button type="button" class="tab" data-tab="indicaciones" onclick="showTab('indicaciones')">💊</button>
+            <button type="button" class="tab" data-tab="nota" onclick="showTab('nota')">📝</button>
+        </div>
+
+        <form method="POST" id="evolutionForm" novalidate>
+            
+            <!-- Indicador de auto-guardado -->
+            <div id="autosaveIndicator" class="autosave-indicator">
+                <span id="autosaveText">💾 Guardando borrador...</span>
+            </div>
+            
+            <!-- Datos básicos siempre visibles -->
+            <div class="section-grid" style="margin-bottom: 20px;">
+                <div class="form-group">
+                    <label>Fecha *</label>
+                    <input type="date" name="fecha" required value="{{ today }}">
+                </div>
+                <div class="form-group">
+                    <label>Hora</label>
+                    <input type="time" name="hora" value="{{ now }}">
+                </div>
+            </div>
+
+            <!-- Tab: Signos Vitales -->
+            <div id="tab-signos" class="tab-content active">
+                <h3 class="section-title">Signos Vitales</h3>
+                <div class="vital-grid">
+                    <div class="form-group">
+                        <label>FC (lpm)</label>
+                        <input type="number" step="1" name="fc" min="0" max="200" value="{{ evolution.fc|default('') }}" >
+                    </div>
+                    <div class="form-group">
+                        <label>FR (rpm)</label>
+                        <input type="number" step="1" name="fr" min="0" max="60" value="{{ evolution.fr|default('') }}" >
+                    </div>
+                    <div class="form-group">
+                        <label>TAS (mmHg)</label>
+                        <input type="number" step="1" name="tas" min="0" max="300" onchange="calculateTAM()" value="{{ evolution.tas|default('') }}" >
+                    </div>
+                    <div class="form-group">
+                        <label>TAD (mmHg)</label>
+                        <input type="number" step="1" name="tad" min="0" max="200" onchange="calculateTAM()" value="{{ evolution.tad|default('') }}" >
+                    </div>
+                    <div class="form-group">
+                        <label>TAM (calculado)</label>
+                        <input type="number" step="0.1" name="tam" id="tam_field" readonly 
+                               class="field-calculated" 
+                               value="{{ evolution.tam|default('') }}"
+                               title="Tensión Arterial Media = (2*TAD + TAS) / 3">
+                        <input type="hidden" name="tam_calculated" id="tam_calculated" value="{{ evolution.tam|default('') }}">
+                    </div>
+                    <div class="form-group">
+                        <label>Temperatura (°C)</label>
+                        <input type="number" step="0.1" name="temperatura" min="30" max="45" value="{{ evolution.temperatura|default('') }}" >
+                    </div>
+                    <div class="form-group">
+                        <label>SpO2 (%)</label>
+                        <input type="number" step="1" name="spo2" min="0" max="100" value="{{ evolution.spo2|default('') }}" onchange="calculateSAFIO2();">
+                    </div>
+                    <div class="form-group">
+                        <label>FiO2 (%)</label>
+                        <input type="number" step="1" name="fio2" min="21" max="100" value="{{ evolution.fio2|default('') }}" onchange="calculateSAFIO2(); calculatePAFI();">
+                    </div>
+                    <div class="form-group">
+                        <label>SA/FiO2 <small class="text-muted">(auto)</small></label>
+                        <input type="number" step="1" id="safio2_field" 
+                               readonly class="field-calculated"
+                               value="{{ evolution.safio2|default('', true) }}">
+                        <input type="hidden" name="safio2" id="safio2_hidden" value="{{ evolution.safio2|default('', true) }}">
+                        <small class="text-muted">SpO2 / FiO2 × 100</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Glasgow (3-15)</label>
+                        <input type="number" step="1" name="glasgow" min="3" max="15" value="{{ evolution.glasgow|default('') }}" >
+                    </div>
+                    <div class="form-group">
+                        <label>RASS (-5 a +4)</label>
+                        <input type="number" step="1" name="rass" min="-5" max="4" value="{{ evolution.rass|default('') }}" >
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Balance de Líquidos -->
+            <div id="tab-liquidos" class="tab-content">
+                <h3 class="section-title">Balance de Líquidos</h3>
+                <div class="section-grid">
+                    <div class="form-group">
+                        <label>Ingresos (mL/24h)</label>
+                        <input type="number" step="1" name="ingresos" min="0" value="{{ evolution.ingresos|default('') }}" >
+                    </div>
+                    <div class="form-group">
+                        <label>Egresos (mL/24h)</label>
+                        <input type="number" step="1" name="egresos" min="0" value="{{ evolution.egresos|default('') }}" >
+                    </div>
+                    <div class="form-group">
+                        <label>Diuresis (mL/24h)</label>
+                        <input type="number" step="1" name="diuresis" min="0" value="{{ evolution.diuresis|default('') }}" >
+                    </div>
+                    <div class="form-group">
+                        <label>Drenajes (mL/24h)</label>
+                        <input type="number" step="1" name="drenajes" min="0" value="{{ evolution.drenajes|default('') }}" >
+                    </div>
+                    <div class="form-group">
+                        <label>Balance (calculado)</label>
+                        <input type="number" step="1" id="balance_field"
+                               readonly class="field-calculated"
+                               value="{{ evolution.balance|default('', true) }}"
+                               title="Ingresos - Egresos">
+                        <input type="hidden" name="balance" id="balance_hidden" value="{{ evolution.balance|default('', true) }}">
+                    </div>
+                    
+                    <!-- Balance Global -->
+                    <div class="form-group">
+                        <label>Balance Global (acumulado)</label>
+                        <input type="number" step="1" id="balance_global_field"
+                               value="{{ evolution.balance_global|default('', true) }}"
+                               placeholder="Calculado automáticamente">
+                        <input type="hidden" name="balance_global" id="balance_global_hidden"
+                               value="{{ evolution.balance_global|default('', true) }}">
+                        <small id="balance_global_info" style="color: var(--text-secondary);">
+                            {% if evolution.balance_global is defined and evolution.balance_global != '' %}
+                                ✏️ Editado manualmente
+                            {% else %}
+                                🔄 Calculado automáticamente
+                            {% endif %}
+                        </small>
+                    </div>
+                    
+                    <!-- Índice Urinario -->
+                    <div class="form-group">
+                        <label>Índice Urinario (mL/kg/h)</label>
+                        <input type="number" step="0.1" id="indice_urinario_field"
+                               readonly class="field-calculated"
+                               value="{{ evolution.indice_urinario|default('', true) }}"
+                               placeholder="Auto: Diuresis / Peso / 24h">
+                        <input type="hidden" name="indice_urinario" id="indice_urinario_hidden"
+                               value="{{ evolution.indice_urinario|default('', true) }}">
+                        <small style="color: var(--text-secondary);">
+                            Diuresis ÷ Peso ÷ 24h (usa peso del paciente: {{ patient.peso_estimado|default('N/A') }} kg)
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Dispositivos Invasivos -->
+            <div id="tab-dispositivos" class="tab-content">
+                <h3 class="section-title">🔌 Dispositivos Invasivos</h3>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 20px;">
+                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="cargarDispositivosDesdeUltimaEvolucion()">
+                        <i class="fas fa-download me-1"></i>📥 Cargar dispositivos de última evolución
+                    </button>
+                    <small style="margin-left: 10px;">Carga automáticamente los dispositivos activos de la evolución anterior</small>
+                </p>
+                
+                <div id="dispositivos-container">
+                    <!-- Sonda Urinaria (Foley) -->
+                    <div class="form-group" style="margin-bottom: 15px; padding: 15px; background: var(--bg-tertiary); border-radius: 4px; border-left: 3px solid var(--accent);">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-bottom: 0; font-weight: 600;">
+                                <input type="checkbox" name="sonda_urinaria" id="sonda_urinaria_check"
+                                       {% if evolution.sonda_urinaria %}checked{% endif %}
+                                       style="width: auto; cursor: pointer;">
+                                <span>🩺 Sonda Urinaria (Foley)</span>
+                            </label>
+                        </div>
+                        <div id="fechas_sonda_urinaria_container" style="margin-top: 10px; {% if not evolution.sonda_urinaria %}display: none;{% endif %}">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                                <div>
+                                    <label style="font-size: 0.85rem;">Fecha colocación</label>
+                                    <input type="date" name="fecha_colocacion_sonda_urinaria" id="fecha_colocacion_sonda_urinaria"
+                                           value="{{ evolution.fecha_colocacion_sonda_urinaria|default('', true) }}"
+                                           class="form-control">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.85rem;">Fecha retiro</label>
+                                    <input type="date" name="fecha_retiro_sonda_urinaria" id="fecha_retiro_sonda_urinaria"
+                                           value="{{ evolution.fecha_retiro_sonda_urinaria|default('', true) }}"
+                                           class="form-control"
+                                           {% if not evolution.fecha_retiro_sonda_urinaria %}disabled{% endif %}>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                <input type="checkbox" id="retiro_sonda_urinaria_check" style="width: auto;"
+                                       {% if evolution.fecha_retiro_sonda_urinaria %}checked{% endif %}>
+                                <label style="margin-bottom: 0; font-size: 0.85rem; cursor: pointer;">Marcar como retirada</label>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 10px; padding: 8px; background: var(--bg-secondary); border-radius: 4px;">
+                                <span style="font-size: 0.85rem;">📊 Días:</span>
+                                <input type="number" id="dias_sonda_urinaria_field" readonly class="field-calculated"
+                                       value="{{ evolution.dias_sonda_urinaria|default('', true) }}" style="width: 80px; text-align: center;">
+                                <input type="hidden" name="dias_sonda_urinaria" id="dias_sonda_urinaria_hidden"
+                                       value="{{ evolution.dias_sonda_urinaria|default('', true) }}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Catéter CVC -->
+                    <div class="form-group" style="margin-bottom: 15px; padding: 15px; background: var(--bg-tertiary); border-radius: 4px; border-left: 3px solid var(--accent);">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-bottom: 0; font-weight: 600;">
+                                <input type="checkbox" name="cateter_cvc" id="cateter_cvc_check"
+                                       {% if evolution.cateter_cvc %}checked{% endif %}
+                                       style="width: auto; cursor: pointer;">
+                                <span>💉 Catéter CVC</span>
+                            </label>
+                        </div>
+                        <div id="fechas_cvc_container" style="margin-top: 10px; {% if not evolution.cateter_cvc %}display: none;{% endif %}">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                                <div>
+                                    <label style="font-size: 0.85rem;">Fecha colocación</label>
+                                    <input type="date" name="fecha_colocacion_cvc" id="fecha_colocacion_cvc"
+                                           value="{{ evolution.fecha_colocacion_cvc|default('', true) }}"
+                                           class="form-control">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.85rem;">Fecha retiro</label>
+                                    <input type="date" name="fecha_retiro_cvc" id="fecha_retiro_cvc"
+                                           value="{{ evolution.fecha_retiro_cvc|default('', true) }}"
+                                           class="form-control"
+                                           {% if not evolution.fecha_retiro_cvc %}disabled{% endif %}>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                <input type="checkbox" id="retiro_cvc_check" style="width: auto;"
+                                       {% if evolution.fecha_retiro_cvc %}checked{% endif %}>
+                                <label style="margin-bottom: 0; font-size: 0.85rem; cursor: pointer;">Marcar como retirado</label>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 10px; padding: 8px; background: var(--bg-secondary); border-radius: 4px;">
+                                <span style="font-size: 0.85rem;">📊 Días:</span>
+                                <input type="number" id="dias_cvc_field" readonly class="field-calculated"
+                                       value="{{ evolution.dias_cvc|default('', true) }}" style="width: 80px; text-align: center;">
+                                <input type="hidden" name="dias_cvc" id="dias_cvc_hidden"
+                                       value="{{ evolution.dias_cvc|default('', true) }}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sonda Endopleural -->
+                    <div class="form-group" style="margin-bottom: 15px; padding: 15px; background: var(--bg-tertiary); border-radius: 4px; border-left: 3px solid var(--accent);">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-bottom: 0; font-weight: 600;">
+                                <input type="checkbox" name="sonda_endopleural" id="sonda_endopleural_check"
+                                       {% if evolution.sonda_endopleural %}checked{% endif %}
+                                       style="width: auto; cursor: pointer;">
+                                <span>🫁 Sonda Endopleural</span>
+                            </label>
+                        </div>
+                        <div id="fechas_endopleural_container" style="margin-top: 10px; {% if not evolution.sonda_endopleural %}display: none;{% endif %}">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                                <div>
+                                    <label style="font-size: 0.85rem;">Fecha colocación</label>
+                                    <input type="date" name="fecha_colocacion_endopleural" id="fecha_colocacion_endopleural"
+                                           value="{{ evolution.fecha_colocacion_endopleural|default('', true) }}"
+                                           class="form-control">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.85rem;">Fecha retiro</label>
+                                    <input type="date" name="fecha_retiro_endopleural" id="fecha_retiro_endopleural"
+                                           value="{{ evolution.fecha_retiro_endopleural|default('', true) }}"
+                                           class="form-control"
+                                           {% if not evolution.fecha_retiro_endopleural %}disabled{% endif %}>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                <input type="checkbox" id="retiro_endopleural_check" style="width: auto;"
+                                       {% if evolution.fecha_retiro_endopleural %}checked{% endif %}>
+                                <label style="margin-bottom: 0; font-size: 0.85rem; cursor: pointer;">Marcar como retirada</label>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 10px; padding: 8px; background: var(--bg-secondary); border-radius: 4px;">
+                                <span style="font-size: 0.85rem;">📊 Días:</span>
+                                <input type="number" id="dias_endopleural_field" readonly class="field-calculated"
+                                       value="{{ evolution.dias_endopleural|default('', true) }}" style="width: 80px; text-align: center;">
+                                <input type="hidden" name="dias_endopleural" id="dias_endopleural_hidden"
+                                       value="{{ evolution.dias_endopleural|default('', true) }}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sonda Nasogástrica (SNG) -->
+                    <div class="form-group" style="margin-bottom: 15px; padding: 15px; background: var(--bg-tertiary); border-radius: 4px; border-left: 3px solid var(--accent);">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-bottom: 0; font-weight: 600;">
+                                <input type="checkbox" name="sonda_nasogastrica" id="sonda_nasogastrica_check"
+                                       {% if evolution.sonda_nasogastrica %}checked{% endif %}
+                                       style="width: auto; cursor: pointer;">
+                                <span>🍽️ Sonda Nasogástrica (SNG)</span>
+                            </label>
+                        </div>
+                        <div id="fechas_sng_container" style="margin-top: 10px; {% if not evolution.sonda_nasogastrica %}display: none;{% endif %}">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                                <div>
+                                    <label style="font-size: 0.85rem;">Fecha colocación</label>
+                                    <input type="date" name="fecha_colocacion_sng" id="fecha_colocacion_sng"
+                                           value="{{ evolution.fecha_colocacion_sng|default('', true) }}"
+                                           class="form-control">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.85rem;">Fecha retiro</label>
+                                    <input type="date" name="fecha_retiro_sng" id="fecha_retiro_sng"
+                                           value="{{ evolution.fecha_retiro_sng|default('', true) }}"
+                                           class="form-control"
+                                           {% if not evolution.fecha_retiro_sng %}disabled{% endif %}>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                <input type="checkbox" id="retiro_sng_check" style="width: auto;"
+                                       {% if evolution.fecha_retiro_sng %}checked{% endif %}>
+                                <label style="margin-bottom: 0; font-size: 0.85rem; cursor: pointer;">Marcar como retirada</label>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 10px; padding: 8px; background: var(--bg-secondary); border-radius: 4px;">
+                                <span style="font-size: 0.85rem;">📊 Días:</span>
+                                <input type="number" id="dias_sng_field" readonly class="field-calculated"
+                                       value="{{ evolution.dias_sng|default('', true) }}" style="width: 80px; text-align: center;">
+                                <input type="hidden" name="dias_sng" id="dias_sng_hidden"
+                                       value="{{ evolution.dias_sng|default('', true) }}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tubo Endotraqueal (ETT) -->
+                    <div class="form-group" style="margin-bottom: 15px; padding: 15px; background: var(--bg-tertiary); border-radius: 4px; border-left: 3px solid var(--accent);">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-bottom: 0; font-weight: 600;">
+                                <input type="checkbox" name="tubo_endotraqueal" id="tubo_endotraqueal_check"
+                                       {% if evolution.tubo_endotraqueal %}checked{% endif %}
+                                       style="width: auto; cursor: pointer;">
+                                <span>🫁 Tubo Endotraqueal (ETT)</span>
+                            </label>
+                        </div>
+                        <div id="fechas_ett_container" style="margin-top: 10px; {% if not evolution.tubo_endotraqueal %}display: none;{% endif %}">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                                <div>
+                                    <label style="font-size: 0.85rem;">Fecha colocación</label>
+                                    <input type="date" name="fecha_colocacion_ett" id="fecha_colocacion_ett"
+                                           value="{{ evolution.fecha_colocacion_ett|default('', true) }}"
+                                           class="form-control">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.85rem;">Fecha retiro</label>
+                                    <input type="date" name="fecha_retiro_ett" id="fecha_retiro_ett"
+                                           value="{{ evolution.fecha_retiro_ett|default('', true) }}"
+                                           class="form-control"
+                                           {% if not evolution.fecha_retiro_ett %}disabled{% endif %}>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                <input type="checkbox" id="retiro_ett_check" style="width: auto;"
+                                       {% if evolution.fecha_retiro_ett %}checked{% endif %}>
+                                <label style="margin-bottom: 0; font-size: 0.85rem; cursor: pointer;">Marcar como retirado</label>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 10px; padding: 8px; background: var(--bg-secondary); border-radius: 4px;">
+                                <span style="font-size: 0.85rem;">📊 Días:</span>
+                                <input type="number" id="dias_ett_field" readonly class="field-calculated"
+                                       value="{{ evolution.dias_ett|default('', true) }}" style="width: 80px; text-align: center;">
+                                <input type="hidden" name="dias_ett" id="dias_ett_hidden"
+                                       value="{{ evolution.dias_ett|default('', true) }}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Traqueostomía -->
+                    <div class="form-group" style="margin-bottom: 15px; padding: 15px; background: var(--bg-tertiary); border-radius: 4px; border-left: 3px solid var(--accent);">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-bottom: 0; font-weight: 600;">
+                                <input type="checkbox" name="traqueostomia" id="traqueostomia_check"
+                                       {% if evolution.traqueostomia %}checked{% endif %}
+                                       style="width: auto; cursor: pointer;">
+                                <span>🫁 Traqueostomía</span>
+                            </label>
+                        </div>
+                        <div id="fechas_traqueostomia_container" style="margin-top: 10px; {% if not evolution.traqueostomia %}display: none;{% endif %}">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                                <div>
+                                    <label style="font-size: 0.85rem;">Fecha colocación</label>
+                                    <input type="date" name="fecha_colocacion_traqueostomia" id="fecha_colocacion_traqueostomia"
+                                           value="{{ evolution.fecha_colocacion_traqueostomia|default('', true) }}"
+                                           class="form-control">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.85rem;">Fecha retiro</label>
+                                    <input type="date" name="fecha_retiro_traqueostomia" id="fecha_retiro_traqueostomia"
+                                           value="{{ evolution.fecha_retiro_traqueostomia|default('', true) }}"
+                                           class="form-control"
+                                           {% if not evolution.fecha_retiro_traqueostomia %}disabled{% endif %}>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                <input type="checkbox" id="retiro_traqueostomia_check" style="width: auto;"
+                                       {% if evolution.fecha_retiro_traqueostomia %}checked{% endif %}>
+                                <label style="margin-bottom: 0; font-size: 0.85rem; cursor: pointer;">Marcar como retirada</label>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 10px; padding: 8px; background: var(--bg-secondary); border-radius: 4px;">
+                                <span style="font-size: 0.85rem;">📊 Días:</span>
+                                <input type="number" id="dias_traqueostomia_field" readonly class="field-calculated"
+                                       value="{{ evolution.dias_traqueostomia|default('', true) }}" style="width: 80px; text-align: center;">
+                                <input type="hidden" name="dias_traqueostomia" id="dias_traqueostomia_hidden"
+                                       value="{{ evolution.dias_traqueostomia|default('', true) }}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Catéter Intraventricular -->
+                    <div class="form-group" style="margin-bottom: 15px; padding: 15px; background: var(--bg-tertiary); border-radius: 4px; border-left: 3px solid var(--accent);">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-bottom: 0; font-weight: 600;">
+                                <input type="checkbox" name="cateter_intraventricular" id="cateter_intraventricular_check"
+                                       {% if evolution.cateter_intraventricular %}checked{% endif %}
+                                       style="width: auto; cursor: pointer;">
+                                <span>🧠 Catéter Intraventricular</span>
+                            </label>
+                        </div>
+                        <div id="fechas_cateter_intraventricular_container" style="margin-top: 10px; {% if not evolution.cateter_intraventricular %}display: none;{% endif %}">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                                <div>
+                                    <label style="font-size: 0.85rem;">Fecha colocación</label>
+                                    <input type="date" name="fecha_colocacion_cateter_intraventricular" id="fecha_colocacion_cateter_intraventricular"
+                                           value="{{ evolution.fecha_colocacion_cateter_intraventricular|default('', true) }}"
+                                           class="form-control">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.85rem;">Fecha retiro</label>
+                                    <input type="date" name="fecha_retiro_cateter_intraventricular" id="fecha_retiro_cateter_intraventricular"
+                                           value="{{ evolution.fecha_retiro_cateter_intraventricular|default('', true) }}"
+                                           class="form-control"
+                                           {% if not evolution.fecha_retiro_cateter_intraventricular %}disabled{% endif %}>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                <input type="checkbox" id="retiro_cateter_intraventricular_check" style="width: auto;"
+                                       {% if evolution.fecha_retiro_cateter_intraventricular %}checked{% endif %}>
+                                <label style="margin-bottom: 0; font-size: 0.85rem; cursor: pointer;">Marcar como retirado</label>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 10px; padding: 8px; background: var(--bg-secondary); border-radius: 4px;">
+                                <span style="font-size: 0.85rem;">📊 Días:</span>
+                                <input type="number" id="dias_cateter_intraventricular_field" readonly class="field-calculated"
+                                       value="{{ evolution.dias_cateter_intraventricular|default('', true) }}" style="width: 80px; text-align: center;">
+                                <input type="hidden" name="dias_cateter_intraventricular" id="dias_cateter_intraventricular_hidden"
+                                       value="{{ evolution.dias_cateter_intraventricular|default('', true) }}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gastrostomía -->
+                    <div class="form-group" style="margin-bottom: 15px; padding: 15px; background: var(--bg-tertiary); border-radius: 4px; border-left: 3px solid var(--accent);">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-bottom: 0; font-weight: 600;">
+                                <input type="checkbox" name="gastrostomia" id="gastrostomia_check"
+                                       {% if evolution.gastrostomia %}checked{% endif %}
+                                       style="width: auto; cursor: pointer;">
+                                <span>🍽️ Gastrostomía</span>
+                            </label>
+                        </div>
+                        <div id="fechas_gastrostomia_container" style="margin-top: 10px; {% if not evolution.gastrostomia %}display: none;{% endif %}">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                                <div>
+                                    <label style="font-size: 0.85rem;">Fecha colocación</label>
+                                    <input type="date" name="fecha_colocacion_gastrostomia" id="fecha_colocacion_gastrostomia"
+                                           value="{{ evolution.fecha_colocacion_gastrostomia|default('', true) }}"
+                                           class="form-control">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.85rem;">Fecha retiro</label>
+                                    <input type="date" name="fecha_retiro_gastrostomia" id="fecha_retiro_gastrostomia"
+                                           value="{{ evolution.fecha_retiro_gastrostomia|default('', true) }}"
+                                           class="form-control"
+                                           {% if not evolution.fecha_retiro_gastrostomia %}disabled{% endif %}>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                <input type="checkbox" id="retiro_gastrostomia_check" style="width: auto;"
+                                       {% if evolution.fecha_retiro_gastrostomia %}checked{% endif %}>
+                                <label style="margin-bottom: 0; font-size: 0.85rem; cursor: pointer;">Marcar como retirada</label>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 10px; padding: 8px; background: var(--bg-secondary); border-radius: 4px;">
+                                <span style="font-size: 0.85rem;">📊 Días:</span>
+                                <input type="number" id="dias_gastrostomia_field" readonly class="field-calculated"
+                                       value="{{ evolution.dias_gastrostomia|default('', true) }}" style="width: 80px; text-align: center;">
+                                <input type="hidden" name="dias_gastrostomia" id="dias_gastrostomia_hidden"
+                                       value="{{ evolution.dias_gastrostomia|default('', true) }}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Línea Arterial -->
+                    <div class="form-group" style="margin-bottom: 15px; padding: 15px; background: var(--bg-tertiary); border-radius: 4px; border-left: 3px solid var(--accent);">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-bottom: 0; font-weight: 600;">
+                                <input type="checkbox" name="linea_arterial" id="linea_arterial_check"
+                                       {% if evolution.linea_arterial %}checked{% endif %}
+                                       style="width: auto; cursor: pointer;">
+                                <span>💉 Línea Arterial</span>
+                            </label>
+                        </div>
+                        <div id="fechas_linea_arterial_container" style="margin-top: 10px; {% if not evolution.linea_arterial %}display: none;{% endif %}">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                                <div>
+                                    <label style="font-size: 0.85rem;">Fecha colocación</label>
+                                    <input type="date" name="fecha_colocacion_linea_arterial" id="fecha_colocacion_linea_arterial"
+                                           value="{{ evolution.fecha_colocacion_linea_arterial|default('', true) }}"
+                                           class="form-control">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.85rem;">Fecha retiro</label>
+                                    <input type="date" name="fecha_retiro_linea_arterial" id="fecha_retiro_linea_arterial"
+                                           value="{{ evolution.fecha_retiro_linea_arterial|default('', true) }}"
+                                           class="form-control"
+                                           {% if not evolution.fecha_retiro_linea_arterial %}disabled{% endif %}>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                <input type="checkbox" id="retiro_linea_arterial_check" style="width: auto;"
+                                       {% if evolution.fecha_retiro_linea_arterial %}checked{% endif %}>
+                                <label style="margin-bottom: 0; font-size: 0.85rem; cursor: pointer;">Marcar como retirada</label>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 10px; padding: 8px; background: var(--bg-secondary); border-radius: 4px;">
+                                <span style="font-size: 0.85rem;">📊 Días:</span>
+                                <input type="number" id="dias_linea_arterial_field" readonly class="field-calculated"
+                                       value="{{ evolution.dias_linea_arterial|default('', true) }}" style="width: 80px; text-align: center;">
+                                <input type="hidden" name="dias_linea_arterial" id="dias_linea_arterial_hidden"
+                                       value="{{ evolution.dias_linea_arterial|default('', true) }}">
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <!-- Catéter de Hemodiálisis -->
+                    <div class="form-group" style="margin-bottom: 15px; padding: 15px; background: var(--bg-tertiary); border-radius: 4px; border-left: 3px solid var(--accent);">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin-bottom: 0; font-weight: 600;">
+                                <input type="checkbox" name="cateter_hemodialisis" id="cateter_hemodialisis_check"
+                                       {% if evolution.cateter_hemodialisis %}checked{% endif %}
+                                       style="width: auto; cursor: pointer;">
+                                <span>💧 Catéter de Hemodiálisis</span>
+                            </label>
+                        </div>
+                        <div id="fechas_cateter_hemodialisis_container" style="margin-top: 10px; {% if not evolution.cateter_hemodialisis %}display: none;{% endif %}">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                                <div>
+                                    <label style="font-size: 0.85rem;">Fecha colocación</label>
+                                    <input type="date" name="fecha_colocacion_hemodialisis" id="fecha_colocacion_hemodialisis"
+                                           value="{{ evolution.fecha_colocacion_hemodialisis|default('', true) }}"
+                                           class="form-control">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.85rem;">Fecha retiro</label>
+                                    <input type="date" name="fecha_retiro_hemodialisis" id="fecha_retiro_hemodialisis"
+                                           value="{{ evolution.fecha_retiro_hemodialisis|default('', true) }}"
+                                           class="form-control"
+                                           {% if not evolution.fecha_retiro_hemodialisis %}disabled{% endif %}>
+                                </div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                <input type="checkbox" id="retiro_cateter_hemodialisis_check" style="width: auto;"
+                                       {% if evolution.fecha_retiro_hemodialisis %}checked{% endif %}>
+                                <label style="margin-bottom: 0; font-size: 0.85rem; cursor: pointer;">Marcar como retirado</label>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 10px; padding: 8px; background: var(--bg-secondary); border-radius: 4px;">
+                                <span style="font-size: 0.85rem;">📊 Días:</span>
+                                <input type="number" id="dias_hemodialisis_field" readonly class="field-calculated"
+                                       value="{{ evolution.dias_hemodialisis|default('', true) }}" style="width: 80px; text-align: center;">
+                                <input type="hidden" name="dias_hemodialisis" id="dias_hemodialisis_hidden"
+                                       value="{{ evolution.dias_hemodialisis|default('', true) }}">
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            <!-- Tab: Laboratorios -->
+            <div id="tab-laboratorios" class="tab-content">
+                
+                <!-- PARSER -->
+                <h3 class="section-title">🧪 Parser de Laboratorios</h3>
+                <div class="lab-parser-box">
+                    <label style="color: var(--text-secondary); margin-bottom: 10px; display: block;">
+                        Escribe los laboratorios en formato libre:<br>
+                        <small>Ejemplo: "HB 8.7 LEU 12 K 3.4 GLU 145 CREA 1.2 BUN 20"</small>
+                    </label>
+                    <textarea id="labInput" rows="6" placeholder="Ingresa HB, LEU, K, GLU, CREA, BUN, NA, CL, CA, PH, PCO2, PO2, HCO3, LAC, PCT, ALT, AST, BT, BD..." 
+                              style="font-family: 'Consolas', monospace; font-size: 1rem; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border); width: 100%;"></textarea>
+                    
+                    <div style="display: flex; gap: 10px; margin-top: 15px;">
+                        <button type="button" class="btn" onclick="parseLabs()" style="flex: 2; background: #3b82f6; color: #fff;">
+                            🔍 Interpretar Laboratorios
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="clearLabs()" style="flex: 1;">
+                            🗑️ Limpiar
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="labResults" style="margin: 15px 0;"></div>
+
+                <!-- QUÍMICA SANGUÍNEA -->
+                <div class="lab-section">
+                    <h4>⚗️ Química Sanguínea</h4>
+                    <div class="section-grid" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));">
+                        <div class="form-group">
+                            <label>Glucosa</label>
+                            <input type="number" step="0.1" name="glucosa" class="lab-field" data-lab="GLU" placeholder="mg/dL" value="{{ evolution.glucosa|default('') }}" >
+                        </div>
+                        <div class="form-group">
+                            <label>Sodio</label>
+                            <input type="number" step="0.1" name="sodio" class="lab-field" data-lab="NA" placeholder="mEq/L" value="{{ evolution.sodio|default('') }}" >
+                        </div>
+                        <div class="form-group">
+                            <label>Potasio</label>
+                            <input type="number" step="0.1" name="potasio" class="lab-field" data-lab="K" placeholder="mEq/L" value="{{ evolution.potasio|default('') }}" >
+                        </div>
+                        <div class="form-group">
+                            <label>Cloro</label>
+                            <input type="number" step="0.1" name="cloro" class="lab-field" data-lab="CL" placeholder="mEq/L" value="{{ evolution.cloro|default('') }}" >
+                        </div>
+                        <div class="form-group">
+                            <label>Calcio</label>
+                            <input type="number" step="0.1" name="calcio" class="lab-field" data-lab="CA" placeholder="mg/dL" value="{{ evolution.calcio|default('') }}" >
+                        </div>
+                        <div class="form-group">
+                            <label>Magnesio</label>
+                            <input type="number" step="0.1" name="magnesio" class="lab-field" data-lab="MG" placeholder="mg/dL" value="{{ evolution.magnesio|default('') }}" >
+                        </div>
+                        <div class="form-group">
+                            <label>Fósforo</label>
+                            <input type="number" step="0.1" name="fosforo" class="lab-field" data-lab="P" placeholder="mg/dL" value="{{ evolution.fosforo|default('') }}" >
+                        </div>
+                        <div class="form-group">
+                            <label>Creatinina</label>
+                            <input type="number" step="0.01" name="creatinina" class="lab-field" data-lab="CREAT" placeholder="mg/dL" value="{{ evolution.creatinina|default('') }}" >
+                        </div>
+                        <div class="form-group">
+                            <label>Urea</label>
+                            <input type="number" step="0.1" name="urea" class="lab-field" data-lab="UREA" placeholder="mg/dL" value="{{ evolution.urea|default('') }}" >
+                        </div>
+                        <div class="form-group">
+                            <label>BUN</label>
+                            <input type="number" step="0.1" name="bun" class="lab-field" data-lab="BUN" placeholder="mg/dL" value="{{ evolution.bun|default('') }}" >
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GASOMETRÍA -->
+                <div class="lab-section">
+                    <h4>🫁 Gasometría</h4>
+                    <div class="section-grid" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));">
+                        <div class="form-group">
+                            <label>pH</label>
+                            <input type="number" step="0.01" min="6.5" max="8.0" name="ph" class="lab-field" data-lab="PH" value="{{ evolution.ph|default('') }}" >
+                        </div>
+                        <div class="form-group">
+                            <label>pCO2</label>
+                            <input type="number" step="0.1" name="pco2" class="lab-field" data-lab="PCO2" placeholder="mmHg">
+                        </div>
+                        <div class="form-group">
+                            <label>pO2</label>
+                            <input type="number" step="0.1" name="po2" class="lab-field" data-lab="PO2" placeholder="mmHg" onchange="calculatePAFI()">
+                        </div>
+                        <div class="form-group">
+                            <label>HCO3</label>
+                            <input type="number" step="0.1" name="hco3" class="lab-field" data-lab="HCO3" placeholder="mEq/L">
+                        </div>
+                        <div class="form-group">
+                            <label>Lactato</label>
+                            <input type="number" step="0.1" name="lactato" class="lab-field" data-lab="LAC" placeholder="mmol/L" value="{{ evolution.lactato|default('') }}" >
+                        </div>
+                        <div class="form-group">
+                            <label>PaFi (calc)</label>
+                            <input type="number" step="0.1" name="pafi" readonly style="background: #1a1a1a; color: #ff6b35;" placeholder="mmHg">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- HEMATOLOGÍA -->
+                <div class="lab-section">
+                    <h4>🩸 Hematología</h4>
+                    <div class="section-grid" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));">
+                        <div class="form-group">
+                            <label>Hemoglobina</label>
+                            <input type="number" step="0.1" name="hemoglobina" class="lab-field" data-lab="HB" placeholder="g/dL" value="{{ evolution.hemoglobina|default('') }}" >
+                        </div>
+                        <div class="form-group">
+                            <label>Hematocrito</label>
+                            <input type="number" step="0.1" name="hematocrito" class="lab-field" data-lab="HTO" placeholder="x10⁹/L" value="{{ evolution.hematocrito|default('') }}" >
+                        </div>
+                        <div class="form-group">
+                            <label>Leucocitos</label>
+                            <input type="number" step="0.1" name="leucocitos" class="lab-field" data-lab="LEU" placeholder="x10⁹/L" value="{{ evolution.leucocitos|default('') }}" >
+                        </div>
+                        <div class="form-group">
+                            <label>Neutrófilos</label>
+                            <input type="number" step="0.1" name="neutrofilos" class="lab-field" data-lab="NEU" placeholder="x10⁹/L" value="{{ evolution.neutrofilos|default('') }}" >
+                        </div>
+                        <div class="form-group">
+                            <label>Linfocitos</label>
+                            <input type="number" step="0.1" name="linfocitos" class="lab-field" data-lab="LIN" placeholder="x10⁹/L" value="{{ evolution.linfocitos|default('') }}" >
+                        </div>
+                        <div class="form-group">
+                            <label>Plaquetas</label>
+                            <input type="number" step="1" name="plaquetas" class="lab-field" data-lab="PLAQ" placeholder="x10⁹/L" value="{{ evolution.plaquetas|default('') }}" >
+                        </div>
+                    </div>
+                </div>
+
+                <!-- COAGULACIÓN -->
+                <div class="lab-section">
+                    <h4>🩹 Coagulación</h4>
+                    <div class="section-grid" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));">
+                        <div class="form-group">
+                            <label>TP</label>
+                            <input type="number" step="0.1" name="tp" class="lab-field" data-lab="TP" placeholder="seg" value="{{ evolution.tp|default('') }}" >
+                        </div>
+                        <div class="form-group">
+                            <label>TTP</label>
+                            <input type="number" step="0.1" name="ttp" class="lab-field" data-lab="TTP" placeholder="seg" value="{{ evolution.ttp|default('') }}" >
+                        </div>
+                        <div class="form-group">
+                            <label>INR</label>
+                            <input type="number" step="0.01" name="inr" class="lab-field" data-lab="INR" value="{{ evolution.inr|default('') }}" >
+                        </div>
+                        <div class="form-group">
+                            <label>Fibrinógeno</label>
+                            <input type="number" step="0.1" name="fibrinogeno" class="lab-field" data-lab="FIB" placeholder="mg/dL" value="{{ evolution.fibrinogeno|default('') }}" >
+                        </div>
+                        <div class="form-group">
+                            <label>Dímero D</label>
+                            <input type="number" step="0.1" name="dimero_d" class="lab-field" data-lab="DIMERO" placeholder="ng/mL" value="{{ evolution.dimero_d|default('') }}" >
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MARCADORES CARDÍACOS -->
+                <div class="lab-section">
+                    <h4>❤️ Marcadores Cardíacos</h4>
+                    <div class="section-grid" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));">
+                        <div class="form-group">
+                            <label>Troponina</label>
+                            <input type="number" step="0.01" name="troponina" class="lab-field" data-lab="TROP" placeholder="ng/L" value="{{ evolution.troponina|default('') }}" >
+                        </div>
+                        <div class="form-group">
+                            <label>BNP</label>
+                            <input type="number" step="0.1" name="bnp" class="lab-field" data-lab="BNP" placeholder="pg/mL" value="{{ evolution.bnp|default('') }}" >
+                        </div>
+                    </div>
+                </div>
+
+                <!-- INFLAMACIÓN -->
+                <div class="lab-section">
+                    <h4>🔥 Inflamación</h4>
+                    <div class="section-grid" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));">
+                        <div class="form-group">
+                            <label>PCR</label>
+                            <input type="number" step="0.1" name="pcr" class="lab-field" data-lab="PCR" placeholder="mg/L" value="{{ evolution.pcr|default('') }}" >
+                        </div>
+                        <div class="form-group">
+                            <label>PCT</label>
+                            <input type="number" step="0.01" name="pct" class="lab-field" data-lab="PCT" placeholder="ng/mL" value="{{ evolution.pct|default('') }}" >
+                        </div>
+                        <div class="form-group">
+                            <label>VSG</label>
+                            <input type="number" step="1" name="vsg" class="lab-field" data-lab="VSG" placeholder="mm/h" value="{{ evolution.vsg|default('') }}" >
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FUNCIÓN HEPÁTICA -->
+                <div class="lab-section">
+                    <h4>🫁 Función Hepática</h4>
+                    <div class="section-grid" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));">
+                        <div class="form-group">
+                            <label>Bilirrubina T</label>
+                            <input type="number" step="0.1" name="bilirrubina_total" class="lab-field" data-lab="BT" placeholder="mg/dL" value="{{ evolution.bilirrubina_total|default('') }}" >
+                        </div>
+                        <div class="form-group">
+                            <label>Bilirrubina D</label>
+                            <input type="number" step="0.1" name="bilirrubina_directa" class="lab-field" data-lab="BD" placeholder="mg/dL" value="{{ evolution.bilirrubina_directa|default('') }}" >
+                        </div>
+                        <div class="form-group">
+                            <label>Bilirrubina I</label>
+                            <input type="number" step="0.1" name="bilirrubina_indirecta" class="lab-field" data-lab="BI" placeholder="mg/dL" value="{{ evolution.bilirrubina_indirecta|default('') }}" >
+                        </div>
+                        <div class="form-group">
+                            <label>Albúmina</label>
+                            <input type="number" step="0.1" name="albumina" class="lab-field" data-lab="ALB" placeholder="g/dL" value="{{ evolution.albumina|default('') }}" >
+                        </div>
+                        <div class="form-group">
+                            <label>ALT</label>
+                            <input type="number" step="1" name="alt" class="lab-field" data-lab="ALT" placeholder="U/L" value="{{ evolution.alt|default('') }}" >
+                        </div>
+                        <div class="form-group">
+                            <label>AST</label>
+                            <input type="number" step="1" name="ast" class="lab-field" data-lab="AST" placeholder="U/L" value="{{ evolution.ast|default('') }}" >
+                        </div>
+                        <div class="form-group">
+                            <label>DHL</label>
+                            <input type="number" step="1" name="dhl" class="lab-field" data-lab="DHL" placeholder="U/L" value="{{ evolution.dhl|default('') }}" >
+                        </div>
+                        <div class="form-group">
+                            <label>Fosfatasa A</label>
+                            <input type="number" step="1" name="fosfatasa_alcalina" class="lab-field" data-lab="FA" placeholder="U/L" value="{{ evolution.fosfatasa_alcalina|default('') }}" >
+                        </div>
+                        <div class="form-group">
+                            <label>Amilasa</label>
+                            <input type="number" step="1" name="amilasa" class="lab-field" data-lab="AMIL" placeholder="U/L" value="{{ evolution.amilasa|default('') }}" >
+                        </div>
+                        <div class="form-group">
+                            <label>Lipasa</label>
+                            <input type="number" step="1" name="lipasa" class="lab-field" data-lab="LIP" placeholder="U/L" value="{{ evolution.lipasa|default('') }}" >
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Ventilación -->
+            <div id="tab-ventilacion" class="tab-content">
+                <h3 class="section-title">Soporte Ventilatorio</h3>
+                <div class="section-grid">
+                    <div class="form-group">
+                        <label>Modo Ventilatorio</label>
+                        <select name="modo_ventilatorio" id="modo_ventilatorio_select">
+                            <option value="" {% if not evolution.modo_ventilatorio %}selected{% endif %}>Sin soporte</option>
+                            <option value="VM VOL" {% if evolution.modo_ventilatorio == 'VM VOL' %}selected{% endif %}>VM Volumen Controlado</option>
+                            <option value="VM PRES" {% if evolution.modo_ventilatorio == 'VM PRES' %}selected{% endif %}>VM Presión Controlada</option>
+                            <option value="VM MIX" {% if evolution.modo_ventilatorio == 'VM MIX' %}selected{% endif %}>VM Mixta (Dual)</option>
+                            <option value="CPAP" {% if evolution.modo_ventilatorio == 'CPAP' %}selected{% endif %}>CPAP</option>
+                            <option value="BiPAP" {% if evolution.modo_ventilatorio == 'BiPAP' %}selected{% endif %}>BiPAP</option>
+                            <option value="CNAF" {% if evolution.modo_ventilatorio == 'CNAF' %}selected{% endif %}>CNAF (Alto Flujo)</option>
+                            <option value="CNS" {% if evolution.modo_ventilatorio == 'CNS' %}selected{% endif %}>CNS (Cánulas Simples)</option>
+                            <option value="Mascarilla" {% if evolution.modo_ventilatorio == 'Mascarilla' %}selected{% endif %}>Mascarilla</option>
+                            <option value="Espontáneo" {% if evolution.modo_ventilatorio == 'Espontáneo' %}selected{% endif %}>Espontáneo</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>VT / PS (mL / cmH2O)</label>
+                        <input type="number" step="1" name="vt_psinp" min="0" value="{{ evolution.vt_psinp|default('') }}" >
+                    </div>
+                    <div class="form-group">
+                        <label>PEEP (cmH2O)</label>
+                        <input type="number" step="1" name="peep" min="0" max="30" value="{{ evolution.peep|default('') }}" >
+                    </div>
+                    <div class="form-group">
+                        <label>P Pico (cmH2O)</label>
+                        <input type="number" step="1" name="ppico" min="0" value="{{ evolution.ppico|default('') }}" >
+                    </div>
+                    <div class="form-group">
+                        <label>P Plat (cmH2O)</label>
+                        <input type="number" step="1" name="pplat" min="0" value="{{ evolution.pplat|default('') }}" >
+                    </div>
+                    <div class="form-group">
+                        <label>NIF (cmH2O)</label>
+                        <input type="number" step="1" name="nif" min="-100" max="0" placeholder="Negativo" value="{{ evolution.nif|default('') }}" >
+                    </div>
+                    <div class="form-group">
+                        <label>Driving P (cmH2O)</label>
+                        <input type="number" step="0.1" name="driving_pressure" placeholder="Pplat - PEEP" onfocus="calculateDrivingPressure()" value="{{ evolution.driving_pressure|default('') }}" >
+                    </div>
+                    <div class="form-group">
+                        <label>Compliance (mL/cmH2O)</label>
+                        <input type="number" step="0.1" name="compliance" placeholder="VT / (Pplat - PEEP)" value="{{ evolution.compliance|default('') }}" >
+                    </div>
+                    <div class="form-group">
+                        <label>P0.1 (cmH2O)</label>
+                        <input type="number" step="0.1" name="p0_1" value="{{ evolution.p0_1|default('') }}">
+                    </div>
+                    <div class="form-group">
+                        <label>Tobin</label>
+                        <input type="number" step="0.1" name="tobin" placeholder="FR / VT" value="{{ evolution.tobin|default('') }}" >
+                    </div>
+                </div>
+            </div>
+
+
+            <div id="tab-imagen" class="tab-content">
+                <h3 class="section-title">📷 Estudios de Imagen y EKG</h3>
+                <div class="form-group">
+                    <label>Descripción de Estudios de Imagen</label>
+                    <textarea name="imagen_estudios" rows="4" placeholder="RX Tórax: Patrón intersticial bilateral&#10;TAC: Sin lesiones agudas..." style="width: 100%;">{{ evolution.imagen_estudios|default('') }}</textarea>
+                </div>
+                <div class="form-group">
+                    <label>EKG</label>
+                    <textarea name="ekg_texto" rows="3" placeholder="Ritmo sinusal, FC 85 lpm, QRS estrecho..." style="width: 100%;">{{ evolution.ekg_texto|default('') }}</textarea>
+                </div>
+            </div>
+
+            <!-- Tab: Tablas del Ingreso -->
+            <div id="tab-tablas" class="tab-content">
+                <h3 class="section-title">🧮 Tablas de Ingreso (Actualización)</h3>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 20px;">
+                    Actualice las tablas de ingreso del paciente. Los cambios se guardarán junto con esta evolución.
+                </p>
+                
+                {% include '_dynamic_tables.html' %}
+            </div>
+
+            <!-- Tab: Indicaciones -->
+            <div id="tab-indicaciones" class="tab-content">
+                <h3 class="section-title">💊 Indicaciones</h3>
+                <p class="text-muted" style="margin-bottom: 15px; font-size: 0.9em;">
+                    Espacio para indicaciones medicas, observaciones y notas adicionales sobre el manejo del paciente.
+                </p>
+                <div class="form-group">
+                    <textarea 
+                        id="texto_libre" 
+                        name="texto_libre" 
+                        rows="20" 
+                        placeholder="Escribe aqui las indicaciones..."
+                        style="width: 100%; min-height: 400px; font-family: monospace; font-size: 1rem; line-height: 1.5; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-primary); color: var(--text-primary); resize: vertical;"
+                    >{{ evolution.texto_libre|default('') }}</textarea>
+                </div>
+                <div class="form-group" style="margin-top: 10px;">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('texto_libre').value = ''">
+                        🗑️ Limpiar indicaciones
+                    </button>
+                    <span class="text-muted" style="margin-left: 10px; font-size: 0.85em;">
+                        Se guardara automaticamente con la evolucion.
+                    </span>
+                </div>
+            </div>
+
+            <!-- Tab: Nota PSOAP -->
+            <div id="tab-nota" class="tab-content">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3 class="section-title mb-0">📝 Nota de Evolución PSOAP</h3>
+                    <button type="button" id="btn-cargar-ultima" class="btn btn-sm btn-outline-primary" onclick="cargarUltimaEvolucion()">
+                        <i class="fas fa-history me-1"></i>Cargar datos de última evolución
+                    </button>
+                </div>
+
+                <!-- Sección Subjetivo -->
+                <div class="form-group">
+                    <label>S - Subjetivo</label>
+                    <textarea id="subjetivo" name="subjetivo" rows="3" placeholder="Síntomas reportados por el paciente o familiar..." style="width: 100%;">{{ evolution.subjetivo|default('') }}</textarea>
+                </div>
+
+                <!-- Sección Objetivo -->
+                <div class="form-group">
+                    <label>O - Objetivo</label>
+                    <textarea id="objetivo" name="objetivo" rows="4" placeholder="Hallazgos de exploración física..." style="width: 100%;">{{ evolution.objetivo|default('') }}</textarea>
+                </div>
+
+                <!-- Sección Análisis -->
+                <div class="form-group">
+                    <label>A - Análisis</label>
+                    <textarea id="analisis_nota" name="analisis" rows="4" placeholder="Interpretación clínica de los datos..." style="width: 100%;">{{ evolution.analisis|default('') }}</textarea>
+                </div>
+
+                <!-- Sección Plan -->
+                <div class="form-group">
+                    <label>P - Plan</label>
+                    <textarea id="plan_nota" name="plan_nota" rows="4" placeholder="1. Continuar...
+2. Ajustar...
+3. Solicitar..." style="width: 100%;">{{ evolution.plan|default('') }}</textarea>
+                </div>
+
+                <!-- Diagnóstico Actual -->
+                <div class="form-group" style="margin-top: 20px; padding: 15px; background: rgba(255, 107, 53, 0.05); border: 1px solid var(--accent); border-radius: 4px;">
+                    <label style="color: var(--accent); font-weight: 600;">🩺 Diagnóstico Actual</label>
+                    <small style="color: var(--text-secondary); display: block; margin-bottom: 8px;">
+                        Diagnóstico de ingreso: <strong>{{ patient.diagnostico_ingreso|default('No especificado', true)|truncate(80) }}</strong>
+                    </small>
+                    <textarea id="diagnostico_actual" name="diagnostico_actual" rows="3" placeholder="Diagnóstico actual de esta evolución (puede diferir del diagnóstico de ingreso)..." style="width: 100%; background: var(--bg-primary);">{{ evolution.diagnostico_actual|default('') }}</textarea>
+                </div>
+
+                <!-- Dropdown Unificado de Formatos de Nota -->
+                <div style="margin: 20px 0; padding: 15px; background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 4px;">
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <label style="color: var(--text-secondary); font-weight: 600; margin-right: 10px;">📄 Formato:</label>
+                        <select id="noteFormat" style="flex: 1; min-width: 200px; padding: 8px; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border); border-radius: 4px; font-size: 0.95rem;">
+                            <option value="psoap">📝 Nota PSOAP (Evolución)</option>
+                            <option value="ingreso">🏥 Nota de Ingreso UCI</option>
+                            <option value="egreso">🏥 Nota de Egreso</option>
+                            <option value="resumen" disabled>📊 Resumen de Datos (próximamente)</option>
+                            <option value="raw">📄 Raw (Todos los datos)</option>
+                        </select>
+                        <button type="button" class="btn btn-generate" onclick="generarNota()" id="btnGenerarNota" style="white-space: nowrap;">
+                            🔄 Generar Nota
+                        </button>
+                    </div>
+                    <small style="color: var(--text-secondary); display: block; margin-top: 8px;">
+                        PSOAP usa los campos SOAP que llenaste arriba. Ingreso/Egreso usan datos del formulario de ingreso/egreso del paciente. Raw imprime todos los datos de la base de datos.
+                    </small>
+                </div>
+
+                <!-- Botones legacy ocultos (mantener por compatibilidad) -->
+                <div style="display: none;">
+                    <button type="button" onclick="generarNotaPSOAS()" id="btnPsoap">PSOAP Legacy</button>
+                    <button type="button" onclick="generarNotaIngresoUCI()" id="btnUci">Ingreso Legacy</button>
+                </div>
+
+                <div class="form-group">
+                    <label>Nota Final (Editable)</label>
+                    <textarea id="notaFinal" name="nota_final" rows="15" style="width: 100%; font-family: 'Consolas', monospace; background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border); padding: 10px; border-radius: 4px;" placeholder="La nota generada aparecerá aquí...">{{ evolution.nota|default('') }}</textarea>
+                </div>
+            </div>
+            
+            <!-- Botones de acción - Siempre visibles -->
+            <div style="display: flex; gap: 10px; margin-top: 20px; padding: 20px; background: var(--bg-secondary); border-top: 1px solid var(--border); position: sticky; bottom: 0; z-index: 100;">
+                <button type="submit" class="btn btn-generate" style="flex: 2;">
+                    💾 Guardar Evolución
+                </button>
+                <a href="/patient/{{ patient.id }}" class="btn btn-secondary" style="flex: 1; text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center;">
+                    Cancelar
+                </a>
+            </div>
+
+            <input type="hidden" name="nota" id="notaHidden" value="{{ evolution.nota|default('') }}" >
+            <input type="hidden" name="plan" id="planHidden" value="{{ evolution.plan|default('') }}" >
+        </form>
+    </div>
+</div>
+
+<script>
+// Datos del paciente para el generador de notas
+const patientData = {
+    nombre: '{{ patient.nombre_completo|default("")|e }}',
+    edad: '{{ patient.edad|default("") }}',
+    sexo: '{{ patient.sexo|default("") }}',
+    fechaIngreso: '{{ patient.fecha_ingreso|default("") }}',
+    expediente: '{{ patient.expediente|default("") }}',
+    cama: '{{ patient.cama|default("") }}',
+    diagnostico: '{{ patient.diagnostico_ingreso|default("")|e|replace("\n", " ")|replace("\r", "") }}',
+    exploracionNeurologica: '{{ patient.exploracion_neurologica|default("")|e|replace("\n", " ")|replace("\r", "") }}',
+    exploracionHemodinamica: '{{ patient.exploracion_hemodinamica|default("")|e|replace("\n", " ")|replace("\r", "") }}',
+    exploracionVentilatoria: '{{ patient.exploracion_ventilatoria|default("")|e|replace("\n", " ")|replace("\r", "") }}',
+    exploracionGastro: '{{ patient.exploracion_gastro|default("")|e|replace("\n", " ")|replace("\r", "") }}',
+    exploracionHema: '{{ patient.exploracion_hema|default("")|e|replace("\n", " ")|replace("\r", "") }}'
+};
+
+// Función para manejar cambio de tipo de nota
+// Calcular TAM automáticamente
+function calculateTAM() {
+    const tas = parseFloat(document.querySelector('[name="tas"]')?.value) || 0;
+    const tad = parseFloat(document.querySelector('[name="tad"]')?.value) || 0;
+    if (tas && tad) {
+        const tam = Math.round((tas + (2 * tad)) / 3);
+        const field = document.getElementById('tam_field');
+        if (field) field.value = tam;
+        const hidden = document.getElementById('tam_calculated');
+        if (hidden) hidden.value = tam;
+    }
+}
+
+// Calcular SA/FiO2 automáticamente
+function calculateSAFIO2() {
+    const spo2 = parseFloat(document.querySelector('[name="spo2"]')?.value) || 0;
+    const fio2 = parseFloat(document.querySelector('[name="fio2"]')?.value) || 0;
+    if (spo2 && fio2 && fio2 > 0) {
+        const safio2 = Math.round((spo2 / fio2) * 100);
+        const field = document.getElementById('safio2_field');
+        if (field) field.value = safio2;
+        const hidden = document.getElementById('safio2_hidden');
+        if (hidden) hidden.value = safio2;
+    }
+}
+// Calcular PaFi automáticamente
+function calculatePAFI() {
+    const po2 = parseFloat(document.querySelector('[name="po2"]')?.value) || 0;
+    const fio2 = parseFloat(document.querySelector('[name="fio2"]')?.value) || 0;
+    if (po2 && fio2 && fio2 > 0) {
+        const pafi = Math.round(po2 / (fio2 / 100));
+        document.querySelector('[name="pafi"]').value = pafi;
+    }
+}
+
+// Calcular Driving Pressure
+function calculateDrivingPressure() {
+    const pp = parseFloat(document.querySelector('[name="pplat"]')?.value) || 0;
+    const peep = parseFloat(document.querySelector('[name="peep"]')?.value) || 0;
+    if (pp && peep !== undefined) {
+        document.querySelector('[name="driving_pressure"]').value = (pp - peep).toFixed(1);
+    }
+}
+
+// Calcular Compliance
+function calculateCompliance() {
+    const vt = parseFloat(document.querySelector('[name="vt_psinp"]')?.value) || 0;
+    const pp = parseFloat(document.querySelector('[name="pplat"]')?.value) || 0;
+    const peep = parseFloat(document.querySelector('[name="peep"]')?.value) || 0;
+    if (vt && pp && peep !== undefined) {
+        const dp = pp - peep;
+        if (dp > 0) {
+            document.querySelector('[name="compliance"]').value = (vt / dp).toFixed(2);
+        }
+    }
+}
+
+// Calcular Balance
+function calculateBalance() {
+    const ingresos = parseFloat(document.querySelector('[name="ingresos"]')?.value) || 0;
+    const egresos = parseFloat(document.querySelector('[name="egresos"]')?.value) || 0;
+    const balance = ingresos - egresos;
+    const field = document.getElementById('balance_field');
+    if (field) field.value = balance;
+    const hidden = document.getElementById('balance_hidden');
+    if (hidden) hidden.value = balance;
+    
+    // Recalcular balance_global basado en balance_global anterior + balance actual
+    updateBalanceGlobal(balance);
+    
+    // Recalcular índice urinario
+    calculateIndiceUrinario();
+}
+
+async function updateBalanceGlobal(currentBalance) {
+    // Obtener patient_id de la URL
+    const pathParts = window.location.pathname.split('/');
+    let patientId = '';
+    for (let i = 0; i < pathParts.length; i++) {
+        if (pathParts[i] === 'patient' && i + 1 < pathParts.length) {
+            patientId = pathParts[i + 1];
+            break;
+        }
+    }
+    
+    if (!patientId || currentBalance === undefined || currentBalance === null) return;
+    
+    let lastGlobal = 0;
+    let calculated = false;
+    
+    try {
+        // Obtener último balance_global del servidor
+        const response = await fetch(`/api/patient/${patientId}/trends?limit=1`, {
+            credentials: 'include'
+        });
+        if (response.ok) {
+            const data = await response.json();
+            if (data.evoluciones && data.evoluciones.length > 0) {
+                const lastEvo = data.evoluciones[0];
+                if (lastEvo.balance_global !== null && lastEvo.balance_global !== undefined) {
+                    lastGlobal = parseFloat(lastEvo.balance_global) || 0;
+                    calculated = true;
+                }
+            }
+        }
+    } catch (e) {
+        console.warn('No se pudo obtener balance_global previo, usando 0:', e);
+    }
+    
+    const newGlobal = lastGlobal + currentBalance;
+    
+    // Actualizar campo balance_global (solo si no ha sido editado manualmente)
+    const globalField = document.getElementById('balance_global_field');
+    const globalHidden = document.getElementById('balance_global_hidden');
+    const globalInfo = document.getElementById('balance_global_info');
+    
+    if (globalField && !globalField.dataset.manual) {
+        globalField.value = newGlobal;
+        if (globalHidden) globalHidden.value = newGlobal;
+        if (globalInfo) {
+            if (calculated) {
+                globalInfo.innerHTML = '<span>🔄 Calculado automáticamente</span>';
+            } else {
+                globalInfo.innerHTML = '<span>🔄 Calculado (sin datos previos)</span>';
+            }
+        }
+    }
+}
+
+// Marcar balance_global como manual cuando el usuario lo edite
+document.addEventListener('DOMContentLoaded', () => {
+    const globalField = document.getElementById('balance_global_field');
+    if (globalField) {
+        globalField.addEventListener("input", () => {
+            globalField.dataset.manual = 'true';
+            const globalInfo = document.getElementById('balance_global_info');
+            if (globalInfo) globalInfo.innerHTML = '<span>✏️ Valor manual/editado</span>';
+            // Sincronizar con campo hidden para guardar en BD
+            const globalHidden = document.getElementById('balance_global_hidden');
+            if (globalHidden) globalHidden.value = globalField.value;
+        });
+    }
+    
+    // Inicializar cálculos automáticos al cargar la página
+    calculateBalance();
+    calculateSAFIO2();
+    calculatePAFI();
+    calculateDrivingPressure();
+    calculateIndiceUrinario();
+    
+    // Inicializar sonda urinaria
+    initSondaUrinaria();
+});
+
+// Sonda Urinaria - lógica de fechas
+function initSondaUrinaria() {
+    const check = document.getElementById('sonda_urinaria_check');
+    const container = document.getElementById('fechas_sonda_container');
+    const fechaColocacion = document.getElementById('fecha_colocacion_sonda');
+    const fechaRetiro = document.getElementById('fecha_retiro_sonda');
+    const retiroCheck = document.getElementById('retiro_sonda_check');
+    const field = document.getElementById('dias_sonda_urinaria_field');
+    const hidden = document.getElementById('dias_sonda_urinaria_hidden');
+    
+    if (!check) return;
+    
+    // Función para calcular días entre dos fechas
+    function calcularDiasEntreFechas(fechaInicio, fechaFin) {
+        if (!fechaInicio) return 0;
+        const inicio = new Date(fechaInicio);
+        const fin = fechaFin ? new Date(fechaFin) : new Date();
+        const diffTime = Math.abs(fin - inicio);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays;
+    }
+    
+    // Función para actualizar días mostrados
+    function actualizarDias() {
+        const colocacion = fechaColocacion ? fechaColocacion.value : null;
+        const retiro = fechaRetiro ? fechaRetiro.value : null;
+        
+        if (colocacion) {
+            const dias = calcularDiasEntreFechas(colocacion, retiro);
+            if (field) field.value = dias;
+            if (hidden) hidden.value = dias;
+            
+            const info = document.getElementById('info_dias_sonda');
+            if (info) {
+                if (retiro) {
+                    info.textContent = `Sonda retirada después de ${dias} días`;
+                } else {
+                    info.textContent = `Lleva ${dias} días con sonda`;
+                }
+            }
+        }
+    }
+    
+    // Event listener para checkbox principal
+    check.addEventListener('change', () => {
+        if (check.checked) {
+            if (container) container.style.display = 'block';
+            // Si no hay fecha de colocación, poner la fecha actual
+            if (fechaColocacion && !fechaColocacion.value) {
+                const hoy = new Date().toISOString().split('T')[0];
+                fechaColocacion.value = hoy;
+            }
+            actualizarDias();
+        } else {
+            if (container) container.style.display = 'none';
+            if (fechaColocacion) fechaColocacion.value = '';
+            if (fechaRetiro) {
+                fechaRetiro.value = '';
+                fechaRetiro.disabled = true;
+            }
+            if (retiroCheck) retiroCheck.checked = false;
+            if (field) field.value = '';
+            if (hidden) hidden.value = '';
+        }
+    });
+    
+    // Event listener para fecha de colocación
+    if (fechaColocacion) {
+        fechaColocacion.addEventListener('change', actualizarDias);
+    }
+    
+    // Event listener para checkbox de retiro
+    if (retiroCheck) {
+        retiroCheck.addEventListener('change', () => {
+            if (fechaRetiro) {
+                if (retiroCheck.checked) {
+                    fechaRetiro.disabled = false;
+                    const hoy = new Date().toISOString().split('T')[0];
+                    fechaRetiro.value = hoy;
+                } else {
+                    fechaRetiro.disabled = true;
+                    fechaRetiro.value = '';
+                }
+                actualizarDias();
+            }
+        });
+    }
+    
+    // Event listener para fecha de retiro
+    if (fechaRetiro) {
+        fechaRetiro.addEventListener('change', actualizarDias);
+    }
+    
+    // Si ya está checked al cargar, mostrar container y calcular
+    if (check.checked && container) {
+        container.style.display = 'block';
+        actualizarDias();
+    }
+}
+
+// Configurar todos los dispositivos invasivos
+function initDispositivo(config) {
+    const {
+        checkId, containerId, fechaColId, fechaRetId, retiroCheckId,
+        diasFieldId, diasHiddenId, calcularDiasFn
+    } = config;
+    
+    const check = document.getElementById(checkId);
+    const container = document.getElementById(containerId);
+    const fechaColocacion = document.getElementById(fechaColId);
+    const fechaRetiro = document.getElementById(fechaRetId);
+    const retiroCheck = document.getElementById(retiroCheckId);
+    const diasField = document.getElementById(diasFieldId);
+    const diasHidden = document.getElementById(diasHiddenId);
+    
+    if (!check) return;
+    
+    function calcularDiasEntreFechas(fechaInicio, fechaFin) {
+        if (!fechaInicio) return 0;
+        const inicio = new Date(fechaInicio);
+        const fin = fechaFin ? new Date(fechaFin) : new Date();
+        const diffTime = Math.abs(fin - inicio);
+        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    }
+    
+    function actualizarDias() {
+        const colocacion = fechaColocacion ? fechaColocacion.value : null;
+        const retiro = fechaRetiro ? fechaRetiro.value : null;
+        if (colocacion) {
+            const dias = calcularDiasEntreFechas(colocacion, retiro);
+            if (diasField) diasField.value = dias;
+            if (diasHidden) diasHidden.value = dias;
+        }
+    }
+    
+    check.addEventListener('change', () => {
+        if (check.checked) {
+            if (container) container.style.display = 'block';
+            if (fechaColocacion && !fechaColocacion.value) {
+                fechaColocacion.value = new Date().toISOString().split('T')[0];
+            }
+            actualizarDias();
+        } else {
+            if (container) container.style.display = 'none';
+            if (fechaColocacion) fechaColocacion.value = '';
+            if (fechaRetiro) { fechaRetiro.value = ''; fechaRetiro.disabled = true; }
+            if (retiroCheck) retiroCheck.checked = false;
+        }
+    });
+    
+    if (fechaColocacion) fechaColocacion.addEventListener('change', actualizarDias);
+    if (fechaRetiro) fechaRetiro.addEventListener('change', actualizarDias);
+    
+    if (retiroCheck) {
+        retiroCheck.addEventListener('change', () => {
+            if (fechaRetiro) {
+                if (retiroCheck.checked) {
+                    fechaRetiro.disabled = false;
+                    fechaRetiro.value = new Date().toISOString().split('T')[0];
+                } else {
+                    fechaRetiro.disabled = true;
+                    fechaRetiro.value = '';
+                }
+                actualizarDias();
+            }
+        });
+    }
+    
+    if (check.checked && container) {
+        container.style.display = 'block';
+        actualizarDias();
+    }
+}
+
+// Inicializar todos los dispositivos al cargar
+function initAllDispositivos() {
+    initDispositivo({
+        checkId: 'sonda_urinaria_check', containerId: 'fechas_sonda_urinaria_container',
+        fechaColId: 'fecha_colocacion_sonda_urinaria', fechaRetId: 'fecha_retiro_sonda_urinaria',
+        retiroCheckId: 'retiro_sonda_urinaria_check', diasFieldId: 'dias_sonda_urinaria_field',
+        diasHiddenId: 'dias_sonda_urinaria_hidden'
+    });
+    
+    initDispositivo({
+        checkId: 'cateter_cvc_check', containerId: 'fechas_cvc_container',
+        fechaColId: 'fecha_colocacion_cvc', fechaRetId: 'fecha_retiro_cvc',
+        retiroCheckId: 'retiro_cvc_check', diasFieldId: 'dias_cvc_field',
+        diasHiddenId: 'dias_cvc_hidden'
+    });
+    
+    initDispositivo({
+        checkId: 'sonda_endopleural_check', containerId: 'fechas_endopleural_container',
+        fechaColId: 'fecha_colocacion_endopleural', fechaRetId: 'fecha_retiro_endopleural',
+        retiroCheckId: 'retiro_endopleural_check', diasFieldId: 'dias_endopleural_field',
+        diasHiddenId: 'dias_endopleural_hidden'
+    });
+    
+    initDispositivo({
+        checkId: 'sonda_nasogastrica_check', containerId: 'fechas_sng_container',
+        fechaColId: 'fecha_colocacion_sng', fechaRetId: 'fecha_retiro_sng',
+        retiroCheckId: 'retiro_sng_check', diasFieldId: 'dias_sng_field',
+        diasHiddenId: 'dias_sng_hidden'
+    });
+    
+    initDispositivo({
+        checkId: 'tubo_endotraqueal_check', containerId: 'fechas_ett_container',
+        fechaColId: 'fecha_colocacion_ett', fechaRetId: 'fecha_retiro_ett',
+        retiroCheckId: 'retiro_ett_check', diasFieldId: 'dias_ett_field',
+        diasHiddenId: 'dias_ett_hidden'
+    });
+    
+    initDispositivo({
+        checkId: 'traqueostomia_check', containerId: 'fechas_traqueostomia_container',
+        fechaColId: 'fecha_colocacion_traqueostomia', fechaRetId: 'fecha_retiro_traqueostomia',
+        retiroCheckId: 'retiro_traqueostomia_check', diasFieldId: 'dias_traqueostomia_field',
+        diasHiddenId: 'dias_traqueostomia_hidden'
+    });
+    
+    initDispositivo({
+        checkId: 'cateter_intraventricular_check', containerId: 'fechas_cateter_intraventricular_container',
+        fechaColId: 'fecha_colocacion_cateter_intraventricular', fechaRetId: 'fecha_retiro_cateter_intraventricular',
+        retiroCheckId: 'retiro_cateter_intraventricular_check', diasFieldId: 'dias_cateter_intraventricular_field',
+        diasHiddenId: 'dias_cateter_intraventricular_hidden'
+    });
+    
+    initDispositivo({
+        checkId: 'gastrostomia_check', containerId: 'fechas_gastrostomia_container',
+        fechaColId: 'fecha_colocacion_gastrostomia', fechaRetId: 'fecha_retiro_gastrostomia',
+        retiroCheckId: 'retiro_gastrostomia_check', diasFieldId: 'dias_gastrostomia_field',
+        diasHiddenId: 'dias_gastrostomia_hidden'
+    });
+    
+    initDispositivo({
+        checkId: 'linea_arterial_check', containerId: 'fechas_linea_arterial_container',
+        fechaColId: 'fecha_colocacion_linea_arterial', fechaRetId: 'fecha_retiro_linea_arterial',
+        retiroCheckId: 'retiro_linea_arterial_check', diasFieldId: 'dias_linea_arterial_field',
+        diasHiddenId: 'dias_linea_arterial_hidden'
+    });
+    initDispositivo({
+        checkId: 'cateter_hemodialisis_check', containerId: 'fechas_cateter_hemodialisis_container',
+        fechaColId: 'fecha_colocacion_hemodialisis', fechaRetId: 'fecha_retiro_hemodialisis',
+        retiroCheckId: 'retiro_cateter_hemodialisis_check', diasFieldId: 'dias_hemodialisis_field',
+        diasHiddenId: 'dias_hemodialisis_hidden'
+    });
+}
+
+// Cargar dispositivos desde última evolución
+async function cargarDispositivosDesdeUltimaEvolucion() {
+    const patientId = document.querySelector('input[name="patient_id"]')?.value;
+    if (!patientId) {
+        alert('No se encontró el ID del paciente');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/patient/${patientId}/evolutions`);
+        const data = await response.json();
+        
+        if (!data.success || !data.evolutions || data.evolutions.length === 0) {
+            alert('No hay evoluciones previas para cargar');
+            return;
+        }
+        
+        // Tomar la evolución más reciente (la primera)
+        const ultimaEvolucion = data.evolutions[0];
+        let cargados = 0;
+        
+        const dispositivos = [
+            { field: 'sonda_urinaria', fechaCol: 'fecha_colocacion_sonda_urinaria', fechaRet: 'fecha_retiro_sonda_urinaria' },
+            { field: 'cateter_cvc', fechaCol: 'fecha_colocacion_cvc', fechaRet: 'fecha_retiro_cvc' },
+            { field: 'sonda_endopleural', fechaCol: 'fecha_colocacion_endopleural', fechaRet: 'fecha_retiro_endopleural' },
+            { field: 'sonda_nasogastrica', fechaCol: 'fecha_colocacion_sng', fechaRet: 'fecha_retiro_sng' },
+            { field: 'tubo_endotraqueal', fechaCol: 'fecha_colocacion_ett', fechaRet: 'fecha_retiro_ett' },
+            { field: 'traqueostomia', fechaCol: 'fecha_colocacion_traqueostomia', fechaRet: 'fecha_retiro_traqueostomia' },
+            { field: 'cateter_intraventricular', fechaCol: 'fecha_colocacion_cateter_intraventricular', fechaRet: 'fecha_retiro_cateter_intraventricular' },
+            { field: 'gastrostomia', fechaCol: 'fecha_colocacion_gastrostomia', fechaRet: 'fecha_retiro_gastrostomia' },
+            { field: 'linea_arterial', fechaCol: 'fecha_colocacion_linea_arterial', fechaRet: 'fecha_retiro_linea_arterial' },
+            { field: 'cateter_hemodialisis', fechaCol: 'fecha_colocacion_hemodialisis', fechaRet: 'fecha_retiro_hemodialisis' }
+        ];
+        
+        dispositivos.forEach(disp => {
+            const isActive = ultimaEvolucion[disp.field];
+            const fechaCol = ultimaEvolucion[disp.fechaCol];
+            const fechaRet = ultimaEvolucion[disp.fechaRet];
+            
+            if (isActive && fechaCol && !fechaRet) {
+                // El dispositivo está activo, copiar fecha de colocación
+                const check = document.querySelector(`[name="${disp.field}"]`);
+                const fechaColInput = document.querySelector(`[name="${disp.fechaCol}"]`);
+                const fechaRetInput = document.querySelector(`[name="${disp.fechaRet}"]`);
+                
+                if (check && fechaColInput) {
+                    check.checked = true;
+                    fechaColInput.value = fechaCol;
+                    
+                    // Disparar evento change para mostrar el container
+                    check.dispatchEvent(new Event('change'));
+                    cargados++;
+                }
+            }
+        });
+        
+        if (cargados > 0) {
+            alert(`✅ ${cargados} dispositivo(s) cargado(s) de la última evolución`);
+        } else {
+            alert('ℹ️ No hay dispositivos activos en la última evolución');
+        }
+        
+    } catch (error) {
+        console.error('Error cargando dispositivos:', error);
+        alert('❌ Error al cargar dispositivos: ' + error.message);
+    }
+}
+
+// Función legacy - ya no se usa el cálculo automático basado en evoluciones previas
+async function calcularDiasSonda() {
+    // La lógica ahora se maneja en initSondaUrinaria con fechas
+    // Esta función se mantiene por compatibilidad pero no hace nada
+    console.log('calcularDiasSonda: deprecated, use fechas instead');
+    
+    // Eliminado bloque try/catch vacío que causaba error de sintaxis
+}
+
+// Calcular Índice Urinario (mL/kg/h)
+function calculateIndiceUrinario() {
+    const diuresis = parseFloat(document.querySelector('[name="diuresis"]')?.value);
+    // Peso del paciente desde datos del template
+    const pesoPaciente = parseFloat('{{ patient.peso_estimado|default(0) }}') || 70; // default 70kg
+    
+    if (diuresis !== undefined && diuresis !== null && !isNaN(diuresis) && pesoPaciente) {
+        const indice = (diuresis / pesoPaciente / 24).toFixed(2);
+        const field = document.getElementById('indice_urinario_field');
+        if (field) field.value = indice;
+        const hidden = document.getElementById('indice_urinario_hidden');
+        if (hidden) hidden.value = indice;
+    }
+}
+
+document.querySelector('[name="ingresos"]')?.addEventListener('input', calculateBalance);
+document.querySelector('[name="egresos"]')?.addEventListener('input', calculateBalance);
+document.querySelector('[name="diuresis"]')?.addEventListener('input', calculateIndiceUrinario);
+document.querySelector('[name="pplat"]')?.addEventListener('change', calculateDrivingPressure);
+document.querySelector('[name="peep"]')?.addEventListener('change', calculateDrivingPressure);
+
+// Parser de laboratorios mejorado
+const LAB_PATTERNS = {
+    // Hematología
+    'HB': 'hemoglobina', 'HGB': 'hemoglobina', 'HEMOGLOBINA': 'hemoglobina',
+    'HTO': 'hematocrito', 'HCT': 'hematocrito', 'HEMATOCRITO': 'hematocrito',
+    'LEU': 'leucocitos', 'WBC': 'leucocitos', 'LEUCOCITOS': 'leucocitos',
+    'PLAQ': 'plaquetas', 'PLT': 'plaquetas', 'PLAQUETAS': 'plaquetas',
+    'NEU': 'neutrofilos', 'NEUTROFILOS': 'neutrofilos',
+    'LIN': 'linfocitos', 'LINFOCITOS': 'linfocitos',
+    // Química sanguínea
+    'GLU': 'glucosa', 'GLIC': 'glucosa', 'GLICEMIA': 'glucosa', 'GLUCOSA': 'glucosa',
+    'NA': 'sodio', 'SODIO': 'sodio',
+    'K': 'potasio', 'POTASIO': 'potasio', 'K+': 'potasio',
+    'CL': 'cloro', 'CLORO': 'cloro',
+    'CREAT': 'creatinina', 'CR': 'creatinina', 'CREATININA': 'creatinina',
+    'CREA': 'creatinina',
+    'UREA': 'urea', 'UR': 'urea',
+    'BUN': 'bun',
+    'BT': 'bilirrubina_total', 'BILIRRUBINA': 'bilirrubina_total',
+    'BD': 'bilirrubina_directa', 'BI': 'bilirrubina_indirecta',
+    'ALB': 'albumina', 'ALBUMINA': 'albumina',
+    'ALT': 'alt', 'AST': 'ast', 'DHL': 'dhl', 'LDH': 'dhl',
+    'FA': 'fosfatasa_alcalina', 'FAL': 'fosfatasa_alcalina',
+    'AMIL': 'amilasa', 'LIP': 'lipasa',
+    'P': 'fosforo', 'FOSFORO': 'fosforo',
+    'MG': 'magnesio', 'MAGNESIO': 'magnesio',
+    'CA': 'calcio', 'CALCIO': 'calcio',
+    // Gasometría
+    'PH': 'ph',
+    'PCO2': 'pco2', 'PCO': 'pco2',
+    'PO2': 'po2', 'PO': 'po2',
+    'HCO3': 'hco3', 'HCO': 'hco3', 'BICARBONATO': 'hco3',
+    'LAC': 'lactato', 'LACTATO': 'lactato', 'LCT': 'lactato',
+    // Inflamación
+    'PCR': 'pcr', 'PROTEINAC': 'pcr',
+    'PCT': 'pct', 'PROCALCITONINA': 'pct',
+    'VSG': 'vsg',
+    // Coagulación
+    'TP': 'tp', 'TTP': 'ttp', 'INR': 'inr', 'FIBRINOGENO': 'fibrinogeno',
+    'TROP': 'troponina', 'TROPONINA': 'troponina',
+    'BNP': 'bnp', 'PROBNP': 'bnp',
+    'DIMERO': 'dimero_d', 'DDIMERO': 'dimero_d'
+};
+
+function parseLabs() {
+    let input = document.getElementById('labInput').value;
+    const resultsDiv = document.getElementById('labResults');
+    
+    if (!input.trim()) {
+        resultsDiv.innerHTML = '';
+        return;
+    }
+    
+    // Normalizar input: reemplazar comas por puntos, eliminar símbolos extra
+    // PERO preservar + para K+, Na+
+    let normalizedInput = input.replace(/,/g, '.').replace(/[\-=\->\<]/g, ' ');
+    
+    // Construir regex dinámico con TODAS las abreviaturas ordenadas por longitud
+    const abbrKeys = Object.keys(LAB_PATTERNS).sort((a, b) => b.length - a.length);
+    const abbrPattern = abbrKeys.map(a => a.replace(/\+/g, '\\+')).join('|');
+    
+    // Patrón maestro: abreviatura opcionalmente seguida de +, luego : o espacio, luego número
+    const masterPattern = new RegExp('\\b(' + abbrPattern + ')(?:\\+)?\\s*[:]?\\s+([0-9]+\\.?[0-9]*)', 'gi');
+    
+    let matches = new Map(); 
+    let match;
+    
+    while ((match = masterPattern.exec(normalizedInput)) !== null) {
+        let abbr = match[1].toUpperCase().trim();
+        let value = match[2].trim();
+        
+        if (LAB_PATTERNS[abbr]) {
+            matches.set(abbr, value);
+        }
+    }
+    
+    // Generar HTML de resultados
+    let html = '<div style="margin-bottom: 15px;"><strong>🔬 Laboratorios interpretados:</strong></div>';
+    
+    if (matches.size === 0) {
+        html += '<div style="color: #888; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 4px;">';
+        html += 'No se encontraron laboratorios reconocidos.<br>';
+        html += '<small>Intenta: "HB 8.7 K 4.2 CREA 1.2 GLU 145 BUN 20 NA 140 CL 101 CA 9"</small>';
+        html += '</div>';
+        resultsDiv.innerHTML = html;
+        return;
+    }
+    
+    let foundAny = false;
+    for (const [abbr, value] of matches) {
+        const fieldName = LAB_PATTERNS[abbr];
+        const field = document.querySelector(`[name="${fieldName}"], .lab-field[data-lab="${abbr}"]`);
+        
+        if (field) {
+            foundAny = true;
+            field.value = value;
+            field.style.transition = 'background 0.5s';
+            field.style.background = 'rgba(255, 107, 53, 0.2)';
+            setTimeout(() => { field.style.background = ''; }, 1500);
+        }
+        
+        html += `<div class="lab-result"><span>${abbr}:</span><span class="value">${value}</span></div>`;
+    }
+    
+    resultsDiv.innerHTML = html;
+    
+    if (foundAny) {
+        showToast(`OK ${matches.size} laboratorios interpretados`, 'success');
+    }
+}
+
+function clearLabs() {
+    document.getElementById('labInput').value = '';
+    document.getElementById('labResults').innerHTML = '';
+    document.querySelectorAll('.lab-field').forEach(field => {
+        field.value = '';
+    });
+}
+
+// Generador de Nota Unificado (dropdown)
+function generarNota() {
+    const formato = document.getElementById('noteFormat').value;
+    const btn = document.getElementById('btnGenerarNota');
+    const textoOriginal = btn.textContent;
+    
+    console.log('=== DEBUG generarNota() ===');
+    console.log('Formato seleccionado:', formato);
+    console.log('Boton encontrado:', btn ? 'SI' : 'NO');
+    
+    btn.textContent = 'Generando...';
+    btn.disabled = true;
+    
+    // Redirigir al generador específico
+    let promise;
+    switch(formato) {
+        case 'psoap':
+            console.log('Llamando generarNotaPSOAS()...');
+            promise = generarNotaPSOAS();
+            break;
+        case 'ingreso':
+            console.log('Llamando generarNotaIngresoUCI()...');
+            promise = generarNotaIngresoUCI();
+            break;
+        case 'egreso':
+            console.log('Llamando generarNotaEgreso()...');
+            promise = generarNotaEgreso();
+            break;
+        case 'raw':
+            console.log('Llamando generarNotaRaw()...');
+            promise = generarNotaRaw();
+            break;
+        case 'resumen':
+            alert('Formato Resumen aún no implementado');
+            btn.textContent = textoOriginal;
+            btn.disabled = false;
+            return;
+        default:
+            console.error('Formato desconocido:', formato);
+            alert('Formato desconocido: ' + formato);
+            btn.textContent = textoOriginal;
+            btn.disabled = false;
+            return;
+    }
+    
+    // Verificar que la función retornó una Promise
+    if (!promise || typeof promise.then !== 'function') {
+        console.error('ERROR: La funcion no retorno una Promise');
+        btn.textContent = textoOriginal;
+        btn.disabled = false;
+        return;
+    }
+    
+    promise.then(() => {
+        console.log('Nota generada exitosamente');
+    }).catch(err => {
+        console.error('Error en generacion:', err);
+    }).finally(() => {
+        btn.textContent = textoOriginal;
+        btn.disabled = false;
+    });
+}
+
+// Generador de Nota Egreso
+async function generarNotaEgreso() {
+    console.log('Generando nota de egreso...');
+    
+    const btn = document.getElementById('btnGenerarNota');
+    
+    // Obtener patient_id de la URL
+    const pathParts = window.location.pathname.split('/');
+    let patientId = '';
+    for (let i = 0; i < pathParts.length; i++) {
+        if (pathParts[i] === 'patient' && i + 1 < pathParts.length) {
+            patientId = pathParts[i + 1];
+            break;
+        }
+    }
+    
+    try {
+        const response = await fetch('/api/generate-note', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                patient_id: patientId,
+                format: 'egreso',
+                form_data: Object.fromEntries(new FormData(document.getElementById('evolutionForm')))
+            })
+        });
+        
+        if (!response.ok) throw new Error('Error HTTP ' + response.status);
+        
+        const data = await response.json();
+        if (data.success) {
+            document.getElementById('notaFinal').value = data.note;
+            document.getElementById('notaFinal').scrollTop = 0;
+        } else {
+            throw new Error(data.error || 'Error desconocido');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error: ' + error.message);
+    }
+}
+
+// Generador de Nota Raw (todos los datos)
+async function generarNotaRaw() {
+    console.log('Generando nota raw...');
+    
+    const btn = document.getElementById('btnGenerarNota');
+    
+    // Obtener patient_id de la URL
+    const pathParts = window.location.pathname.split('/');
+    let patientId = '';
+    for (let i = 0; i < pathParts.length; i++) {
+        if (pathParts[i] === 'patient' && i + 1 < pathParts.length) {
+            patientId = pathParts[i + 1];
+            break;
+        }
+    }
+    
+    try {
+        const response = await fetch('/api/generate-note', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                patient_id: patientId,
+                format: 'raw',
+                form_data: Object.fromEntries(new FormData(document.getElementById('evolutionForm')))
+            })
+        });
+        
+        if (!response.ok) throw new Error('Error HTTP ' + response.status);
+        
+        const data = await response.json();
+        if (data.success) {
+            document.getElementById('notaFinal').value = data.note;
+            document.getElementById('notaFinal').scrollTop = 0;
+        } else {
+            throw new Error(data.error || 'Error desconocido');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error: ' + error.message);
+    }
+}
+
+// Generador de Nota PSOAP (boton verde)
+function generarNotaPSOAS() {
+    console.log('Generando nota PSOAP...');
+    
+    // Usar el boton principal si el legacy esta oculto
+    let btn = document.getElementById('btnPsoap');
+    let usarBtnPrincipal = false;
+    if (!btn || btn.offsetParent === null) {
+        btn = document.getElementById('btnGenerarNota');
+        usarBtnPrincipal = true;
+    }
+    const textoOriginal = btn.textContent;
+    btn.textContent = 'Generando...';
+    btn.disabled = true;
+    
+    // Recopilar datos del formulario
+    const form = document.getElementById('evolutionForm');
+    const formData = new FormData(form);
+    const datos = {};
+    
+    for (const [key, value] of formData.entries()) {
+        datos[key] = value;
+    }
+    
+    // Obtener patient_id de la URL - soporta /patient/ID/evolution y /patient/ID/evolution/EVO_ID/edit
+    const pathParts = window.location.pathname.split('/');
+    let patientId = '';
+    for (let i = 0; i < pathParts.length; i++) {
+        if (pathParts[i] === 'patient' && i + 1 < pathParts.length) {
+            patientId = pathParts[i + 1];
+            break;
+        }
+    }
+    
+    console.log('Patient ID:', patientId);
+    
+    return fetch('/api/generate-psoas-note', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+            patient_id: patientId,
+            form_data: datos
+        })
+    })
+    .then(response => {
+        if (response.status === 401 || response.status === 403) {
+            throw new Error('Sesion invalida o expirada. Recargue la pagina.');
+        }
+        if (!response.ok) {
+            throw new Error('Error HTTP ' + response.status);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (!usarBtnPrincipal) {
+            btn.textContent = textoOriginal;
+            btn.disabled = false;
+        }
+        
+        if (data.success) {
+            const notaFinal = document.getElementById('notaFinal');
+            if (notaFinal) {
+                notaFinal.value = data.note;
+                notaFinal.scrollTop = 0;
+                console.log('Nota PSOAP generada OK. NEWS2:', data.news2, data.riesgo_news2);
+            }
+        } else {
+            console.error('Error del servidor:', data.error);
+            alert('Error al generar nota: ' + data.error);
+        }
+    })
+    .catch(error => {
+        if (!usarBtnPrincipal) {
+            btn.textContent = textoOriginal;
+            btn.disabled = false;
+        }
+        console.error('Error:', error);
+        alert('Error: ' + error.message);
+    });
+}
+
+// Generador de Nota de Ingreso UCI (boton azul)
+function generarNotaIngresoUCI() {
+    console.log('Generando nota de ingreso UCI...');
+    
+    // Usar el boton principal si el legacy esta oculto
+    let btn = document.getElementById('btnUci');
+    let usarBtnPrincipal = false;
+    if (!btn || btn.offsetParent === null) {
+        btn = document.getElementById('btnGenerarNota');
+        usarBtnPrincipal = true;
+    }
+    const textoOriginal = btn.textContent;
+    btn.textContent = 'Generando...';
+    btn.disabled = true;
+    
+    // Recopilar datos del formulario
+    const form = document.getElementById('evolutionForm');
+    const formData = new FormData(form);
+    const datos = {};
+    
+    for (const [key, value] of formData.entries()) {
+        datos[key] = value;
+    }
+    
+    // Obtener patient_id de la URL
+    const pathParts = window.location.pathname.split('/');
+    let patientId = '';
+    for (let i = 0; i < pathParts.length; i++) {
+        if (pathParts[i] === 'patient' && i + 1 < pathParts.length) {
+            patientId = pathParts[i + 1];
+            break;
+        }
+    }
+    
+    console.log('Patient ID para ingreso UCI:', patientId);
+    
+    return fetch('/api/generate-ingreso-note', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+            patient_id: patientId,
+            form_data: datos
+        })
+    })
+    .then(response => {
+        if (response.status === 401 || response.status === 403) {
+            throw new Error('Sesion invalida o expirada. Recargue la pagina.');
+        }
+        if (!response.ok) {
+            throw new Error('Error HTTP ' + response.status);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (!usarBtnPrincipal) {
+            btn.textContent = textoOriginal;
+            btn.disabled = false;
+        }
+        
+        if (data.success) {
+            const notaFinal = document.getElementById('notaFinal');
+            if (notaFinal) {
+                notaFinal.value = data.note;
+                notaFinal.scrollTop = 0;
+                console.log('Nota de ingreso UCI generada OK');
+            }
+        } else {
+            console.error('Error del servidor:', data.error);
+            alert('Error al generar nota de ingreso: ' + data.error);
+        }
+    })
+    .catch(error => {
+        if (!usarBtnPrincipal) {
+            btn.textContent = textoOriginal;
+            btn.disabled = false;
+        }
+        console.error('Error:', error);
+        alert('Error: ' + error.message);
+    });
+}
+function getRiesgoNEWS2(score) {
+    if (score >= 7) return '(Riesgo ALTO)';
+    if (score >= 5) return '(Riesgo MODERADO)';
+    if (score >= 1) return '(Riesgo BAJO)';
+    return '(Normal)';
+}
+
+// Tab navigation
+function showTab(tabName) {
+    console.log('Cambiando a tab:', tabName);
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    
+    const tab = document.getElementById(`tab-${tabName}`);
+    const tabButton = document.querySelector(`.tab[data-tab="${tabName}"]`);
+    
+    if (tab) {
+        tab.classList.add('active');
+        console.log('Tab activada:', tabName, 'Elemento:', tab);
+    } else {
+        console.error('Tab no encontrada:', tabName);
+    }
+    
+    if (tabButton) {
+        tabButton.classList.add('active');
+    } else {
+        console.error('Botón de tab no encontrado:', tabName);
+    }
+}
+
+// Sync nota editable antes de enviar
+document.getElementById('evolutionForm').addEventListener('submit', function(e) {
+    const notaEditable = document.getElementById('notaFinal');
+    if (notaEditable) {
+        document.getElementById('notaHidden').value = notaEditable.value;
+    }
+    
+    const planNota = document.getElementById('plan_nota');
+    if (planNota) {
+        document.getElementById('planHidden').value = planNota.value;
+    }
+});
+
+function showToast(message, type) {
+    console.log(`[${type}] ${message}`);
+}
+
+// Cargar evolucion existente si esta disponible
+function loadExistingEvolution() {
+    const selects = document.querySelectorAll('select[data-field]');
+    selects.forEach(select => {
+        const currentValue = select.value;
+        if (currentValue) {
+            const options = select.querySelectorAll('option');
+            options.forEach(opt => {
+                if (opt.value === currentValue) {
+                    opt.selected = true;
+                }
+            });
+        }
+    });
+    
+    const notaFinal = document.getElementById('notaFinal');
+    if (notaFinal && notaFinal.value) {
+        console.log('Nota precargada con', notaFinal.value.length, 'caracteres');
+    }
+}
+
+
+// === Funcion cargarUltimaEvolucion ===
+async function cargarUltimaEvolucion() {
+    // Obtener patient_id de la URL - /patient/ID/evolution
+    const pathParts = window.location.pathname.split('/');
+    let patientId = '';
+    for (let i = 0; i < pathParts.length; i++) {
+        if (pathParts[i] === 'patient' && i + 1 < pathParts.length) {
+            patientId = pathParts[i + 1];
+            break;
+        }
+    }
+    
+    if (!patientId) {
+        alert('No se encontro ID de paciente en la URL');
+        return;
+    }
+    
+    try {
+        // 1. Obtener evoluciones del paciente
+        const response = await fetch('/api/patient/' + patientId + '/trends?limit=10', {
+            credentials: 'include'
+        });
+        const data = await response.json();
+        
+        // 2. Obtener ID de la evolución actual (si estamos editando)
+        const pathParts = window.location.pathname.split('/');
+        let currentEvoId = null;
+        for (let i = 0; i < pathParts.length; i++) {
+            if (pathParts[i] === 'evolution' && i + 1 < pathParts.length && pathParts[i + 1] !== '') {
+                currentEvoId = parseInt(pathParts[i + 1]);
+                break;
+            }
+        }
+        
+        // 3. Buscar la última evolución CON CONTENIDO (excluyendo la actual)
+        let ultimaUtil = null;
+        
+        if (data.evoluciones && data.evoluciones.length > 0) {
+            for (const evo of data.evoluciones) {
+                // Saltar la evolución actual si estamos editando
+                if (currentEvoId && evo.id === currentEvoId) {
+                    continue;
+                }
+                // Buscar evolución con contenido (nota, SOAP, o diagnóstico)
+                if (evo.nota || evo.subjetivo || evo.objetivo || evo.analisis || evo.plan || evo.diagnostico_actual) {
+                    ultimaUtil = evo;
+                    break;
+                }
+            }
+        }
+        
+        // 4. Obtener referencias a los campos del formulario
+        const subjetivo = document.getElementById('subjetivo');
+        const objetivo = document.getElementById('objetivo');
+        const analisis = document.getElementById('analisis_nota');
+        const plan = document.getElementById('plan_nota');
+        const notaFinal = document.getElementById('notaFinal');
+        const diagnosticoActual = document.getElementById('diagnostico_actual');
+        
+        // 5. Si hay evolución anterior con contenido → importar
+        if (ultimaUtil) {
+            console.log('Importando desde evolución anterior ID:', ultimaUtil.id);
+            
+            // Importar campos SOAP
+            if (subjetivo && ultimaUtil.subjetivo) subjetivo.value = ultimaUtil.subjetivo;
+            if (objetivo && ultimaUtil.objetivo) objetivo.value = ultimaUtil.objetivo;
+            if (analisis && ultimaUtil.analisis) analisis.value = ultimaUtil.analisis;
+            if (plan && ultimaUtil.plan) plan.value = ultimaUtil.plan;
+            
+            // Importar nota final (campo 'nota')
+            if (notaFinal && ultimaUtil.nota) {
+                notaFinal.value = ultimaUtil.nota;
+                // Actualizar también el hidden input
+                const notaHidden = document.getElementById('notaHidden');
+                if (notaHidden) notaHidden.value = ultimaUtil.nota;
+            }
+            
+            // Importar diagnóstico actual
+            if (diagnosticoActual && ultimaUtil.diagnostico_actual) {
+                diagnosticoActual.value = ultimaUtil.diagnostico_actual;
+            }
+            
+            showCargarSuccess('Datos de evolución anterior cargados');
+            return;
+        }
+        
+        // 6. Si NO hay evolución anterior con contenido → usar datos del INGRESO del paciente
+        console.log('No hay evolución anterior, usando datos de ingreso...');
+        
+        // Usar datos del paciente (disponibles en la variable patientData del template)
+        if (patientData && patientData.diagnostico) {
+            const diagnosticoIngreso = patientData.diagnostico || 'No especificado';
+            
+            // Construir OBJETIVO desde exploración física por aparatos/sistemas
+            let objetivoTexto = '';
+            const exploraciones = [];
+            
+            if (patientData.exploracionNeurologica) {
+                exploraciones.push('NEUROLÓGICO: ' + patientData.exploracionNeurologica);
+            }
+            if (patientData.exploracionHemodinamica) {
+                exploraciones.push('HEMODINÁMICO: ' + patientData.exploracionHemodinamica);
+            }
+            if (patientData.exploracionVentilatoria) {
+                exploraciones.push('VENTILATORIO: ' + patientData.exploracionVentilatoria);
+            }
+            if (patientData.exploracionGastro) {
+                exploraciones.push('GASTROMETABÓLICO: ' + patientData.exploracionGastro);
+            }
+            if (patientData.exploracionHema) {
+                exploraciones.push('HEMATOLÓGICO/INFECCIOSO: ' + patientData.exploracionHema);
+            }
+            
+            if (exploraciones.length > 0) {
+                objetivoTexto = exploraciones.join('\n\n');
+            } else {
+                objetivoTexto = 'No se registró exploración física detallada en el ingreso.';
+            }
+            
+            // Cargar campos del formulario
+            if (subjetivo) subjetivo.value = 'Paciente ingresa a UCI para manejo integral.';
+            if (objetivo) objetivo.value = objetivoTexto;
+            if (analisis) analisis.value = diagnosticoIngreso;
+            if (plan) plan.value = '1. Monitoreo continuo de signos vitales\n2. Manejo según protocolo institucional\n3. Revaloración médica continua';
+            if (diagnosticoActual) diagnosticoActual.value = diagnosticoIngreso;
+            
+            // Crear nota base completa
+            const notaBase = `NOTA DE INGRESO
+
+PACIENTE: ${patientData.nombre || 'N/A'}
+EDAD: ${patientData.edad || 'N/A'} años
+DIAGNÓSTICO DE INGRESO: ${diagnosticoIngreso}
+
+S - SUBJETIVO
+Paciente ingresa a UCI para manejo integral.
+
+O - OBJETIVO
+${objetivoTexto}
+
+A - ANÁLISIS
+${diagnosticoIngreso}
+
+P - PLAN
+1. Monitoreo continuo de signos vitales
+2. Manejo según protocolo institucional
+3. Revaloración médica continua
+
+─────────────────────
+Importado desde datos de ingreso`;
+            
+            if (notaFinal) {
+                notaFinal.value = notaBase;
+                const notaHidden = document.getElementById('notaHidden');
+                if (notaHidden) notaHidden.value = notaBase;
+            }
+            
+            showCargarSuccess('Datos de ingreso cargados (sin evoluciones previas)');
+        } else {
+            alert('No hay evoluciones previas ni datos de ingreso disponibles');
+        }
+        
+    } catch (err) {
+        console.error('Error cargando ultima evolucion:', err);
+        alert('Error al cargar datos de ultima evolucion');
+    }
+}
+
+// Helper para mostrar éxito del botón cargar
+function showCargarSuccess(mensaje) {
+    const btn = document.getElementById('btn-cargar-ultima');
+    if (btn) {
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check me-1"></i>' + mensaje;
+        btn.classList.remove('btn-outline-primary');
+        btn.classList.add('btn-success');
+        setTimeout(() => {
+            btn.innerHTML = originalText;
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-outline-primary');
+        }, 2500);
+    }
+}
+
+// Auto-guardado de borrador en localStorage
+let autoSaveTimer = null;
+const DRAFT_KEY = 'sinapsid_draft_' + window.location.pathname;
+
+function initAutoSave() {
+    const form = document.getElementById('evolutionForm');
+    if (!form) return;
+    
+    // Cargar borrador si existe
+    const saved = localStorage.getItem(DRAFT_KEY);
+    if (saved) {
+        try {
+            const draft = JSON.parse(saved);
+            const savedTime = new Date(draft.timestamp);
+            const now = new Date();
+            const hoursDiff = (now - savedTime) / (1000 * 60 * 60);
+            
+            // Solo restaurar si tiene menos de 24 horas
+            if (hoursDiff < 24) {
+                // Nota: No restauramos automáticamente para evitar sobreescribir datos del servidor
+                console.log('Borrador disponible desde:', savedTime.toLocaleString());
+            }
+        } catch (e) {
+            console.error('Error parsing draft:', e);
+        }
+    }
+    
+    // Guardar borrador cada 30 segundos después de cambios
+    form.addEventListener('input', () => {
+        clearTimeout(autoSaveTimer);
+        showAutoSaveStatus('saving');
+        
+        autoSaveTimer = setTimeout(() => {
+            saveDraft();
+            showAutoSaveStatus('saved');
+        }, 2000);
+    });
+}
+
+function saveDraft() {
+    const form = document.getElementById('evolutionForm');
+    if (!form) return;
+    
+    const formData = new FormData(form);
+    const data = {};
+    
+    for (const [key, value] of formData.entries()) {
+        // Solo guardar campos no vacíos
+        if (value && value.trim() !== '') {
+            data[key] = value;
+        }
+    }
+    
+    const draft = {
+        timestamp: new Date().toISOString(),
+        data: data
+    };
+    
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    console.log('Borrador guardado:', Object.keys(data).length, 'campos');
+}
+
+function showAutoSaveStatus(status) {
+    const indicator = document.getElementById('autosaveIndicator');
+    const text = document.getElementById('autosaveText');
+    
+    if (!indicator || !text) return;
+    
+    indicator.classList.add('visible');
+    indicator.classList.remove('saving', 'saved');
+    
+    if (status === 'saving') {
+        indicator.classList.add('saving');
+        text.textContent = '💾 Guardando borrador...';
+    } else if (status === 'saved') {
+        indicator.classList.add('saved');
+        text.textContent = '✅ Borrador guardado';
+        
+        setTimeout(() => {
+            indicator.classList.remove('visible');
+        }, 2000);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadExistingEvolution();
+    initAutoSave();
+    initAllDispositivos();
+});
+</script>
+{% endblock %}

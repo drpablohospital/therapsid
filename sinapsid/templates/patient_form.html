@@ -1,0 +1,3448 @@
+{% extends "base.html" %}
+{% block title %}{% if mode == 'new' %}Nuevo Paciente{% else %}Editar Paciente{% endif %}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2>{% if mode == 'new' %}Nuevo Paciente{% else %}Editar Paciente{% endif %}</h2>
+        <button type="button" class="btn" onclick="showImportModal()">📋 Cargar desde Nota</button>
+    </div>
+
+    <!-- Modal de Importación -->
+    <div id="importModal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3>📋 Cargar desde Nota Médica</h3>
+                <button class="modal-close" onclick="hideImportModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-text">Pega el texto de la nota médica aquí. El sistema intentará extraer los datos automáticamente.</p>
+                <textarea id="importText" class="modal-textarea" placeholder="Pega aquí la nota médica... Ejemplo:
+Nombre: [Nombre del paciente]
+Edad: 65 años
+Sexo: Masculino
+Expediente: 123456
+..."></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="hideImportModal()">Cancelar</button>
+                <button type="button" class="btn" onclick="parseAndFillForm()">🔍 Analizar y Llenar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs Navigation -->
+    <div class="tabs">
+        <button type="button" class="tab active" data-tab="contextual" onclick="showTab('contextual')">📋</button>
+        <button type="button" class="tab" data-tab="neurologico" onclick="showTab('neurologico')">🧠</button>
+        <button type="button" class="tab" data-tab="hemodinamico" onclick="showTab('hemodinamico')">❤️</button>
+        <button type="button" class="tab" data-tab="ventilatorio" onclick="showTab('ventilatorio')">🫁</button>
+        <button type="button" class="tab" data-tab="hidrico" onclick="showTab('hidrico')">💧</button>
+        <button type="button" class="tab" data-tab="gastro" onclick="showTab('gastro')">🍽️</button>
+        <button type="button" class="tab" data-tab="hematologia" onclick="showTab('hematologia')">🩸</button>
+        <button type="button" class="tab" data-tab="antecedentes" onclick="showTab('antecedentes')">📜</button>
+        <button type="button" class="tab" data-tab="evaluacion" onclick="showTab('evaluacion')">📊</button>
+        <button type="button" class="tab" data-tab="egreso" onclick="showTab('egreso')">🏥</button>
+    </div>
+
+    <form method="POST" action="{% if mode == 'new' %}{{ url_for('new_patient') }}{% else %}{{ url_for('edit_patient', id=patient.id) }}{% endif %}" id="patientForm">
+        
+        <!-- 📋 Datos Contextuales -->
+        <div id="tab-contextual" class="tab-content active">
+            <div class="card-body">
+                <h3 style="color: var(--accent); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px;">📋 Datos Contextuales</h3>
+                <div class="section-grid">
+                    <div class="form-group">
+                        <label for="expediente">Expediente *</label>
+                        <input type="text" id="expediente" name="expediente" value="{{ patient.expediente if patient else '' }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="nombre_completo">Nombre Completo *</label>
+                        <input type="text" id="nombre_completo" name="nombre_completo" value="{{ patient.nombre_completo if patient else '' }}" placeholder="NOMBRE(S) APELLIDOS" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="fecha_nacimiento">Fecha de Nacimiento</label>
+                        <input type="date" id="fecha_nacimiento" name="fecha_nacimiento" value="{{ patient.fecha_nacimiento if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="edad">Edad <span class="calculated-badge">⚡</span></label>
+                        <input type="number" id="edad" name="edad" value="{{ patient.edad if patient else '' }}" class="form-control calculated-field" readonly>
+                        <small class="calculated-hint">Calculado desde Fecha de Nacimiento</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="sexo">Sexo</label>
+                        <select id="sexo" name="sexo">
+                            <option value="">Seleccionar...</option>
+                            <option value="M" {{ 'selected' if patient and patient.sexo == 'M' else '' }}>Masculino</option>
+                            <option value="F" {{ 'selected' if patient and patient.sexo == 'F' else '' }}>Femenino</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="curp">CURP</label>
+                        <input type="text" id="curp" name="curp" value="{{ patient.curp if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="procedencia">Hospital</label>
+                        <select id="procedencia" name="procedencia">
+                            <option value="">Seleccionar...</option>
+                            <option value="HGSJDR" {{ 'selected' if patient and patient.procedencia == 'HGSJDR' else '' }}>HGSJDR</option>
+                            <option value="Otro" {{ 'selected' if patient and patient.procedencia == 'Otro' else '' }}>Otro</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="servicio_tratante">Servicio Tratante</label>
+                        <select id="servicio_tratante" name="servicio_tratante">
+                            <option value="">Seleccionar...</option>
+                            <option value="UCI" {{ 'selected' if patient and patient.servicio_tratante == 'UCI' else '' }}>UCI</option>
+                            <option value="MI" {{ 'selected' if patient and patient.servicio_tratante == 'MI' else '' }}>MI</option>
+                            <option value="URG" {{ 'selected' if patient and patient.servicio_tratante == 'URG' else '' }}>URG</option>
+                            <option value="Otro" {{ 'selected' if patient and patient.servicio_tratante == 'Otro' else '' }}>Otro</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="fecha_ingreso_hosp">Fecha Ingreso Hospital</label>
+                        <input type="date" id="fecha_ingreso_hosp" name="fecha_ingreso_hosp" value="{{ patient.fecha_ingreso_hosp if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="fecha_ingreso">Fecha Ingreso UCI</label>
+                        <input type="date" id="fecha_ingreso" name="fecha_ingreso" value="{{ patient.fecha_ingreso if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="dias_estancia">Días Estancia <span class="calculated-badge">⚡</span></label>
+                        <input type="number" id="dias_estancia" name="dias_estancia" value="{{ patient.dias_estancia if patient else '' }}" class="form-control calculated-field" readonly>
+                        <small class="calculated-hint">Días desde Fecha de Ingreso UCI hasta hoy</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="cama">Cama</label>
+                        <input type="text" id="cama" name="cama" value="{{ patient.cama if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="episodio">Episodio <span class="calculated-badge">⚡</span></label>
+                        <input type="text" id="episodio" name="episodio" value="{{ patient.episodio if patient else '' }}" class="form-control calculated-field" readonly>
+                        <small class="calculated-hint">ID único entre centros (auto-generado)</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="peso_estimado">Peso Estimado (kg)</label>
+                        <input type="number" step="any" id="peso_estimado" name="peso_estimado" value="{{ patient.peso_estimado if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="talla">Talla (m)</label>
+                        <input type="number" step="any" id="talla" name="talla" value="{{ patient.talla if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="peso_ideal">Peso Ideal (kg) <span class="calculated-badge">⚡</span></label>
+                        <input type="number" step="any" id="peso_ideal" name="peso_ideal" value="{{ patient.peso_ideal if patient else '' }}" class="form-control calculated-field" readonly>
+                        <small class="calculated-hint">Hombre: 50 + 0.91×(talla×100 - 152.4) | Mujer: 45.5 + 0.91×(talla×100 - 152.4)</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="imc">IMC <span class="calculated-badge">⚡</span></label>
+                        <input type="number" step="any" id="imc" name="imc" value="{{ patient.imc if patient else '' }}" class="form-control calculated-field" readonly>
+                        <small class="calculated-hint">IMC = Peso (kg) / Talla² (m²)</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="peso_ajustado">Peso Ajustado (kg) <span class="calculated-badge">⚡</span></label>
+                        <input type="number" step="any" id="peso_ajustado" name="peso_ajustado" value="{{ patient.peso_ajustado if patient else '' }}" class="form-control calculated-field" readonly>
+                        <small class="calculated-hint">Peso Ajustado = Peso Ideal + 0.25×(Peso Real - Peso Ideal)</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 🧠 Neurológico -->
+        <div id="tab-neurologico" class="tab-content">
+            <div class="card-body">
+                <h3 style="color: var(--accent); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px;">🧠 Evaluación Neurológica</h3>
+                <div class="section-grid">
+                    <div class="form-group">
+                        <label for="cpot">CPOT (Critical-Care Pain Observation Tool)</label>
+                        <input type="number" id="cpot" name="cpot" min="0" max="8" value="{{ patient.cpot if patient else '' }}">
+                        <small style="color: var(--text-secondary); font-size: 0.75rem;">0 = Sin dolor, 8 = Dolor severo</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="rass">RASS (Richmond Agitation-Sedation Scale)</label>
+                        <input type="number" id="rass" name="rass" min="-5" max="4" value="{{ patient.rass if patient else '' }}">
+                        <small style="color: var(--text-secondary); font-size: 0.75rem;">-5 = No despierta, 0 = Alerta y tranquilo, 4 = Muy agitado</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="glasgow">Glasgow Coma Scale</label>
+                        <input type="number" id="glasgow" name="glasgow" min="3" max="15" value="{{ patient.glasgow if patient else '' }}">
+                        <small style="color: var(--text-secondary); font-size: 0.75rem;">3 = Mínimo, 15 = Normal</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="pupilas_mm">Tamaño Pupilas (mm)</label>
+                        <input type="number" step="any" id="pupilas_mm" name="pupilas_mm" value="{{ patient.pupilas_mm if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="reflejo_pupilar">Reflejo Pupilar</label>
+                        <select id="reflejo_pupilar" name="reflejo_pupilar">
+                            <option value="">Seleccionar...</option>
+                            <option value="true" {{ 'selected' if patient and patient.reflejo_pupilar == True else '' }}>Presente</option>
+                            <option value="false" {{ 'selected' if patient and patient.reflejo_pupilar == False else '' }}>Ausente</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="reflejo_corneal">Reflejo Corneal</label>
+                        <select id="reflejo_corneal" name="reflejo_corneal">
+                            <option value="">Seleccionar...</option>
+                            <option value="true" {{ 'selected' if patient and patient.reflejo_corneal == True else '' }}>Presente</option>
+                            <option value="false" {{ 'selected' if patient and patient.reflejo_corneal == False else '' }}>Ausente</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="reflejo_tusigeno">Reflejo Tusígeno</label>
+                        <select id="reflejo_tusigeno" name="reflejo_tusigeno">
+                            <option value="">Seleccionar...</option>
+                            <option value="true" {{ 'selected' if patient and patient.reflejo_tusigeno == True else '' }}>Presente</option>
+                            <option value="false" {{ 'selected' if patient and patient.reflejo_tusigeno == False else '' }}>Ausente</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="rots">ROTS (Response to Ocular Trauma Scale)</label>
+                        <input type="text" id="rots" name="rots" value="{{ patient.rots if patient else '' }}">
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="exploracion_neurologica">Exploración Neurológica</label>
+                        <textarea id="exploracion_neurologica" name="exploracion_neurologica" rows="4">{{ patient.exploracion_neurologica if patient else '' }}</textarea>
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="imagen_neurologica">Imagen Neurológica</label>
+                        <textarea id="imagen_neurologica" name="imagen_neurologica" rows="3">{{ patient.imagen_neurologica if patient else '' }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Medicamentos Neurológicos (Tabla Dinámica) -->
+            <div class="card-body" style="border-top: 1px solid var(--border);">
+                <h4 style="color: var(--accent); margin: 30px 0 15px; text-transform: uppercase; letter-spacing: 1px;">💊 MEDICAMENTOS NEUROLÓGICOS</h4>
+                
+                <!-- Tabla de registros existentes -->
+                {% if patient and patient.medicamentos_neurologicos %}
+                <table style="width: 100%; margin-bottom: 20px; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: var(--bg-tertiary);">
+                            <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Medicamento</th>
+                            <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Unidad</th>
+                            <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Dosis</th>
+                            <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Inicio</th>
+                            <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Fin</th>
+                            <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Indicación</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for med in patient.medicamentos_neurologicos %}
+                        <tr>
+                            <td style="padding: 8px; border: 1px solid var(--border);">{{ med.medicamento }}</td>
+                            <td style="padding: 8px; border: 1px solid var(--border);">{{ med.unidad }}</td>
+                            <td style="padding: 8px; border: 1px solid var(--border);">{{ med.dosis }}</td>
+                            <td style="padding: 8px; border: 1px solid var(--border);">{{ med.fecha_inicio }}</td>
+                            <td style="padding: 8px; border: 1px solid var(--border);">{{ med.fecha_fin or '-' }}</td>
+                            <td style="padding: 8px; border: 1px solid var(--border);">{{ med.indicacion or '-' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+                
+                <!-- Formulario para agregar nuevo -->
+                <div class="dynamic-form-section" style="background: var(--bg-tertiary); padding: 15px; border-radius: 4px; border: 1px solid var(--border);">
+                    <h5 style="margin-bottom: 15px; color: var(--text-secondary);">➕ Agregar Medicamento Neurológico</h5>
+                    <div class="section-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+                        <div class="form-group">
+                            <label>MEDICAMENTO</label>
+                            <input type="text" name="dynamic_medicamentos_neurologicos[0][medicamento]" placeholder="Ej: Midazolam">
+                        </div>
+                        <div class="form-group">
+                            <label>UNIDAD</label>
+                            <select name="dynamic_medicamentos_neurologicos[0][unidad]">
+                                <option value="">Seleccionar...</option>
+                                <option value="G">G</option>
+                                <option value="MG">MG</option>
+                                <option value="MCG">MCG</option>
+                                <option value="UI">UI</option>
+                                <option value="ML/H">ML/H</option>
+                                <option value="UI/H">UI/H</option>
+                                <option value="MG/H">MG/H</option>
+                                <option value="MG/KG/H">MG/KG/H</option>
+                                <option value="MCG/KG/H">MCG/KG/H</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>DOSIS</label>
+                            <input type="text" name="dynamic_medicamentos_neurologicos[0][dosis]" placeholder="Ej: 2-5">
+                        </div>
+                        <div class="form-group">
+                            <label>FECHA INICIO</label>
+                            <input type="date" name="dynamic_medicamentos_neurologicos[0][fecha_inicio]">
+                        </div>
+                        <div class="form-group">
+                            <label>FECHA FIN</label>
+                            <input type="date" name="dynamic_medicamentos_neurologicos[0][fecha_fin]">
+                        </div>
+                        <div class="form-group" style="grid-column: span 2;">
+                            <label>INDICACIÓN</label>
+                            <input type="text" name="dynamic_medicamentos_neurologicos[0][indicacion]" placeholder="Ej: Sedación, Control de crisis">
+                        </div>
+                    </div>
+                    <button type="button" class="add-dynamic-row" style="margin-top: 10px; background: var(--bg-secondary); border: 1px solid var(--border); padding: 8px 15px; border-radius: 4px; cursor: pointer;">
+                        <i class="fas fa-plus"></i> Agregar más neurológicos
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- ❤️ Hemodinámico -->
+        <div id="tab-hemodinamico" class="tab-content">
+            <div class="card-body">
+                <h3 style="color: var(--accent); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px;">❤️ Evaluación Hemodinámica</h3>
+                <div class="section-grid">
+                    <div class="form-group">
+                        <label for="tas">TAS (mmHg)</label>
+                        <input type="number" id="tas" name="tas" value="{{ patient.tas if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="tad">TAD (mmHg)</label>
+                        <input type="number" id="tad" name="tad" value="{{ patient.tad if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="tam">TAM (mmHg) <span class="calculated-badge">⚡</span></label>
+                        <input type="number" step="any" id="tam" name="tam" value="{{ patient.tam if patient else '' }}" class="form-control calculated-field" readonly>
+                        <small class="calculated-hint">TAM = TAD + (TAS - TAD) / 3</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="fc">Frecuencia Cardíaca (lpm)</label>
+                        <input type="number" id="fc" name="fc" value="{{ patient.fc if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="mottling">Mottling Score</label>
+                        <input type="number" id="mottling" name="mottling" min="0" max="5" value="{{ patient.mottling if patient else '' }}">
+                        <small style="color: var(--text-secondary); font-size: 0.75rem;">0-5 (área de piel marmórea)</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="llenado_capilar">Llenado Capilar (seg)</label>
+                        <input type="number" id="llenado_capilar" name="llenado_capilar" value="{{ patient.llenado_capilar if patient else '' }}">
+                        <small style="color: var(--text-secondary); font-size: 0.75rem;">Normal &lt; 3 seg</small>
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="ekg">EKG</label>
+                        <textarea id="ekg" name="ekg" rows="3">{{ patient.ekg if patient else '' }}</textarea>
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="exploracion_hemodinamica">Exploración Hemodinámica</label>
+                        <textarea id="exploracion_hemodinamica" name="exploracion_hemodinamica" rows="4">{{ patient.exploracion_hemodinamica if patient else '' }}</textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Medicamentos Hemodinámicos -->
+            <div class="card-body" style="border-top: 1px solid var(--border);">
+                <h4 style="color: var(--accent); margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;">💊 MEDICAMENTOS HEMODINÁMICOS</h4>
+                <div class="section-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                    <div class="form-group">
+                        <label>MEDICAMENTO</label>
+                        <input type="text" name="dynamic_medicamentos_hemodinamicos[0][medicamento]" placeholder="Ej: Noradrenalina">
+                    </div>
+                    <div class="form-group">
+                        <label>UNIDAD</label>
+                        <select name="dynamic_medicamentos_hemodinamicos[0][unidad]">
+                            <option value="">Seleccionar...</option>
+                            <option value="G">G</option>
+                            <option value="MG">MG</option>
+                            <option value="MCG">MCG</option>
+                            <option value="UI">UI</option>
+                            <option value="ML/H">ML/H</option>
+                            <option value="UI/H">UI/H</option>
+                            <option value="MG/H">MG/H</option>
+                            <option value="MG/KG/H">MG/KG/H</option>
+                            <option value="MCG/KG/H">MCG/KG/H</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>DOSIS MÁX</label>
+                        <input type="text" name="dynamic_medicamentos_hemodinamicos[0][dosis_max]" placeholder="Ej: 1.0">
+                    </div>
+                    <div class="form-group">
+                        <label>DOSIS MÍN</label>
+                        <input type="text" name="dynamic_medicamentos_hemodinamicos[0][dosis_min]" placeholder="Ej: 0.1">
+                    </div>
+                    <div class="form-group">
+                        <label>INICIO</label>
+                        <input type="date" name="dynamic_medicamentos_hemodinamicos[0][fecha_inicio]">
+                    </div>
+                    <div class="form-group">
+                        <label>FIN</label>
+                        <input type="date" name="dynamic_medicamentos_hemodinamicos[0][fecha_fin]">
+                    </div>
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>INDICACIÓN</label>
+                        <input type="text" name="dynamic_medicamentos_hemodinamicos[0][indicacion]" placeholder="Ej: Choque séptico">
+                    </div>
+                </div>
+                <button type="button" class="add-dynamic-row" style="margin-top: 10px; background: var(--bg-secondary); border: 1px solid var(--border); padding: 8px 15px; border-radius: 4px; cursor: pointer;">
+                    <i class="fas fa-plus"></i> Agregar más hemodinámicos
+                </button>
+            </div>
+        </div>
+        
+        <!-- 🫁 Ventilatorio -->
+        <div id="tab-ventilatorio" class="tab-content">
+            <div class="card-body">
+                <h3 style="color: var(--accent); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px;">🫁 Evaluación Ventilatoria</h3>
+                <div class="section-grid">
+                    <div class="form-group">
+                        <label for="fr">Frecuencia Respiratoria (rpm)</label>
+                        <input type="number" id="fr" name="fr" value="{{ patient.fr if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="sao2">SaO2 (%)</label>
+                        <input type="number" id="sao2" name="sao2" min="0" max="100" value="{{ patient.sao2 if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="disnea">Disnea</label>
+                        <select id="disnea" name="disnea">
+                            <option value="">Seleccionar...</option>
+                            <option value="true" {{ 'selected' if patient and patient.disnea == True else '' }}>Sí</option>
+                            <option value="false" {{ 'selected' if patient and patient.disnea == False else '' }}>No</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="o2_suplementario">O2 Suplementario</label>
+                        <select id="o2_suplementario" name="o2_suplementario">
+                            <option value="">Seleccionar...</option>
+                            <option value="true" {{ 'selected' if patient and patient.o2_suplementario == True else '' }}>Sí</option>
+                            <option value="false" {{ 'selected' if patient and patient.o2_suplementario == False else '' }}>No</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="fio2">FiO2 (%)</label>
+                        <input type="number" id="fio2" name="fio2" min="21" max="100" value="{{ patient.fio2 if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="modo_ventilatorio">Modo Ventilatorio</label>
+                        <select id="modo_ventilatorio" name="modo_ventilatorio">
+                            <option value="">Sin soporte</option>
+                            <option value="VM VOL" {{ 'selected' if patient and patient.modo_ventilatorio == 'VM VOL' else '' }}>VM Volumen Controlado</option>
+                            <option value="VM PRES" {{ 'selected' if patient and patient.modo_ventilatorio == 'VM PRES' else '' }}>VM Presión Controlada</option>
+                            <option value="VM MIX" {{ 'selected' if patient and patient.modo_ventilatorio == 'VM MIX' else '' }}>VM Mixta (Dual)</option>
+                            <option value="CPAP" {{ 'selected' if patient and patient.modo_ventilatorio == 'CPAP' else '' }}>CPAP</option>
+                            <option value="BiPAP" {{ 'selected' if patient and patient.modo_ventilatorio == 'BiPAP' else '' }}>BiPAP</option>
+                            <option value="CNAF" {{ 'selected' if patient and patient.modo_ventilatorio == 'CNAF' else '' }}>CNAF (Alto Flujo)</option>
+                            <option value="CNS" {{ 'selected' if patient and patient.modo_ventilatorio == 'CNS' else '' }}>CNS (Canulas Simples)</option>
+                            <option value="Mascarilla" {{ 'selected' if patient and patient.modo_ventilatorio == 'Mascarilla' else '' }}>Mascarilla</option>
+                            <option value="Espontáneo" {{ 'selected' if patient and patient.modo_ventilatorio == 'Espontáneo' else '' }}>Espontáneo</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="inicio_ventilador">Inicio Ventilador</label>
+                        <input type="date" id="inicio_ventilador" name="inicio_ventilador" value="{{ patient.inicio_ventilador if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="traqueostomia_ingreso">Traqueostomía al Ingreso</label>
+                        <select id="traqueostomia_ingreso" name="traqueostomia_ingreso">
+                            <option value="">Seleccionar...</option>
+                            <option value="true" {{ 'selected' if patient and patient.traqueostomia_ingreso == True else '' }}>Sí</option>
+                            <option value="false" {{ 'selected' if patient and patient.traqueostomia_ingreso == False else '' }}>No</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="numero_tubo">Número de Tubo</label>
+                        <input type="number" id="numero_tubo" name="numero_tubo" value="{{ patient.numero_tubo if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="arcada">Arcada (cm)</label>
+                        <input type="number" id="arcada" name="arcada" value="{{ patient.arcada if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="peep">PEEP (cmH2O)</label>
+                        <input type="number" id="peep" name="peep" value="{{ patient.peep if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="vt_psinp">VT/Psinp (ml)</label>
+                        <input type="number" id="vt_psinp" name="vt_psinp" value="{{ patient.vt_psinp if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="vt_peso">VT/Peso (ml/kg) <span class="calculated-badge">⚡</span></label>
+                        <input type="number" step="any" id="vt_peso" name="vt_peso" value="{{ patient.vt_peso if patient else '' }}" class="form-control calculated-field" readonly>
+                        <small class="calculated-hint">VT/Peso = VT / Peso Ideal</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="relacion_ie">Relación I :E</label>
+                        <input type="text" id="relacion_ie" name="relacion_ie" value="{{ patient.relacion_ie if patient else '' }}" placeholder="Ej: 1:2">
+                    </div>
+                    <div class="form-group">
+                        <label for="ppico">Presión Pico (cmH2O)</label>
+                        <input type="number" id="ppico" name="ppico" value="{{ patient.ppico if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="pplat">Presión Plateau (cmH2O)</label>
+                        <input type="number" id="pplat" name="pplat" value="{{ patient.pplat if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="vol_min">Volumen Minuto (L/min) <span class="calculated-badge">⚡</span></label>
+                        <input type="number" step="any" id="vol_min" name="vol_min" value="{{ patient.vol_min if patient else '' }}" class="form-control calculated-field" readonly>
+                        <small class="calculated-hint">Volumen Minuto = VT (ml) × FR (rpm) / 1000</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="driving_pressure">Driving Pressure (cmH2O) <span class="calculated-badge">⚡</span></label>
+                        <input type="number" step="any" id="driving_pressure" name="driving_pressure" value="{{ patient.driving_pressure if patient else '' }}" class="form-control calculated-field" readonly>
+                        <small class="calculated-hint">Driving Pressure = Pplat - PEEP</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="p0_1">P0.1 (cmH2O)</label>
+                        <input type="number" step="any" id="p0_1" name="p0_1" value="{{ patient.p0_1 if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="nif">NIF (cmH2O)</label>
+                        <input type="number" id="nif" name="nif" value="{{ patient.nif if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="tos">Tos (0-5)</label>
+                        <input type="number" id="tos" name="tos" min="0" max="5" value="{{ patient.tos if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="pafi">PaO2/FiO2 Ratio <span class="calculated-badge">⚡</span></label>
+                        <input type="number" step="any" id="pafi" name="pafi" value="{{ patient.pafi if patient else '' }}" class="form-control calculated-field" readonly>
+                        <small class="calculated-hint">PaFi = pO2 Gasometría (mmHg) / (FiO2 / 100)</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="tobin">Índice de Tobin</label>
+                        <input type="number" step="any" id="tobin" name="tobin" value="{{ patient.tobin if patient else '' }}">
+                        <small style="color: var(--text-secondary); font-size: 0.75rem;">Normal &lt; 60</small>
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="blue">BLUE Protocol</label>
+                        <textarea id="blue" name="blue" rows="3">{{ patient.blue if patient else '' }}</textarea>
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="exploracion_ventilatoria">Exploración Ventilatoria</label>
+                        <textarea id="exploracion_ventilatoria" name="exploracion_ventilatoria" rows="4">{{ patient.exploracion_ventilatoria if patient else '' }}</textarea>
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="imagen_ventilatoria">Imagen Ventilatoria</label>
+                        <textarea id="imagen_ventilatoria" name="imagen_ventilatoria" rows="3">{{ patient.imagen_ventilatoria if patient else '' }}</textarea>
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="vent_otros">Otros (Ventilatorio)</label>
+                        <textarea id="vent_otros" name="vent_otros" rows="2">{{ patient.vent_otros if patient else '' }}</textarea>
+                    </div>
+                </div>
+
+                <h4 style="color: var(--accent); margin: 30px 0 15px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">Gasometría</h4>
+                <div class="section-grid">
+                    <div class="form-group">
+                        <label for="gasometria_fecha">Fecha Gasometría</label>
+                        <input type="date" id="gasometria_fecha" name="gasometria_fecha" value="{{ patient.gasometria_fecha if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="gasometria_ph">pH</label>
+                        <input type="number" step="any" id="gasometria_ph" name="gasometria_ph" value="{{ patient.gasometria_ph if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="gasometria_pco2">pCO2 (mmHg)</label>
+                        <input type="number" step="any" id="gasometria_pco2" name="gasometria_pco2" value="{{ patient.gasometria_pco2 if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="gasometria_po2">pO2 (mmHg)</label>
+                        <input type="number" step="any" id="gasometria_po2" name="gasometria_po2" value="{{ patient.gasometria_po2 if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="gasometria_hco3">HCO3- (mEq/L)</label>
+                        <input type="number" step="any" id="gasometria_hco3" name="gasometria_hco3" value="{{ patient.gasometria_hco3 if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="gasometria_lactato">Lactato (mmol/L)</label>
+                        <input type="number" step="any" id="gasometria_lactato" name="gasometria_lactato" value="{{ patient.gasometria_lactato if patient else '' }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 💧 Hídrico/Renal -->
+        <div id="tab-hidrico" class="tab-content">
+            <div class="card-body">
+                <h3 style="color: var(--accent); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px;">💧 Balance Hídrico y Función Renal</h3>
+                <div class="section-grid">
+                    <div class="form-group">
+                        <label for="sonda_vesical">Sonda Vesical</label>
+                        <select id="sonda_vesical" name="sonda_vesical">
+                            <option value="">Seleccionar...</option>
+                            <option value="true" {{ 'selected' if patient and patient.sonda_vesical == True else '' }}>Sí</option>
+                            <option value="false" {{ 'selected' if patient and patient.sonda_vesical == False else '' }}>No</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="periodo_horas">Período (horas)</label>
+                        <input type="number" id="periodo_horas" name="periodo_horas" value="{{ patient.periodo_horas if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="diuresis_total">Diuresis Total (ml)</label>
+                        <input type="number" id="diuresis_total" name="diuresis_total" value="{{ patient.diuresis_total if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="indice_urinario">Índice Urinario (ml/kg/h) <span class="calculated-badge">⚡</span></label>
+                        <input type="number" step="any" id="indice_urinario" name="indice_urinario" value="{{ patient.indice_urinario if patient else '' }}" class="form-control calculated-field" readonly>
+                        <small class="calculated-hint">Índice Urinario = Diuresis (ml) / [Peso (kg) × Horas]</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="ingresos">Ingresos (ml)</label>
+                        <input type="number" id="ingresos" name="ingresos" value="{{ patient.ingresos if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="egresos">Egresos (ml)</label>
+                        <input type="number" id="egresos" name="egresos" value="{{ patient.egresos if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="balance">Balance (ml)</label>
+                        <input type="number" id="balance" name="balance" value="{{ patient.balance if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="balance_global">Balance Global (ml)</label>
+                        <input type="number" id="balance_global" name="balance_global" value="{{ patient.balance_global if patient else '' }}">
+                    </div>
+                </div>
+
+                <h4 style="color: var(--accent); margin: 30px 0 15px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">Función Renal</h4>
+                <div class="section-grid">
+                    <div class="form-group">
+                        <label for="creatinina">Creatinina (mg/dL)</label>
+                        <input type="number" step="any" id="creatinina" name="creatinina" value="{{ patient.creatinina if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="bun">BUN (mg/dL)</label>
+                        <input type="number" step="any" id="bun" name="bun" value="{{ patient.bun if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="urea">Urea (mg/dL)</label>
+                        <input type="number" step="any" id="urea" name="urea" value="{{ patient.urea if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="sodio">Sodio (mEq/L)</label>
+                        <input type="number" step="any" id="sodio" name="sodio" value="{{ patient.sodio if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="potasio">Potasio (mEq/L)</label>
+                        <input type="number" step="any" id="potasio" name="potasio" value="{{ patient.potasio if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="cloro">Cloro (mEq/L)</label>
+                        <input type="number" step="any" id="cloro" name="cloro" value="{{ patient.cloro if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="fosforo">Fósforo (mg/dL)</label>
+                        <input type="number" step="any" id="fosforo" name="fosforo" value="{{ patient.fosforo if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="magnesio">Magnesio (mg/dL)</label>
+                        <input type="number" step="any" id="magnesio" name="magnesio" value="{{ patient.magnesio if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="calcio">Calcio (mg/dL)</label>
+                        <input type="number" step="any" id="calcio" name="calcio" value="{{ patient.calcio if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="tfg">TFG (ml/min/1.73m²) <span class="calculated-badge">⚡</span></label>
+                        <input type="number" step="any" id="tfg" name="tfg" value="{{ patient.tfg if patient else '' }}" class="form-control calculated-field" readonly>
+                        <small class="calculated-hint">TFG (Cockroft-Gault) = ((140 - Edad) × Peso) / (72 × Creatinina) × Factor Sexo</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="fena">FeNa (%)</label>
+                        <input type="number" step="any" id="fena" name="fena" value="{{ patient.fena if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="febun">FeBUN (%)</label>
+                        <input type="number" step="any" id="febun" name="febun" value="{{ patient.febun if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="osmolaridad">Osmolaridad (mOsm/L) <span class="calculated-badge">⚡</span></label>
+                        <input type="number" step="any" id="osmolaridad" name="osmolaridad" value="{{ patient.osmolaridad if patient else '' }}" class="form-control calculated-field" readonly>
+                        <small class="calculated-hint">Osm = 2×Na + Glucosa/18 + Urea/2.8</small>
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="ego">EGO (Examen General de Orina)</label>
+                        <textarea id="ego" name="ego" rows="3">{{ patient.ego if patient else '' }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Medicamentos Nefro -->
+            <div class="card-body" style="border-top: 1px solid var(--border);">
+                <h4 style="color: var(--accent); margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;">💊 Medicamentos Renales</h4>
+                <div class="section-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                    <div class="form-group">
+                        <label>MEDICAMENTO</label>
+                        <input type="text" name="dynamic_medicamentos_nefro[0][medicamento]" placeholder="Ej: Furosemida">
+                    </div>
+                    <div class="form-group">
+                        <label>UNIDAD</label>
+                        <select name="dynamic_medicamentos_nefro[0][unidad]">
+                            <option value="">Seleccionar...</option>
+                            <option value="G">G</option>
+                            <option value="MG">MG</option>
+                            <option value="MCG">MCG</option>
+                            <option value="UI">UI</option>
+                            <option value="ML/H">ML/H</option>
+                            <option value="UI/H">UI/H</option>
+                            <option value="MG/H">MG/H</option>
+                            <option value="MG/KG/H">MG/KG/H</option>
+                            <option value="MCG/KG/H">MCG/KG/H</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>DOSIS</label>
+                        <input type="text" name="dynamic_medicamentos_nefro[0][dosis]" placeholder="Ej: 20-40">
+                    </div>
+                    <div class="form-group">
+                        <label>INICIO</label>
+                        <input type="date" name="dynamic_medicamentos_nefro[0][fecha_inicio]">
+                    </div>
+                    <div class="form-group">
+                        <label>FIN</label>
+                        <input type="date" name="dynamic_medicamentos_nefro[0][fecha_fin]">
+                    </div>
+                </div>
+                <button type="button" class="add-dynamic-row" style="margin-top: 10px; background: var(--bg-secondary); border: 1px solid var(--border); padding: 8px 15px; border-radius: 4px; cursor: pointer;">
+                    <i class="fas fa-plus"></i> Agregar más renales
+                </button>
+            </div>
+        </div>
+
+        <!-- 🍽️ Gastro/Metabólico -->
+        <div id="tab-gastro" class="tab-content">
+            <div class="card-body">
+                <h3 style="color: var(--accent); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px;">🍽️ Evaluación Gastrointestinal y Metabólica</h3>
+                <div class="section-grid">
+                    <div class="form-group">
+                        <label for="ayuno">Ayuno</label>
+                        <select id="ayuno" name="ayuno">
+                            <option value="">Seleccionar...</option>
+                            <option value="true" {{ 'selected' if patient and patient.ayuno == True else '' }}>Sí</option>
+                            <option value="false" {{ 'selected' if patient and patient.ayuno == False else '' }}>No</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="gastrostomia_ingreso">Gastrostomía al Ingreso</label>
+                        <select id="gastrostomia_ingreso" name="gastrostomia_ingreso">
+                            <option value="">Seleccionar...</option>
+                            <option value="true" {{ 'selected' if patient and patient.gastrostomia_ingreso == True else '' }}>Sí</option>
+                            <option value="false" {{ 'selected' if patient and patient.gastrostomia_ingreso == False else '' }}>No</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="sonda_levin">Sonda Levin</label>
+                        <select id="sonda_levin" name="sonda_levin">
+                            <option value="">Seleccionar...</option>
+                            <option value="true" {{ 'selected' if patient and patient.sonda_levin == True else '' }}>Sí</option>
+                            <option value="false" {{ 'selected' if patient and patient.sonda_levin == False else '' }}>No</option>
+                        </select>
+                    </div>
+                    <!-- Tipo de Nutrición -->
+                    <div class="form-group">
+                        <label for="tipo_nutricion">Tipo de Nutrición</label>
+                        <select id="tipo_nutricion" name="tipo_nutricion">
+                            <option value="">Seleccionar...</option>
+                            <option value="Vivase" {{ 'selected' if patient and patient.tipo_nutricion == 'Vivase' else '' }}>Vivase (Enteral)</option>
+                            <option value="Enteral" {{ 'selected' if patient and patient.tipo_nutricion == 'Enteral' else '' }}>Enteral (otra)</option>
+                            <option value="Parenteral" {{ 'selected' if patient and patient.tipo_nutricion == 'Parenteral' else '' }}>Parenteral</option>
+                            <option value="Normal" {{ 'selected' if patient and patient.tipo_nutricion == 'Normal' else '' }}>Normal (oral)</option>
+                            <option value="Ayuno" {{ 'selected' if patient and patient.tipo_nutricion == 'Ayuno' else '' }}>Ayuno médico</option>
+                        </select>
+                    </div>
+
+                    <!-- Proteínas Deseadas (ENTRADA PRINCIPAL) -->
+                    <div class="form-group">
+                        <label for="proteinas_slider">Proteínas Deseadas (g/kg)</label>
+                        <input type="number" step="any" id="proteinas_slider" name="proteinas_slider" value="{{ patient.proteinas_slider if patient else '' }}" placeholder="0.2 - 2.5" min="0.1" max="5">
+                        <small style="color: var(--text-secondary); font-size: 0.75rem;">Rango usual: 0.2-0.6 g/kg (crítico), hasta 2.5 g/kg (hipermetabolismo)</small>
+                    </div>
+
+                    <!-- Campos para Enteral/Parenteral (ocultos si es Normal o Ayuno) -->
+                    <div id="nutricion_calculada" style="display: none;">
+                        <!-- Composición del Producto (solo para Enteral/Parenteral no-Vivase) -->
+                        <div id="composicion_manual" style="display: none;">
+                            <div class="form-group">
+                                <label for="kcal_100ml">Kcal / 100 mL</label>
+                                <input type="number" step="any" id="kcal_100ml" name="kcal_100ml" value="{{ patient.kcal_100ml if patient else '' }}">
+                            </div>
+                            <div class="form-group">
+                                <label for="prot_100ml">Proteínas (g) / 100 mL</label>
+                                <input type="number" step="any" id="prot_100ml" name="prot_100ml" value="{{ patient.prot_100ml if patient else '' }}">
+                            </div>
+                        </div>
+
+                        <!-- Campos Calculados Automáticamente -->
+                        <div class="form-group">
+                            <label for="proteinas_requeridas">Proteínas Requeridas (g/día) <span class="calculated-badge">⚡</span></label>
+                            <input type="number" step="any" id="proteinas_requeridas" name="proteinas_requeridas" value="{{ patient.proteinas_requeridas if patient else '' }}" class="form-control calculated-field" readonly>
+                            <small class="calculated-hint">Prot req = Prot deseadas (g/kg) × Peso usado (kg)</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="volumen_aporte">Volumen del Producto (mL) <span class="calculated-badge">⚡</span></label>
+                            <input type="number" id="volumen_aporte" name="volumen_aporte" value="{{ patient.volumen_aporte if patient else '' }}" class="form-control calculated-field" readonly>
+                            <small class="calculated-hint">Vivase=237mL, Smof=1477mL, o manual</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="kcal_aporte">Kcal del Producto <span class="calculated-badge">⚡</span></label>
+                            <input type="number" id="kcal_aporte" name="kcal_aporte" value="{{ patient.kcal_aporte if patient else '' }}" class="form-control calculated-field" readonly>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="proteinas_aporte">Proteínas del Producto (g) <span class="calculated-badge">⚡</span></label>
+                            <input type="number" step="any" id="proteinas_aporte" name="proteinas_aporte" value="{{ patient.proteinas_aporte if patient else '' }}" class="form-control calculated-field" readonly>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="ml_24h_calc">mL / 24h <span class="calculated-badge">⚡</span></label>
+                            <input type="number" step="any" id="ml_24h_calc" name="ml_24h_calc" value="{{ patient.ml_24h_calc if patient else '' }}" class="form-control calculated-field" readonly>
+                            <small class="calculated-hint">Volumen necesario para cubrir proteínas deseadas</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="ml_h_calc">mL / h <span class="calculated-badge">⚡</span></label>
+                            <input type="number" step="any" id="ml_h_calc" name="ml_h_calc" value="{{ patient.ml_h_calc if patient else '' }}" class="form-control calculated-field" readonly>
+                            <small class="calculated-hint">Velocidad de infusión = mL/24h ÷ 24</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="kcal_totales_calc">Kcal Totales / 24h <span class="calculated-badge">⚡</span></label>
+                            <input type="number" step="any" id="kcal_totales_calc" name="kcal_totales_calc" value="{{ patient.kcal_totales_calc if patient else '' }}" class="form-control calculated-field" readonly>
+                            <small class="calculated-hint">Kcal totales = (mL/24h ÷ mL producto) × Kcal producto</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="kcal_kg_calc">Kcal / kg <span class="calculated-badge">⚡</span></label>
+                            <input type="number" step="any" id="kcal_kg_calc" name="kcal_kg_calc" value="{{ patient.kcal_kg_calc if patient else '' }}" class="form-control calculated-field" readonly>
+                            <small class="calculated-hint">Kcal/kg = Kcal totales ÷ Peso usado</small>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="glucemia_capilar">Glucemia Capilar (mg/dL)</label>
+                        <input type="number" id="glucemia_capilar" name="glucemia_capilar" value="{{ patient.glucemia_capilar if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="glucosa_central">Glucosa Central (mg/dL)</label>
+                        <input type="number" step="any" id="glucosa_central" name="glucosa_central" value="{{ patient.glucosa_central if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="insulina_glargina">Insulina Glargina (UI)</label>
+                        <input type="number" step="any" id="insulina_glargina" name="insulina_glargina" value="{{ patient.insulina_glargina if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="insulina_rapida">Insulina Rápida (UI)</label>
+                        <input type="number" step="any" id="insulina_rapida" name="insulina_rapida" value="{{ patient.insulina_rapida if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="evacuaciones">Evacuaciones (mL)</label>
+                        <input type="number" id="evacuaciones" name="evacuaciones" value="{{ patient.evacuaciones if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="bristol">Escala Bristol</label>
+                        <select id="bristol" name="bristol">
+                            <option value="">Seleccionar...</option>
+                            <option value="1" {{ 'selected' if patient and patient.bristol == '1' else '' }}>1 - Nódulos duros</option>
+                            <option value="2" {{ 'selected' if patient and patient.bristol == '2' else '' }}>2 - Forma de salchicha, lumpy</option>
+                            <option value="3" {{ 'selected' if patient and patient.bristol == '3' else '' }}>3 - Forma de salchicha, grietas</option>
+                            <option value="4" {{ 'selected' if patient and patient.bristol == '4' else '' }}>4 - Forma de salchicha, suave</option>
+                            <option value="5" {{ 'selected' if patient and patient.bristol == '5' else '' }}>5 - Bordes definidos, suave</option>
+                            <option value="6" {{ 'selected' if patient and patient.bristol == '6' else '' }}>6 - Bordes irregulares, suave</option>
+                            <option value="7" {{ 'selected' if patient and patient.bristol == '7' else '' }}>7 - Líquido, sin piezas</option>
+                        </select>
+                    </div>
+                </div>
+
+                <h4 style="color: var(--accent); margin: 30px 0 15px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">Función Hepática</h4>
+                <div class="section-grid">
+                    <div class="form-group">
+                        <label for="bilirrubina_total">Bilirrubina Total (mg/dL)</label>
+                        <input type="number" step="any" id="bilirrubina_total" name="bilirrubina_total" value="{{ patient.bilirrubina_total if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="bilirrubina_directa">Bilirrubina Directa (mg/dL)</label>
+                        <input type="number" step="any" id="bilirrubina_directa" name="bilirrubina_directa" value="{{ patient.bilirrubina_directa if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="bilirrubina_indirecta">Bilirrubina Indirecta (mg/dL)</label>
+                        <input type="number" step="any" id="bilirrubina_indirecta" name="bilirrubina_indirecta" value="{{ patient.bilirrubina_indirecta if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="albumina">Albúmina (g/dL)</label>
+                        <input type="number" step="any" id="albumina" name="albumina" value="{{ patient.albumina if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="proteinas_totales">Proteínas Totales (g/dL)</label>
+                        <input type="number" step="any" id="proteinas_totales" name="proteinas_totales" value="{{ patient.proteinas_totales if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="alt">ALT (U/L)</label>
+                        <input type="number" step="any" id="alt" name="alt" value="{{ patient.alt if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="ast">AST (U/L)</label>
+                        <input type="number" step="any" id="ast" name="ast" value="{{ patient.ast if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="dhl">LDH (U/L)</label>
+                        <input type="number" step="any" id="dhl" name="dhl" value="{{ patient.dhl if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="fosfatasa_alcalina">Fosfatasa Alcalina (U/L)</label>
+                        <input type="number" step="any" id="fosfatasa_alcalina" name="fosfatasa_alcalina" value="{{ patient.fosfatasa_alcalina if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="amilasa">Amilasa (U/L)</label>
+                        <input type="number" step="any" id="amilasa" name="amilasa" value="{{ patient.amilasa if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="lipasa">Lipasa (U/L)</label>
+                        <input type="number" step="any" id="lipasa" name="lipasa" value="{{ patient.lipasa if patient else '' }}">
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="exploracion_gastro">Exploración Gastrointestinal</label>
+                        <textarea id="exploracion_gastro" name="exploracion_gastro" rows="4">{{ patient.exploracion_gastro if patient else '' }}</textarea>
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="drenajes">Drenajes</label>
+                        <textarea id="drenajes" name="drenajes" rows="3">{{ patient.drenajes if patient else '' }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Medicamentos Gastro -->
+            <div class="card-body" style="border-top: 1px solid var(--border);">
+                <h4 style="color: var(--accent); margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;">💊 Medicamentos Gastrointestinales</h4>
+                <div class="section-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                    <div class="form-group">
+                        <label>MEDICAMENTO</label>
+                        <input type="text" name="dynamic_medicamentos_gastro[0][medicamento]" placeholder="Ej: Omeprazol">
+                    </div>
+                    <div class="form-group">
+                        <label>UNIDAD</label>
+                        <select name="dynamic_medicamentos_gastro[0][unidad]">
+                            <option value="">Seleccionar...</option>
+                            <option value="G">G</option>
+                            <option value="MG">MG</option>
+                            <option value="MCG">MCG</option>
+                            <option value="UI">UI</option>
+                            <option value="ML/H">ML/H</option>
+                            <option value="UI/H">UI/H</option>
+                            <option value="MG/H">MG/H</option>
+                            <option value="MG/KG/H">MG/KG/H</option>
+                            <option value="MCG/KG/H">MCG/KG/H</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>DOSIS</label>
+                        <input type="text" name="dynamic_medicamentos_gastro[0][dosis]" placeholder="Ej: 40">
+                    </div>
+                    <div class="form-group">
+                        <label>INICIO</label>
+                        <input type="date" name="dynamic_medicamentos_gastro[0][fecha_inicio]">
+                    </div>
+                    <div class="form-group">
+                        <label>FIN</label>
+                        <input type="date" name="dynamic_medicamentos_gastro[0][fecha_fin]">
+                    </div>
+                </div>
+                <button type="button" class="add-dynamic-row" style="margin-top: 10px; background: var(--bg-secondary); border: 1px solid var(--border); padding: 8px 15px; border-radius: 4px; cursor: pointer;">
+                    <i class="fas fa-plus"></i> Agregar más gastro
+                </button>
+            </div>
+        </div>
+
+        <!-- 🩸 Hematología/Infección -->
+        <div id="tab-hematologia" class="tab-content">
+            <div class="card-body">
+                <h3 style="color: var(--accent); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px;">🩸 Hematología e Infección</h3>
+                <div class="section-grid">
+                    <div class="form-group">
+                        <label for="temperatura">Temperatura (°C)</label>
+                        <input type="number" step="any" id="temperatura" name="temperatura" value="{{ patient.temperatura if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="petequias">Petequias</label>
+                        <select id="petequias" name="petequias">
+                            <option value="">Seleccionar...</option>
+                            <option value="true" {{ 'selected' if patient and patient.petequias == True else '' }}>Sí</option>
+                            <option value="false" {{ 'selected' if patient and patient.petequias == False else '' }}>No</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="sangrado">Sangrado</label>
+                        <select id="sangrado" name="sangrado">
+                            <option value="">Seleccionar...</option>
+                            <option value="true" {{ 'selected' if patient and patient.sangrado == True else '' }}>Sí</option>
+                            <option value="false" {{ 'selected' if patient and patient.sangrado == False else '' }}>No</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="trombosis">Trombosis</label>
+                        <select id="trombosis" name="trombosis">
+                            <option value="">Seleccionar...</option>
+                            <option value="true" {{ 'selected' if patient and patient.trombosis == True else '' }}>Sí</option>
+                            <option value="false" {{ 'selected' if patient and patient.trombosis == False else '' }}>No</option>
+                        </select>
+                    </div>
+                </div>
+
+                <h4 style="color: var(--accent); margin: 30px 0 15px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">Hemograma</h4>
+                <div class="section-grid">
+                    <div class="form-group">
+                        <label for="leucocitos">Leucocitos (x10³/μL)</label>
+                        <input type="number" step="any" id="leucocitos" name="leucocitos" value="{{ patient.leucocitos if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="neutrofilos">Neutrófilos Totales (x10⁹/L)</label>
+                        <input type="number" step="any" id="neutrofilos" name="neutrofilos" value="{{ patient.neutrofilos if patient else '' }}">
+                        <small style="color: var(--text-secondary); font-size: 0.75rem;">Valor absoluto: 7.00 = 7,000/μL</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="linfocitos">Linfocitos Totales (x10⁹/L)</label>
+                        <input type="number" step="any" id="linfocitos" name="linfocitos" value="{{ patient.linfocitos if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="hemoglobina">Hemoglobina (g/dL)</label>
+                        <input type="number" step="any" id="hemoglobina" name="hemoglobina" value="{{ patient.hemoglobina if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="hematocrito">Hematocrito (%)</label>
+                        <input type="number" step="any" id="hematocrito" name="hematocrito" value="{{ patient.hematocrito if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="plaquetas">Plaquetas (x10³/μL)</label>
+                        <input type="number" step="any" id="plaquetas" name="plaquetas" value="{{ patient.plaquetas if patient else '' }}">
+                    </div>
+                </div>
+
+                <h4 style="color: var(--accent); margin: 30px 0 15px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">Marcadores Inflamatorios</h4>
+                <div class="section-grid">
+                    <div class="form-group">
+                        <label for="pcr">PCR (mg/L)</label>
+                        <input type="number" step="any" id="pcr" name="pcr" value="{{ patient.pcr if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="pct">Procalcitonina (ng/mL)</label>
+                        <input type="number" step="any" id="pct" name="pct" value="{{ patient.pct if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="vsg">VSG (mm/h)</label>
+                        <input type="number" step="any" id="vsg" name="vsg" value="{{ patient.vsg if patient else '' }}">
+                    </div>
+                </div>
+
+                <h4 style="color: var(--accent); margin: 30px 0 15px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">Marcadores Cardiacos</h4>
+                <div class="section-grid">
+                    <div class="form-group">
+                        <label for="troponina">Troponina (ng/L)</label>
+                        <input type="number" step="any" id="troponina" name="troponina" value="{{ patient.troponina if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="bnp">BNP/NT-proBNP (pg/mL)</label>
+                        <input type="number" step="any" id="bnp" name="bnp" value="{{ patient.bnp if patient else '' }}">
+                    </div>
+                </div>
+
+                <h4 style="color: var(--accent); margin: 30px 0 15px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">Coagulación</h4>
+                <div class="section-grid">
+                    <div class="form-group">
+                        <label for="dimero_d">Dímero D (μg/mL)</label>
+                        <input type="number" step="any" id="dimero_d" name="dimero_d" value="{{ patient.dimero_d if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="tp">TP (seg)</label>
+                        <input type="number" step="any" id="tp" name="tp" value="{{ patient.tp if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="ttp">TTP (seg)</label>
+                        <input type="number" step="any" id="ttp" name="ttp" value="{{ patient.ttp if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="inr">INR</label>
+                        <input type="number" step="any" id="inr" name="inr" value="{{ patient.inr if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="fibrinogeno">Fibrinógeno (mg/dL)</label>
+                        <input type="number" step="any" id="fibrinogeno" name="fibrinogeno" value="{{ patient.fibrinogeno if patient else '' }}">
+                    </div>
+                </div>
+
+                <div class="section-grid" style="margin-top: 20px;">
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="exploracion_hema">Exploración Hematológica</label>
+                        <textarea id="exploracion_hema" name="exploracion_hema" rows="4">{{ patient.exploracion_hema if patient else '' }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Medicación Hematológica -->
+            <div class="card-body" style="border-top: 1px solid var(--border);">
+                <h4 style="color: var(--accent); margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;">💊 Medicación Hematológica</h4>
+                
+                <!-- Tabla de registros existentes -->
+                {% if patient and patient.medicacion_hematologica %}
+                <table style="width: 100%; margin-bottom: 20px; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: var(--bg-tertiary);">
+                            <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Medicamento</th>
+                            <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Dosis</th>
+                            <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Unidad</th>
+                            <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Inicio</th>
+                            <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Fin</th>
+                            <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">Indicación</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for med in patient.medicacion_hematologica %}
+                        <tr>
+                            <td style="padding: 8px; border: 1px solid var(--border);">{{ med.medicamento }}</td>
+                            <td style="padding: 8px; border: 1px solid var(--border);">{{ med.dosis }}</td>
+                            <td style="padding: 8px; border: 1px solid var(--border);">{{ med.unidad }}</td>
+                            <td style="padding: 8px; border: 1px solid var(--border);">{{ med.fecha_inicio }}</td>
+                            <td style="padding: 8px; border: 1px solid var(--border);">{{ med.fecha_fin or '-' }}</td>
+                            <td style="padding: 8px; border: 1px solid var(--border);">{{ med.indicacion or '-' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+                
+                <!-- Formulario para agregar nuevo -->
+                <div class="dynamic-form-section" style="background: var(--bg-tertiary); padding: 15px; border-radius: 4px; border: 1px solid var(--border);">
+                    <h5 style="margin-bottom: 15px; color: var(--text-secondary);">➕ Agregar Medicación Hematológica</h5>
+                    <div class="section-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+                        <div class="form-group">
+                            <label>MEDICAMENTO</label>
+                            <input type="text" name="dynamic_medicacion_hematologica[0][medicamento]" placeholder="Ej: Heparina">
+                        </div>
+                        <div class="form-group">
+                            <label>DOSIS</label>
+                            <input type="text" name="dynamic_medicacion_hematologica[0][dosis]" placeholder="Ej: 5000">
+                        </div>
+                        <div class="form-group">
+                            <label>UNIDAD</label>
+                            <select name="dynamic_medicacion_hematologica[0][unidad]">
+                                <option value="">Seleccionar...</option>
+                                <option value="G">G</option>
+                                <option value="MG">MG</option>
+                                <option value="MCG">MCG</option>
+                                <option value="UI">UI</option>
+                                <option value="ML/H">ML/H</option>
+                                <option value="UI/H">UI/H</option>
+                                <option value="MG/H">MG/H</option>
+                                <option value="MG/KG/H">MG/KG/H</option>
+                                <option value="MCG/KG/H">MCG/KG/H</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>FECHA INICIO</label>
+                            <input type="date" name="dynamic_medicacion_hematologica[0][fecha_inicio]">
+                        </div>
+                        <div class="form-group">
+                            <label>FECHA FIN</label>
+                            <input type="date" name="dynamic_medicacion_hematologica[0][fecha_fin]">
+                        </div>
+                        <div class="form-group" style="grid-column: span 2;">
+                            <label>INDICACIÓN</label>
+                            <input type="text" name="dynamic_medicacion_hematologica[0][indicacion]" placeholder="Ej: Profilaxis anticoagulante">
+                        </div>
+                    </div>
+                    <button type="button" class="add-dynamic-row" style="margin-top: 10px; background: var(--bg-secondary); border: 1px solid var(--border); padding: 8px 15px; border-radius: 4px; cursor: pointer;">
+                        <i class="fas fa-plus"></i> Agregar más hematológicos
+                    </button>
+                </div>
+            </div>
+
+
+            <!-- ANTIBIÓTICOS -->
+            <div class="card-body" style="border-top: 1px solid var(--border);">
+                <h4 style="color: var(--accent); margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;">💊 ANTIBIÓTICOS</h4>
+                
+                <!-- Tabla de registros existentes -->
+                {% if patient and patient.antibioticos %}
+                <table style="width: 100%; margin-bottom: 20px; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: var(--bg-tertiary);">
+                            <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">ANTIBIÓTICO</th>
+                            <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">DOSIS</th>
+                            <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">UNIDAD</th>
+                            <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">VÍA</th>
+                            <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">INICIO</th>
+                            <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">FIN</th>
+                            <th style="padding: 10px; border: 1px solid var(--border); text-align: left;">INDICACIÓN</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for med in patient.antibioticos %}
+                        <tr>
+                            <td style="padding: 8px; border: 1px solid var(--border);">{{ med.antibiotico }}</td>
+                            <td style="padding: 8px; border: 1px solid var(--border);">{{ med.dosis }}</td>
+                            <td style="padding: 8px; border: 1px solid var(--border);">{{ med.unidad }}</td>
+                            <td style="padding: 8px; border: 1px solid var(--border);">{{ med.via or '-' }}</td>
+                            <td style="padding: 8px; border: 1px solid var(--border);">{{ med.fecha_inicio }}</td>
+                            <td style="padding: 8px; border: 1px solid var(--border);">{{ med.fecha_fin or '-' }}</td>
+                            <td style="padding: 8px; border: 1px solid var(--border);">{{ med.indicacion or '-' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endif %}
+                
+                <!-- Formulario para agregar nuevo -->
+                <div class="dynamic-form-section" style="background: var(--bg-tertiary); padding: 15px; border-radius: 4px; border: 1px solid var(--border);">
+                    <h5 style="margin-bottom: 15px; color: var(--text-secondary);">➕ Agregar Antibiótico</h5>
+                    <div class="section-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+                        <div class="form-group">
+                            <label>ANTIBIÓTICO</label>
+                            <input type="text" name="dynamic_antibioticos[0][antibiotico]" placeholder="Ej: Meropenem">
+                        </div>
+                        <div class="form-group">
+                            <label>DOSIS</label>
+                            <input type="text" name="dynamic_antibioticos[0][dosis]" placeholder="Ej: 1.0">
+                        </div>
+                        <div class="form-group">
+                            <label>UNIDAD</label>
+                            <select name="dynamic_antibioticos[0][unidad]">
+                                <option value="">Seleccionar...</option>
+                                <option value="G">G</option>
+                                <option value="MG">MG</option>
+                                <option value="MCG">MCG</option>
+                                <option value="UI">UI</option>
+                                <option value="ML">ML</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>VÍA</label>
+                            <select name="dynamic_antibioticos[0][via]">
+                                <option value="">Seleccionar...</option>
+                                <option value="IV">IV</option>
+                                <option value="IV BOLUS">IV BOLUS</option>
+                                <option value="IV INFUSIÓN">IV INFUSIÓN</option>
+                                <option value="SC">SC</option>
+                                <option value="IM">IM</option>
+                                <option value="VO">VO</option>
+                                <option value="NGT">NGT</option>
+                                <option value="TOPICO">TÓPICO</option>
+                                <option value="INHALADO">INHALADO</option>
+                                <option value="INTRATHECAL">INTRATECAL</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>FRECUENCIA</label>
+                            <select name="dynamic_antibioticos[0][frecuencia]">
+                                <option value="">Seleccionar...</option>
+                                <option value="DU">DU (Dosis Única)</option>
+                                <option value="1D">1D (1 vez al día)</option>
+                                <option value="2D">2D (2 veces al día)</option>
+                                <option value="3D">3D (3 veces al día)</option>
+                                <option value="4D">4D (4 veces al día)</option>
+                                <option value="CADA 6H">Cada 6h</option>
+                                <option value="CADA 8H">Cada 8h</option>
+                                <option value="CADA 12H">Cada 12h</option>
+                                <option value="CADA 24H">Cada 24h</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>FECHA INICIO</label>
+                            <input type="date" name="dynamic_antibioticos[0][fecha_inicio]">
+                        </div>
+                        <div class="form-group">
+                            <label>FECHA FIN</label>
+                            <input type="date" name="dynamic_antibioticos[0][fecha_fin]">
+                        </div>
+                        <div class="form-group" style="grid-column: span 2;">
+                            <label>INDICACIÓN</label>
+                            <input type="text" name="dynamic_antibioticos[0][indicacion]" placeholder="Ej: Neumonía nosocomial">
+                        </div>
+                    </div>
+                    <button type="button" class="add-dynamic-row" style="margin-top: 10px; background: var(--bg-secondary); border: 1px solid var(--border); padding: 8px 15px; border-radius: 4px; cursor: pointer;">
+                        <i class="fas fa-plus"></i> Agregar más antibióticos
+                    </button>
+                </div>
+            </div>
+            <!-- Cultivos -->
+            <div class="card-body" style="border-top: 1px solid var(--border);">
+                <h4 style="color: var(--accent); margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;">🧪 Cultivos</h4>
+                <div class="section-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                    <div class="form-group">
+                        <label>TIPO</label>
+                        <select name="dynamic_cultivos[0][tipo]">
+                            <option value="">Seleccionar...</option>
+                            <option value="hemocultivo">Hemocultivo</option>
+                            <option value="urocultivo">Urocultivo</option>
+                            <option value="esputo">Esputo</option>
+                            <option value="cateter">Cultivo de Catéter</option>
+                            <option value="herida">Cultivo de Herida</option>
+                            <option value="liquido">Líquido Pleural/Abdominal</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>FECHA</label>
+                        <input type="date" name="dynamic_cultivos[0][fecha]">
+                    </div>
+                    <div class="form-group">
+                        <label>RESULTADO</label>
+                        <select name="dynamic_cultivos[0][resultado]">
+                            <option value="">Seleccionar...</option>
+                            <option value="positivo">Positivo</option>
+                            <option value="negativo">Negativo</option>
+                            <option value="pendiente">Pendiente</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>SENSIBILIDAD</label>
+                        <input type="text" name="dynamic_cultivos[0][sensibilidad]" placeholder="Ej: Sens. a Cefalosporinas, Carbapenémicos">
+                    </div>
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>RESISTENCIA</label>
+                        <input type="text" name="dynamic_cultivos[0][resistencia]" placeholder="Ej: Res. a Meticilina, Vancomicina">
+                    </div>
+                    <button type="button" class="add-dynamic-row" style="margin-top: 10px; background: var(--bg-secondary); border: 1px solid var(--border); padding: 8px 15px; border-radius: 4px; cursor: pointer;">
+                        <i class="fas fa-plus"></i> Agregar más cultivos
+                    </button>
+                </div>
+            </div>
+
+            <!-- Transfusiones -->
+            <div class="card-body" style="border-top: 1px solid var(--border);">
+                <h4 style="color: var(--accent); margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px;">💉 Transfusiones</h4>
+                <div class="section-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                    <div class="form-group">
+                        <label>COMPONENTE</label>
+                        <select name="dynamic_transfusiones[0][componente]">
+                            <option value="">Seleccionar...</option>
+                            <option value="glóbulos rojos">Glóbulos Rojos</option>
+                            <option value="plaquetas">Plaquetas</option>
+                            <option value="plasma fresco">Plasma Fresco Congelado</option>
+                            <option value="crioprecipitados">Crioprecipitados</option>
+                            <option value="albumina">Albumina</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>UNIDADES</label>
+                        <input type="number" name="dynamic_transfusiones[0][dosis_unidades]" placeholder="Ej: 2">
+                    </div>
+                    <div class="form-group">
+                        <label>VOLUMEN (ML)</label>
+                        <input type="number" name="dynamic_transfusiones[0][dosis_ml]" placeholder="Ej: 450">
+                    </div>
+                    <div class="form-group">
+                        <label>FECHA</label>
+                        <input type="date" name="dynamic_transfusiones[0][fecha_transfusion]">
+                    </div>
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>REACCIÓN ADVERSA</label>
+                        <input type="text" name="dynamic_transfusiones[0][reaccion_adversa]" placeholder="Ej: Ninguna, Fiebre, Urticaria, SHTR">
+                    </div>
+                    <button type="button" class="add-dynamic-row" style="margin-top: 10px; background: var(--bg-secondary); border: 1px solid var(--border); padding: 8px 15px; border-radius: 4px; cursor: pointer;">
+                        <i class="fas fa-plus"></i> Agregar más transfusiones
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 📜 Antecedentes y Comorbilidades -->
+        <div id="tab-antecedentes" class="tab-content">
+            <div class="card-body">
+                <h3 style="color: var(--accent); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px;">📜 Antecedentes y Comorbilidades</h3>
+                
+                <div class="section-grid" style="grid-template-columns: 1fr;">
+                    <div class="form-group">
+                        <label for="padecimiento_actual">Padecimiento Actual y Evolución Previa al Ingreso a UCI</label>
+                        <textarea id="padecimiento_actual" name="padecimiento_actual" rows="6" placeholder="Describa el padecimiento actual, motivo de ingreso a UCI, evolución previa, tratamientos previos, complicaciones...">{{ patient.padecimiento_actual if patient else '' }}</textarea>
+                        <small style="color: var(--text-secondary); font-size: 0.75rem;">Incluya motivo de ingreso, evolución previa, tratamientos recibidos</small>
+                    </div>
+                </div>
+                
+                <div class="section-grid" style="grid-template-columns: 1fr; margin-top: 20px;">
+                    <div class="form-group">
+                        <label for="evolucion_previa">Evolución y Manejo Pre-UCI</label>
+                        <textarea id="evolucion_previa" name="evolucion_previa" rows="4" placeholder="Evolución durante estancia previa, manejo realizado, respuesta al tratamiento...">{{ patient.evolucion_previa if patient else '' }}</textarea>
+                    </div>
+                </div>
+                
+                <h4 style="color: var(--accent); margin: 30px 0 15px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">Índice de Comorbilidades de Charlson</h4>
+                
+                <div class="section-grid">
+                    <div class="form-group">
+                        <label for="charlson_edad">Edad ≥50 (1 punto por cada década)</label>
+                        <select id="charlson_edad" name="charlson_edad" onchange="calcularCharlson()">
+                            <option value="0" {{ 'selected' if patient and patient.charlson_edad == 0 else '' }}>&lt;50 años (0)</option>
+                            <option value="1" {{ 'selected' if patient and patient.charlson_edad == 1 else '' }}>50-59 (1)</option>
+                            <option value="2" {{ 'selected' if patient and patient.charlson_edad == 2 else '' }}>60-69 (2)</option>
+                            <option value="3" {{ 'selected' if patient and patient.charlson_edad == 3 else '' }}>70-79 (3)</option>
+                            <option value="4" {{ 'selected' if patient and patient.charlson_edad == 4 else '' }}>≥80 (4)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="charlson_im">Infarto de Miocardio</label>
+                        <select id="charlson_im" name="charlson_im" onchange="calcularCharlson()">
+                            <option value="0" {{ 'selected' if patient and patient.charlson_im == 0 else '' }}>No (0)</option>
+                            <option value="1" {{ 'selected' if patient and patient.charlson_im == 1 else '' }}>Sí (1)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="charlson_evc">Enfermedad Vascular Cerebral</label>
+                        <select id="charlson_evc" name="charlson_evc" onchange="calcularCharlson()">
+                            <option value="0" {{ 'selected' if patient and patient.charlson_evc == 0 else '' }}>No (0)</option>
+                            <option value="1" {{ 'selected' if patient and patient.charlson_evc == 1 else '' }}>Sí (1)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="charlson_ep">Enfermedad Pulmonar Vascular</label>
+                        <select id="charlson_ep" name="charlson_ep" onchange="calcularCharlson()">
+                            <option value="0" {{ 'selected' if patient and patient.charlson_ep == 0 else '' }}>No (0)</option>
+                            <option value="1" {{ 'selected' if patient and patient.charlson_ep == 1 else '' }}>Sí (1)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="charlson_demencia">Demencia</label>
+                        <select id="charlson_demencia" name="charlson_demencia" onchange="calcularCharlson()">
+                            <option value="0" {{ 'selected' if patient and patient.charlson_demencia == 0 else '' }}>No (0)</option>
+                            <option value="1" {{ 'selected' if patient and patient.charlson_demencia == 1 else '' }}>Sí (1)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="charlson_epoc">EPOC</label>
+                        <select id="charlson_epoc" name="charlson_epoc" onchange="calcularCharlson()">
+                            <option value="0" {{ 'selected' if patient and patient.charlson_epoc == 0 else '' }}>No (0)</option>
+                            <option value="1" {{ 'selected' if patient and patient.charlson_epoc == 1 else '' }}>Sí (1)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="charlson_tejido_conectivo">Enfermedad del Tejido Conectivo</label>
+                        <select id="charlson_tejido_conectivo" name="charlson_tejido_conectivo" onchange="calcularCharlson()">
+                            <option value="0" {{ 'selected' if patient and patient.charlson_tejido_conectivo == 0 else '' }}>No (0)</option>
+                            <option value="1" {{ 'selected' if patient and patient.charlson_tejido_conectivo == 1 else '' }}>Sí (1)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="charlson_ulcera_peptica">Úlcera Péptica</label>
+                        <select id="charlson_ulcera_peptica" name="charlson_ulcera_peptica" onchange="calcularCharlson()">
+                            <option value="0" {{ 'selected' if patient and patient.charlson_ulcera_peptica == 0 else '' }}>No (0)</option>
+                            <option value="1" {{ 'selected' if patient and patient.charlson_ulcera_peptica == 1 else '' }}>Sí (1)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="charlson_enfermedad_hepatica_leve">Enfermedad Hepática Leve</label>
+                        <select id="charlson_enfermedad_hepatica_leve" name="charlson_enfermedad_hepatica_leve" onchange="calcularCharlson()">
+                            <option value="0" {{ 'selected' if patient and patient.charlson_enfermedad_hepatica_leve == 0 else '' }}>No (0)</option>
+                            <option value="1" {{ 'selected' if patient and patient.charlson_enfermedad_hepatica_leve == 1 else '' }}>Sí (1)</option>
+                        </select>
+                        <small style="color: var(--text-secondary); font-size: 0.75rem;">Hepatitis crónica sin cirrosis</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="charlson_enfermedad_hepatica_moderada">Enfermedad Hepática Moderada/Severa</label>
+                        <select id="charlson_enfermedad_hepatica_moderada" name="charlson_enfermedad_hepatica_moderada" onchange="calcularCharlson()">
+                            <option value="0" {{ 'selected' if patient and patient.charlson_enfermedad_hepatica_moderada == 0 else '' }}>No (0)</option>
+                            <option value="3" {{ 'selected' if patient and patient.charlson_enfermedad_hepatica_moderada == 3 else '' }}>Sí (3)</option>
+                        </select>
+                        <small style="color: var(--text-secondary); font-size: 0.75rem;">Cirrosis, hepatitis activa</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="charlson_insuficiencia_renal">Insuficiencia Renal</label>
+                        <select id="charlson_insuficiencia_renal" name="charlson_insuficiencia_renal" onchange="calcularCharlson()">
+                            <option value="0" {{ 'selected' if patient and patient.charlson_insuficiencia_renal == 0 else '' }}>No (0)</option>
+                            <option value="2" {{ 'selected' if patient and patient.charlson_insuficiencia_renal == 2 else '' }}>Moderada (2)</option>
+                            <option value="3" {{ 'selected' if patient and patient.charlson_insuficiencia_renal == 3 else '' }}>Severa (3)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="charlson_dmi">Diabetes Mellitus Tipo I</label>
+                        <select id="charlson_dmi" name="charlson_dmi" onchange="calcularCharlson()">
+                            <option value="0" {{ 'selected' if patient and patient.charlson_dmi == 0 else '' }}>No (0)</option>
+                            <option value="1" {{ 'selected' if patient and patient.charlson_dmi == 1 else '' }}>Sin complicaciones (1)</option>
+                            <option value="2" {{ 'selected' if patient and patient.charlson_dmi == 2 else '' }}>Con complicaciones (2)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="charlson_dmii">Diabetes Mellitus Tipo II</label>
+                        <select id="charlson_dmii" name="charlson_dmii" onchange="calcularCharlson()">
+                            <option value="0" {{ 'selected' if patient and patient.charlson_dmii == 0 else '' }}>No (0)</option>
+                            <option value="1" {{ 'selected' if patient and patient.charlson_dmii == 1 else '' }}>Sin complicaciones (1)</option>
+                            <option value="2" {{ 'selected' if patient and patient.charlson_dmii == 2 else '' }}>Con complicaciones (2)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="charlson_hemiparesia">Hemiparesia</label>
+                        <select id="charlson_hemiparesia" name="charlson_hemiparesia" onchange="calcularCharlson()">
+                            <option value="0" {{ 'selected' if patient and patient.charlson_hemiparesia == 0 else '' }}>No (0)</option>
+                            <option value="2" {{ 'selected' if patient and patient.charlson_hemiparesia == 2 else '' }}>Sí (2)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="charlson_leucemia">Leucemia</label>
+                        <select id="charlson_leucemia" name="charlson_leucemia" onchange="calcularCharlson()">
+                            <option value="0" {{ 'selected' if patient and patient.charlson_leucemia == 0 else '' }}>No (0)</option>
+                            <option value="2" {{ 'selected' if patient and patient.charlson_leucemia == 2 else '' }}>Sí (2)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="charlson_linfoma">Linfoma</label>
+                        <select id="charlson_linfoma" name="charlson_linfoma" onchange="calcularCharlson()">
+                            <option value="0" {{ 'selected' if patient and patient.charlson_linfoma == 0 else '' }}>No (0)</option>
+                            <option value="2" {{ 'selected' if patient and patient.charlson_linfoma == 2 else '' }}>Sí (2)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="charlson_tumor_solido">Tumor Sólido Localizado</label>
+                        <select id="charlson_tumor_solido" name="charlson_tumor_solido" onchange="calcularCharlson()">
+                            <option value="0" {{ 'selected' if patient and patient.charlson_tumor_solido == 0 else '' }}>No (0)</option>
+                            <option value="2" {{ 'selected' if patient and patient.charlson_tumor_solido == 2 else '' }}>Sí (2)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="charlson_tumor_metastasis">Tumor con Metástasis</label>
+                        <select id="charlson_tumor_metastasis" name="charlson_tumor_metastasis" onchange="calcularCharlson()">
+                            <option value="0" {{ 'selected' if patient and patient.charlson_tumor_metastasis == 0 else '' }}>No (0)</option>
+                            <option value="6" {{ 'selected' if patient and patient.charlson_tumor_metastasis == 6 else '' }}>Sí (6)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="charlson_sida">SIDA</label>
+                        <select id="charlson_sida" name="charlson_sida" onchange="calcularCharlson()">
+                            <option value="0" {{ 'selected' if patient and patient.charlson_sida == 0 else '' }}>No (0)</option>
+                            <option value="6" {{ 'selected' if patient and patient.charlson_sida == 6 else '' }}>Sí (6)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group" style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+                        <label for="charlson_total">Total Charlson</label>
+                        <input type="number" id="charlson_total" name="charlson_total" value="{{ patient.charlson_total if patient else '0' }}" readonly style="font-weight: bold; font-size: 1.2em; text-align: center;">
+                    </div>
+                    
+                    <div class="form-group" style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; border: 1px solid var(--border);">
+                        <label for="charlson_mortalidad">Mortalidad Estimada</label>
+                        <input type="text" id="charlson_mortalidad" name="charlson_mortalidad" value="{{ patient.charlson_mortalidad if patient else '' }}" readonly style="font-weight: bold; text-align: center;">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 📊 Evaluación Inicial -->
+        <div id="tab-evaluacion" class="tab-content">
+            <div class="card-body">
+                <h3 style="color: var(--accent); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px;">📊 Evaluación Inicial y Scores</h3>
+                <div class="section-grid">
+                    <div class="form-group">
+                        <label for="news2_ingreso">NEWS2 (Ingreso)</label>
+                        <input type="number" id="news2_ingreso" name="news2_ingreso" value="{{ patient.news2_ingreso if patient else '' }}">
+                        <small style="color: var(--text-secondary); font-size: 0.75rem;">0-20 (puntuación de alerta temprana)</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="news2_interpretado">NEWS2 Interpretado</label>
+                        <input type="text" id="news2_interpretado" name="news2_interpretado" value="{{ patient.news2_interpretado if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="sofa_ingreso">SOFA (Ingreso)</label>
+                        <input type="number" id="sofa_ingreso" name="sofa_ingreso" value="{{ patient.sofa_ingreso if patient else '' }}">
+                        <small style="color: var(--text-secondary); font-size: 0.75rem;">0-24 (puntuación de fallo orgánico)</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="sofa_mortalidad">SOFA Mortalidad</label>
+                        <input type="text" id="sofa_mortalidad" name="sofa_mortalidad" value="{{ patient.sofa_mortalidad if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="sofa2_ingreso">SOFA2 (Ingreso)</label>
+                        <input type="number" id="sofa2_ingreso" name="sofa2_ingreso" value="{{ patient.sofa2_ingreso if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="apache2_ingreso">APACHE II (Ingreso)</label>
+                        <input type="number" id="apache2_ingreso" name="apache2_ingreso" value="{{ patient.apache2_ingreso if patient else '' }}">
+                        <small style="color: var(--text-secondary); font-size: 0.75rem;">0-71 (puntuación de severidad)</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="apache2_mortalidad">APACHE II Mortalidad</label>
+                        <input type="text" id="apache2_mortalidad" name="apache2_mortalidad" value="{{ patient.apache2_mortalidad if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="saps3_ingreso">SAPS3 (Ingreso)</label>
+                        <input type="number" id="saps3_ingreso" name="saps3_ingreso" value="{{ patient.saps3_ingreso if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="saps3_mortalidad">SAPS3 Mortalidad</label>
+                        <input type="text" id="saps3_mortalidad" name="saps3_mortalidad" value="{{ patient.saps3_mortalidad if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="swift_score">SWIFT Score</label>
+                        <input type="number" id="swift_score" name="swift_score" value="{{ patient.swift_score if patient else '' }}">
+                    </div>
+                    
+                    <div class="form-group" style="display: flex; flex-direction: column; justify-content: flex-end;">
+                        <label style="visibility: hidden;">Calcular</label>
+                        <button type="button" class="btn" onclick="autoCalcularScores()" style="background: #3b82f6; color: #fff; font-weight: bold; font-family: 'Consolas', 'Courier New', monospace; text-transform: uppercase; letter-spacing: 1px; padding: 10px 20px;">
+                            <i class="fas fa-calculator"></i> Calcular Escalas
+                        </button>
+                    </div>
+                </div>
+
+                <h4 style="color: var(--accent); margin: 30px 0 15px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">Diagnóstico y Plan</h4>
+                <div class="section-grid">
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="diagnostico_ingreso">Diagnóstico de Ingreso</label>
+                        <textarea id="diagnostico_ingreso" name="diagnostico_ingreso" rows="4">{{ patient.diagnostico_ingreso if patient else '' }}</textarea>
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="plan_ingreso">Plan de Ingreso</label>
+                        <textarea id="plan_ingreso" name="plan_ingreso" rows="4">{{ patient.plan_ingreso if patient else '' }}</textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- 🏥 Egreso -->
+        <div id="tab-egreso" class="tab-content">
+            <div class="card-body">
+                <h3 style="color: var(--accent); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px;">🏥 Datos de Egreso</h3>
+                <div class="section-grid">
+                    <div class="form-group">
+                        <label for="estado">Estado</label>
+                        <select id="estado" name="estado">
+                            <option value="ingreso" {{ 'selected' if patient and patient.estado == 'ingreso' else '' }}>Ingreso</option>
+                            <option value="egreso" {{ 'selected' if patient and patient.estado == 'egreso' else '' }}>Egreso</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="fecha_egreso_uci">Fecha Egreso UCI</label>
+                        <input type="date" id="fecha_egreso_uci" name="fecha_egreso_uci" value="{{ patient.fecha_egreso_uci if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="fecha_egreso_hospital">Fecha Egreso Hospital</label>
+                        <input type="date" id="fecha_egreso_hospital" name="fecha_egreso_hospital" value="{{ patient.fecha_egreso_hospital if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="tipo_egreso">Tipo de Egreso</label>
+                        <input type="text" id="tipo_egreso" name="tipo_egreso" value="{{ patient.tipo_egreso if patient else '' }}" placeholder="Ej: Mejorado, Alta voluntaria, Defunción">
+                    </div>
+                    <div class="form-group">
+                        <label for="servicio_egreso">Servicio de Egreso</label>
+                        <input type="text" id="servicio_egreso" name="servicio_egreso" value="{{ patient.servicio_egreso if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="destino_egreso">Destino de Egreso</label>
+                        <input type="text" id="destino_egreso" name="destino_egreso" value="{{ patient.destino_egreso if patient else '' }}" placeholder="Ej: Piso, Casa, Otro hospital">
+                    </div>
+                    <div class="form-group">
+                        <label for="condicion_egreso">Condición al Egreso</label>
+                        <input type="text" id="condicion_egreso" name="condicion_egreso" value="{{ patient.condicion_egreso if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="fecha_defuncion">Fecha Defunción</label>
+                        <input type="date" id="fecha_defuncion" name="fecha_defuncion" value="{{ patient.fecha_defuncion if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="fecha_retiro_cvc">Fecha Retiro CVC</label>
+                        <input type="date" id="fecha_retiro_cvc" name="fecha_retiro_cvc" value="{{ patient.fecha_retiro_cvc if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="fecha_retiro_sonda_urinaria">Fecha Retiro Sonda Urinaria</label>
+                        <input type="date" id="fecha_retiro_sonda_urinaria" name="fecha_retiro_sonda_urinaria" value="{{ patient.fecha_retiro_sonda_urinaria if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="fecha_extubacion">Fecha Extubación</label>
+                        <input type="date" id="fecha_extubacion" name="fecha_extubacion" value="{{ patient.fecha_extubacion if patient else '' }}">
+                    </div>
+                </div>
+
+                <h4 style="color: var(--accent); margin: 30px 0 15px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">Signos Vitales al Egreso</h4>
+                <div class="section-grid">
+                    <div class="form-group">
+                        <label for="fc_egreso">FC Egreso (lpm)</label>
+                        <input type="number" id="fc_egreso" name="fc_egreso" value="{{ patient.fc_egreso if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="fr_egreso">FR Egreso (rpm)</label>
+                        <input type="number" id="fr_egreso" name="fr_egreso" value="{{ patient.fr_egreso if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="tas_egreso">TAS Egreso (mmHg)</label>
+                        <input type="number" id="tas_egreso" name="tas_egreso" value="{{ patient.tas_egreso if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="tad_egreso">TAD Egreso (mmHg)</label>
+                        <input type="number" id="tad_egreso" name="tad_egreso" value="{{ patient.tad_egreso if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="tam_egreso">TAM Egreso (mmHg)</label>
+                        <input type="number" step="any" id="tam_egreso" name="tam_egreso" value="{{ patient.tam_egreso if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="sao2_egreso">SaO2 Egreso (%)</label>
+                        <input type="number" id="sao2_egreso" name="sao2_egreso" value="{{ patient.sao2_egreso if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="fio2_egreso">FiO2 Egreso (%)</label>
+                        <input type="number" id="fio2_egreso" name="fio2_egreso" value="{{ patient.fio2_egreso if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="pafi_egreso">PaFi Egreso</label>
+                        <input type="number" step="any" id="pafi_egreso" name="pafi_egreso" value="{{ patient.pafi_egreso if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="temperatura_egreso">Temperatura Egreso (°C)</label>
+                        <input type="number" step="any" id="temperatura_egreso" name="temperatura_egreso" value="{{ patient.temperatura_egreso if patient else '' }}">
+                    </div>
+                </div>
+
+                <h4 style="color: var(--accent); margin: 30px 0 15px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">Laboratorio al Egreso</h4>
+                <div class="section-grid">
+                    <div class="form-group">
+                        <label for="hemoglobina_egreso">Hemoglobina Egreso (g/dL)</label>
+                        <input type="number" step="any" id="hemoglobina_egreso" name="hemoglobina_egreso" value="{{ patient.hemoglobina_egreso if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="hematocrito_egreso">Hematocrito Egreso (%)</label>
+                        <input type="number" step="any" id="hematocrito_egreso" name="hematocrito_egreso" value="{{ patient.hematocrito_egreso if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="leucocitos_egreso">Leucocitos Egreso (x10³/μL)</label>
+                        <input type="number" step="any" id="leucocitos_egreso" name="leucocitos_egreso" value="{{ patient.leucocitos_egreso if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="plaquetas_egreso">Plaquetas Egreso (x10³/μL)</label>
+                        <input type="number" step="any" id="plaquetas_egreso" name="plaquetas_egreso" value="{{ patient.plaquetas_egreso if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="neutrofilos_egreso">Neutrófilos Egreso (x10⁹/L)</label>
+                        <input type="number" step="any" id="neutrofilos_egreso" name="neutrofilos_egreso" value="{{ patient.neutrofilos_egreso if patient else '' }}">
+                        <small style="color: var(--text-secondary); font-size: 0.75rem;">Valor absoluto: 7.00 = 7,000/μL</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="linfocitos_egreso">Linfocitos Egreso (x10⁹/L)</label>
+                        <input type="number" step="any" id="linfocitos_egreso" name="linfocitos_egreso" value="{{ patient.linfocitos_egreso if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="pcr_egreso">PCR Egreso (mg/L)</label>
+                        <input type="number" step="any" id="pcr_egreso" name="pcr_egreso" value="{{ patient.pcr_egreso if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="pct_egreso">PCT Egreso (ng/mL)</label>
+                        <input type="number" step="any" id="pct_egreso" name="pct_egreso" value="{{ patient.pct_egreso if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="sodio_egreso">Sodio Egreso (mEq/L)</label>
+                        <input type="number" step="any" id="sodio_egreso" name="sodio_egreso" value="{{ patient.sodio_egreso if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="potasio_egreso">Potasio Egreso (mEq/L)</label>
+                        <input type="number" step="any" id="potasio_egreso" name="potasio_egreso" value="{{ patient.potasio_egreso if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="cloro_egreso">Cloro Egreso (mEq/L)</label>
+                        <input type="number" step="any" id="cloro_egreso" name="cloro_egreso" value="{{ patient.cloro_egreso if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="creatinina_egreso">Creatinina Egreso (mg/dL)</label>
+                        <input type="number" step="any" id="creatinina_egreso" name="creatinina_egreso" value="{{ patient.creatinina_egreso if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="bun_egreso">BUN Egreso (mg/dL)</label>
+                        <input type="number" step="any" id="bun_egreso" name="bun_egreso" value="{{ patient.bun_egreso if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="urea_egreso">Urea Egreso (mg/dL)</label>
+                        <input type="number" step="any" id="urea_egreso" name="urea_egreso" value="{{ patient.urea_egreso if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="glucosa_egreso">Glucosa Egreso (mg/dL)</label>
+                        <input type="number" step="any" id="glucosa_egreso" name="glucosa_egreso" value="{{ patient.glucosa_egreso if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="bilirrubina_total_egreso">Bilirrubina Total Egreso (mg/dL)</label>
+                        <input type="number" step="any" id="bilirrubina_total_egreso" name="bilirrubina_total_egreso" value="{{ patient.bilirrubina_total_egreso if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="bilirrubina_directa_egreso">Bilirrubina Directa Egreso (mg/dL)</label>
+                        <input type="number" step="any" id="bilirrubina_directa_egreso" name="bilirrubina_directa_egreso" value="{{ patient.bilirrubina_directa_egreso if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="albumina_egreso">Albúmina Egreso (g/dL)</label>
+                        <input type="number" step="any" id="albumina_egreso" name="albumina_egreso" value="{{ patient.albumina_egreso if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="gasometria_ph_egreso">pH Egreso</label>
+                        <input type="number" step="any" id="gasometria_ph_egreso" name="gasometria_ph_egreso" value="{{ patient.gasometria_ph_egreso if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="gasometria_pco2_egreso">pCO2 Egreso (mmHg)</label>
+                        <input type="number" step="any" id="gasometria_pco2_egreso" name="gasometria_pco2_egreso" value="{{ patient.gasometria_pco2_egreso if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="gasometria_po2_egreso">pO2 Egreso (mmHg)</label>
+                        <input type="number" step="any" id="gasometria_po2_egreso" name="gasometria_po2_egreso" value="{{ patient.gasometria_po2_egreso if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="gasometria_hco3_egreso">HCO3- Egreso (mEq/L)</label>
+                        <input type="number" step="any" id="gasometria_hco3_egreso" name="gasometria_hco3_egreso" value="{{ patient.gasometria_hco3_egreso if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="gasometria_lactato_egreso">Lactato Egreso (mmol/L)</label>
+                        <input type="number" step="any" id="gasometria_lactato_egreso" name="gasometria_lactato_egreso" value="{{ patient.gasometria_lactato_egreso if patient else '' }}">
+                    </div>
+                </div>
+
+                <h4 style="color: var(--accent); margin: 30px 0 15px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid var(--border); padding-bottom: 10px;">Scores al Egreso</h4>
+                <div class="section-grid">
+                    <div class="form-group">
+                        <label for="news2_egreso">NEWS2 Egreso</label>
+                        <input type="number" id="news2_egreso" name="news2_egreso" value="{{ patient.news2_egreso if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="sofa_egreso">SOFA Egreso</label>
+                        <input type="number" id="sofa_egreso" name="sofa_egreso" value="{{ patient.sofa_egreso if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="sofa2_egreso">SOFA2 Egreso</label>
+                        <input type="number" id="sofa2_egreso" name="sofa2_egreso" value="{{ patient.sofa2_egreso if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="apache2_egreso">APACHE II Egreso</label>
+                        <input type="number" id="apache2_egreso" name="apache2_egreso" value="{{ patient.apache2_egreso if patient else '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label for="saps_egreso">SAPS Egreso</label>
+                        <input type="number" id="saps_egreso" name="saps_egreso" value="{{ patient.saps_egreso if patient else '' }}">
+                    </div>
+                </div>
+
+                <div class="section-grid" style="margin-top: 20px;">
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="diagnostico_egreso">Diagnóstico de Egreso</label>
+                        <textarea id="diagnostico_egreso" name="diagnostico_egreso" rows="4">{{ patient.diagnostico_egreso if patient else '' }}</textarea>
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="plan_egreso">Plan de Egreso</label>
+                        <textarea id="plan_egreso" name="plan_egreso" rows="4">{{ patient.plan_egreso if patient else '' }}</textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn btn-success">💾 Guardar Paciente</button>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Cancelar</a>
+        </div>
+    </form>
+</div>
+
+<script>
+// ============================================================================
+// Modal Functions
+// ============================================================================
+function showImportModal() {
+    document.getElementById('importModal').style.display = 'flex';
+    document.getElementById('importText').focus();
+}
+
+function hideImportModal() {
+    document.getElementById('importModal').style.display = 'none';
+    document.getElementById('importText').value = '';
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const modal = document.getElementById('importModal');
+    if (event.target === modal) {
+        hideImportModal();
+    }
+}
+
+// ============================================================================
+// Tab Navigation
+// ============================================================================
+function showTab(tabName) {
+    // Hide all tab contents
+    const tabs = document.querySelectorAll('.tab-content');
+    tabs.forEach(tab => {
+        tab.classList.remove('active');
+    });
+
+    // Remove active class from all tab buttons
+    const buttons = document.querySelectorAll('.tab');
+    buttons.forEach(btn => {
+        btn.classList.remove('active');
+    });
+
+    // Show selected tab
+    document.getElementById('tab-' + tabName).classList.add('active');
+
+    // Add active class to clicked button
+    const activeButton = document.querySelector('.tab[data-tab="' + tabName + '"]');
+    if (activeButton) {
+        activeButton.classList.add('active');
+    }
+}
+
+// ============================================================================
+// Form Field Setters
+// ============================================================================
+function setField(name, value) {
+    const field = document.querySelector('[name="' + name + '"]');
+    if (field && value !== null && value !== undefined) {
+        field.value = value;
+        // Trigger change event for any listeners
+        field.dispatchEvent(new Event('change'));
+    }
+}
+
+function setSelect(name, value) {
+    const select = document.querySelector('select[name="' + name + '"]');
+    if (select && value !== null && value !== undefined) {
+        // Handle boolean values
+        if (typeof value === 'boolean') {
+            value = value ? 'true' : 'false';
+        }
+        // Handle string boolean representations
+        if (value === 'si' || value === 'sí' || value === 'yes' || value === '1') {
+            value = 'true';
+        } else if (value === 'no' || value === '0') {
+            value = 'false';
+        }
+
+        // Try to find matching option
+        const options = Array.from(select.options);
+        const matchingOption = options.find(opt =>
+            opt.value.toLowerCase() === String(value).toLowerCase() ||
+            opt.text.toLowerCase() === String(value).toLowerCase()
+        );
+
+        if (matchingOption) {
+            select.value = matchingOption.value;
+            select.dispatchEvent(new Event('change'));
+        }
+    }
+}
+
+function setCheckbox(name, value) {
+    const checkbox = document.querySelector('input[name="' + name + '"][type="checkbox"]');
+    if (checkbox) {
+        checkbox.checked = Boolean(value);
+        checkbox.dispatchEvent(new Event('change'));
+    }
+}
+
+function setTextarea(name, value) {
+    const textarea = document.querySelector('textarea[name="' + name + '"]');
+    if (textarea && value !== null && value !== undefined) {
+        textarea.value = value;
+        textarea.dispatchEvent(new Event('change'));
+    }
+}
+
+// ============================================================================
+// Note Parser
+// ============================================================================
+function parseNote(text) {
+    const parsed = {};
+
+    // Helper function to find value after colon
+    function findAfterColon(patterns, text) {
+        for (const pattern of patterns) {
+            const regex = new RegExp(pattern, 'i');
+            const match = text.match(regex);
+            if (match && match[1]) {
+                return match[1].trim();
+            }
+        }
+        return null;
+    }
+
+    // Helper to extract number
+    function extractNumber(value) {
+        if (!value) return null;
+        const match = value.match(/(\d+\.?\d*)/);
+        return match ? parseFloat(match[1]) : null;
+    }
+
+    // Datos Contextuales
+    parsed.nombre_completo = findAfterColon([
+        'Nombre[:\s]+([^\n]+?)(?=\n|$|Edad|Sexo|Expediente)',
+        'Paciente[:\s]+([^\n]+?)(?=\n|$|Edad|Sexo)'
+    ], text);
+
+    const edadMatch = text.match(/(\d+)\s*(?:años?|anos?|years?)/i);
+    if (edadMatch) {
+        parsed.edad = parseInt(edadMatch[1]);
+    }
+
+    const sexoMatch = text.match(/\b(Masculino|Femenino|Male|Female|M|F)\b/i);
+    if (sexoMatch) {
+        const sexo = sexoMatch[1].toUpperCase();
+        parsed.sexo = (sexo === 'M' || sexo === 'MASCULINO' || sexo === 'MALE') ? 'M' : 'F';
+    }
+
+    parsed.expediente = findAfterColon([
+        'Expediente[:\s#]+([^\n]+?)(?=\n|$)',
+        'No\.\s*Exp[:\s#]+([^\n]+?)(?=\n|$)',
+        'MRN[:\s#]+([^\n]+?)(?=\n|$)'
+    ], text);
+
+    parsed.curp = findAfterColon([
+        'CURP[:\s]+([A-Z]{4}\d{6}[HM][A-Z]{5}[\dA-Z]{2})'
+    ], text);
+
+    // Buscar CURP pattern directamente
+    const curpPattern = /[A-Z]{4}\d{6}[HM][A-Z]{5}[\dA-Z]{2}/;
+    const curpMatch = text.match(curpPattern);
+    if (curpMatch && !parsed.curp) {
+        parsed.curp = curpMatch[0];
+    }
+
+    // Fechas
+    const fechaIngreso = findAfterColon([
+        'Fecha\s+Ingreso[:\s]+(\d{2}[/-]\d{2}[/-]\d{4})',
+        'Ingreso[:\s]+(\d{2}[/-]\d{2}[/-]\d{4})',
+        'Fecha\s+de\s+Ingreso[:\s]+(\d{2}[/-]\d{2}[/-]\d{4})'
+    ], text);
+    if (fechaIngreso) {
+        parsed.fecha_ingreso = fechaIngreso.replace(/\//g, '-');
+    }
+
+    parsed.cama = findAfterColon([
+        'Cama[:\s#]+([^\n]+?)(?=\n|$)',
+        'Bed[:\s#]+([^\n]+?)(?=\n|$)'
+    ], text);
+
+    // Signos vitales - Hemodinámico
+    const tasMatch = text.match(/(?:TAS|PA\s*sistólica|Systolic)[\s:]+(\d+)\s*(?:\/|mmHg|$)/i);
+    if (tasMatch) {
+        parsed.tas = parseInt(tasMatch[1]);
+    }
+
+    const tadMatch = text.match(/(?:TAD|PA\s*diastólica|Diastolic)[\s:]+(\d+)\s*(?:mmHg|$)/i);
+    if (tadMatch) {
+        parsed.tad = parseInt(tadMatch[1]);
+    } else {
+        // Try to get from PA: 120/80 format
+        const paMatch = text.match(/(?:PA|Presión\s*Arterial|Tensión)[\s:]+(\d+)\/(\d+)/i);
+        if (paMatch) {
+            parsed.tas = parseInt(paMatch[1]);
+            parsed.tad = parseInt(paMatch[2]);
+        }
+    }
+
+    const fcMatch = text.match(/(?:FC|Frecuencia\s*Cardíaca|Heart\s*Rate)[\s:]+(\d+)\s*(?:lpm|bpm|$)/i);
+    if (fcMatch) {
+        parsed.fc = parseInt(fcMatch[1]);
+    }
+
+    // Ventilatorio
+    const frMatch = text.match(/(?:FR|Frecuencia\s*Respiratoria|Respiratory\s*Rate)[\s:]+(\d+)\s*(?:rpm|$)/i);
+    if (frMatch) {
+        parsed.fr = parseInt(frMatch[1]);
+    }
+
+    const sao2Match = text.match(/(?:Sa?O2|SpO2|Sat\s*O2)[\s:]+(\d+)\s*%/i);
+    if (sao2Match) {
+        parsed.sao2 = parseInt(sao2Match[1]);
+    }
+
+    const fio2Match = text.match(/(?:FiO2)[\s:]+(\d+)\s*%?/i);
+    if (fio2Match) {
+        parsed.fio2 = parseInt(fio2Match[1]);
+    }
+
+    const tempMatch = text.match(/(?:Temperatura|Temp)[\s:]+(\d+\.?\d*)\s*(?:°C|C|$)/i);
+    if (tempMatch) {
+        parsed.temperatura = parseFloat(tempMatch[1]);
+    }
+
+    // Neurológico
+    const glasgowMatch = text.match(/(?:Glasgow|GCS|Glasgow\s*Coma\s*Scale)[\s:]+(\d+)\s*(?:\/15|$)/i);
+    if (glasgowMatch) {
+        parsed.glasgow = parseInt(glasgowMatch[1]);
+    }
+
+    const rassMatch = text.match(/(?:RASS|Richmond)[\s:]+([+-]?\d+)/i);
+    if (rassMatch) {
+        parsed.rass = parseInt(rassMatch[1]);
+    }
+
+    // Función Renal
+    const creatMatch = text.match(/(?:Creatinina|Creat)[\s:]+(\d+\.?\d*)\s*(?:mg\/dL|$)/i);
+    if (creatMatch) {
+        parsed.creatinina = parseFloat(creatMatch[1]);
+    }
+
+    const bunMatch = text.match(/(?:BUN|Nitrogeno\s*Ureico)[\s:]+(\d+\.?\d*)/i);
+    if (bunMatch) {
+        parsed.bun = parseFloat(bunMatch[1]);
+    }
+
+    // Electrolitos
+    const sodioMatch = text.match(/(?:Sodio|Na\+?)[\s:]+(\d+\.?\d*)\s*(?:mEq\/L|$)/i);
+    if (sodioMatch) {
+        parsed.sodio = parseFloat(sodioMatch[1]);
+    }
+
+    const potasioMatch = text.match(/(?:Potasio|K\+?)[\s:]+(\d+\.?\d*)\s*(?:mEq\/L|$)/i);
+    if (potasioMatch) {
+        parsed.potasio = parseFloat(potasioMatch[1]);
+    }
+
+    // Hematología
+    const hbMatch = text.match(/(?:Hemoglobina|Hb)[\s:]+(\d+\.?\d*)\s*(?:g\/dL|$)/i);
+    if (hbMatch) {
+        parsed.hemoglobina = parseFloat(hbMatch[1]);
+    }
+
+    const leuMatch = text.match(/(?:Leucocitos|Leuc|WBC)[\s:]+(\d+\.?\d*)\s*(?:x10[³3]\/uL|$)/i);
+    if (leuMatch) {
+        parsed.leucocitos = parseFloat(leuMatch[1]);
+    }
+
+    const pltMatch = text.match(/(?:Plaquetas|Plaquet|PLT)[\s:]+(\d+\.?\d*)\s*(?:x10[³3]\/uL|$)/i);
+    if (pltMatch) {
+        parsed.plaquetas = parseFloat(pltMatch[1]);
+    }
+
+    const neutMatch = text.match(/(?:Neutrófilos|Neutrofilos|Neut)[\s:]+(\d+\.?\d*)\s*(?:x10[³3]\/uL)?/i);
+    if (neutMatch) {
+        parsed.neutrofilos = parseFloat(neutMatch[1]);
+    }
+
+    const pcrMatch = text.match(/(?:PCR|Proteina\s*C\s*Reactiva)[\s:]+(\d+\.?\d*)\s*(?:mg\/L|$)/i);
+    if (pcrMatch) {
+        parsed.pcr = parseFloat(pcrMatch[1]);
+    }
+
+    // Función Hepática
+    const btMatch = text.match(/(?:Bilirrubina\s*Total|BT)[\s:]+(\d+\.?\d*)\s*(?:mg\/dL|$)/i);
+    if (btMatch) {
+        parsed.bilirrubina_total = parseFloat(btMatch[1]);
+    }
+
+    const albMatch = text.match(/(?:Albúmina|Albumina|Alb)[\s:]+(\d+\.?\d*)\s*(?:g\/dL|$)/i);
+    if (albMatch) {
+        parsed.albumina = parseFloat(albMatch[1]);
+    }
+
+    // Gasometría
+    const phMatch = text.match(/(?:pH)[\s:]+(\d+\.?\d*)/i);
+    if (phMatch) {
+        parsed.gasometria_ph = parseFloat(phMatch[1]);
+    }
+
+    const pco2Match = text.match(/(?:pCO2|PCO2)[\s:]+(\d+\.?\d*)\s*(?:mmHg|$)/i);
+    if (pco2Match) {
+        parsed.gasometria_pco2 = parseFloat(pco2Match[1]);
+    }
+
+    const po2Match = text.match(/(?:pO2|PO2)[\s:]+(\d+\.?\d*)\s*(?:mmHg|$)/i);
+    if (po2Match) {
+        parsed.gasometria_po2 = parseFloat(po2Match[1]);
+    }
+
+    const hco3Match = text.match(/(?:HCO3|Bicarbonato)[\s:-]+(\d+\.?\d*)\s*(?:mEq\/L|$)/i);
+    if (hco3Match) {
+        parsed.gasometria_hco3 = parseFloat(hco3Match[1]);
+    }
+
+    const lactMatch = text.match(/(?:Lactato|Lact)[\s:]+(\d+\.?\d*)\s*(?:mmol\/L|$)/i);
+    if (lactMatch) {
+        parsed.gasometria_lactato = parseFloat(lactMatch[1]);
+    }
+
+    // Coagulación
+    const inrMatch = text.match(/(?:INR)[\s:]+(\d+\.?\d*)/i);
+    if (inrMatch) {
+        parsed.inr = parseFloat(inrMatch[1]);
+    }
+
+    const ptMatch = text.match(/(?:TP|T\.P\.|Tiempo\s*de\s*Protrombina)[\s:]+(\d+\.?\d*)/i);
+    if (ptMatch) {
+        parsed.tp = parseFloat(ptMatch[1]);
+    }
+
+    // Peso y Talla
+    const pesoMatch = text.match(/(?:Peso|Weight)[\s:]+(\d+\.?\d*)\s*(?:kg|$)/i);
+    if (pesoMatch) {
+        parsed.peso_estimado = parseFloat(pesoMatch[1]);
+    }
+
+    const tallaMatch = text.match(/(?:Talla|Height)[\s:]+(\d+\.?\d*)\s*(?:m|cm|$)/i);
+    if (tallaMatch) {
+        let talla = parseFloat(tallaMatch[1]);
+        // Si es mayor a 2, probablemente está en cm, convertir a m
+        if (talla > 2) {
+            talla = talla / 100;
+        }
+        parsed.talla = talla;
+    }
+
+    // Diagnóstico
+    const diagMatch = text.match(/(?:Diagnóstico|Diagnosis|Impresión|Impresion)[\s:]+([^\n]+?)(?=\n|$|Plan)/i);
+    if (diagMatch) {
+        parsed.diagnostico_ingreso = diagMatch[1].trim();
+    }
+
+    // Plan
+    const planMatch = text.match(/(?:Plan|Tratamiento)[\s:]+([^\n]+?)(?=\n|$|\n\n)/i);
+    if (planMatch) {
+        parsed.plan_ingreso = planMatch[1].trim();
+    }
+
+    // Modalidad ventilatoria
+    const modoMatch = text.match(/(?:Modo|Modo\s*Ventilatorio|Ventilatorio)[\s:]+([^\n]+?)(?=\n|$)/i);
+    if (modoMatch) {
+        parsed.modo_ventilatorio = modoMatch[1].trim();
+    }
+
+    return parsed;
+}
+
+// ============================================================================
+// Fill Form Fields
+// ============================================================================
+function fillFormFields(data) {
+    let filledCount = 0;
+
+    for (const [key, value] of Object.entries(data)) {
+        if (value === null || value === undefined) continue;
+
+        const field = document.querySelector('[name="' + key + '" ]');
+        if (field) {
+            if (field.tagName === 'SELECT') {
+                setSelect(key, value);
+            } else if (field.tagName === 'TEXTAREA') {
+                setTextarea(key, value);
+            } else {
+                setField(key, value);
+            }
+            filledCount++;
+        }
+    }
+
+    return filledCount;
+}
+
+// ============================================================================
+// Parse and Fill (Main Function)
+// ============================================================================
+function parseAndFillForm() {
+    const text = document.getElementById('importText').value;
+    if (!text.trim()) {
+        alert('Por favor pega el texto de la nota médica primero.');
+        return;
+    }
+
+    const parsedData = parseNote(text);
+    const count = fillFormFields(parsedData);
+
+    hideImportModal();
+
+    if (count > 0) {
+        alert('✅ Se han llenado ' + count + ' campos automáticamente. Por favor revisa los datos antes de guardar.');
+    } else {
+        alert('⚠️ No se pudieron extraer datos del texto. Intenta con un formato diferente o llena los campos manualmente.');
+    }
+}
+
+// ============================================================================
+// Auto-calculate derived values
+// ============================================================================
+document.addEventListener('DOMContentLoaded', function() {
+    // Calculate TAM when TAS or TAD changes
+    const tasField = document.getElementById('tas');
+    const tadField = document.getElementById('tad');
+    const tamField = document.getElementById('tam');
+
+    function calcTAM() {
+        const tas = parseFloat(tasField.value);
+        const tad = parseFloat(tadField.value);
+        if (tas && tad) {
+            const tam = Math.round((tad + (tas - tad) / 3) * 10) / 10;
+            tamField.value = tam;
+        }
+    }
+
+    if (tasField && tadField) {
+        tasField.addEventListener('input', calcTAM);
+        tadField.addEventListener('input', calcTAM);
+    }
+
+    // Calculate PaFi when pO2 (gasometría) or FiO2 changes
+    const gasometriaPo2Field = document.getElementById('gasometria_po2');
+    const fio2Field = document.getElementById('fio2');
+    const pafiField = document.getElementById('pafi');
+
+    function calcPaFi() {
+        const po2 = parseFloat(gasometriaPo2Field?.value);
+        const fio2 = parseFloat(fio2Field?.value);
+        if (po2 && fio2 && fio2 > 0) {
+            const pafi = Math.round((po2 / (fio2 / 100)) * 10) / 10;
+            pafiField.value = pafi;
+        }
+    }
+
+    if (gasometriaPo2Field && fio2Field) {
+        gasometriaPo2Field.addEventListener('input', calcPaFi);
+        fio2Field.addEventListener('input', calcPaFi);
+    }
+
+
+    // Calculate Driving Pressure = Pplat - PEEP
+    const pplatField = document.getElementById('pplat');
+    const peepField = document.getElementById('peep');
+    const drivingPressureField = document.getElementById('driving_pressure');
+
+    function calcDrivingPressure() {
+        const pplat = parseFloat(pplatField?.value);
+        const peep = parseFloat(peepField?.value);
+        if (pplat !== undefined && peep !== undefined && !isNaN(pplat) && !isNaN(peep)) {
+            const dp = Math.round((pplat - peep) * 10) / 10;
+            drivingPressureField.value = dp;
+        }
+    }
+
+    if (pplatField && peepField) {
+        pplatField.addEventListener('input', calcDrivingPressure);
+        peepField.addEventListener('input', calcDrivingPressure);
+    }
+
+    // Calculate Volumen Minuto = VT * FR / 1000 (convertir ml a L)
+    const vtPsinpField = document.getElementById('vt_psinp');
+    const frField = document.getElementById('fr');
+    const volMinField = document.getElementById('vol_min');
+    const pesoIdealField = document.getElementById('peso_ideal');
+
+    function calcVolMin() {
+        const vt = parseFloat(vtPsinpField?.value);
+        const fr = parseFloat(frField?.value);
+        if (vt && fr && fr > 0) {
+            const volMin = Math.round((vt * fr / 1000) * 10) / 10;
+            volMinField.value = volMin;
+        }
+    }
+
+    if (vtPsinpField && frField) {
+        vtPsinpField.addEventListener('input', calcVolMin);
+        frField.addEventListener('input', calcVolMin);
+    }
+
+    // Calculate VT/Peso = VT / Peso Ideal
+    const vtPesoField = document.getElementById('vt_peso');
+
+    function calcVtPeso() {
+        const vt = parseFloat(vtPsinpField?.value);
+        const pesoIdeal = parseFloat(pesoIdealField?.value);
+        if (vt && pesoIdeal && pesoIdeal > 0) {
+            const vtPeso = Math.round((vt / pesoIdeal) * 10) / 10;
+            vtPesoField.value = vtPeso;
+        }
+    }
+
+    // Calcular VT/Peso al inicio y cuando cambien los campos
+    calcVtPeso();
+    
+    if (vtPsinpField && pesoIdealField && vtPesoField) {
+        vtPsinpField.addEventListener('input', calcVtPeso);
+        pesoIdealField.addEventListener('input', calcVtPeso); // cambiado a input para que funcione
+    }
+
+    // Calculate TFG (Cockroft-Gault) = ((140 - Edad) × Peso) / (72 × Creatinina) × Factor Sexo
+    const tfgField = document.getElementById('tfg');
+    const edadField = document.getElementById('edad');
+    const sexoField = document.getElementById('sexo');
+    const pesoEstimadoField = document.getElementById('peso_estimado');
+    const creatininaField = document.getElementById('creatinina');
+
+    function calcTFG() {
+        const edad = parseFloat(edadField?.value);
+        const sexo = sexoField?.value;
+        const peso = parseFloat(pesoEstimadoField?.value);
+        const creatinina = parseFloat(creatininaField?.value);
+        
+        if (edad && sexo && creatinina && creatinina > 0) {
+            const pesoCalc = peso && peso > 0 ? peso : 70; // Default 70kg si no hay peso
+            const factor = sexo === 'F' ? 0.85 : 1.0;
+            const tfg = ((140 - edad) * pesoCalc) / (72 * creatinina) * factor;
+            tfgField.value = Math.round(tfg * 10) / 10;
+        }
+    }
+
+    // Calcular TFG al inicio y cuando cambien los campos
+    calcTFG();
+    
+    if (edadField) edadField.addEventListener('input', calcTFG);
+    if (sexoField) sexoField.addEventListener('change', calcTFG);
+    if (pesoEstimadoField) pesoEstimadoField.addEventListener('input', calcTFG);
+    if (creatininaField) creatininaField.addEventListener('input', calcTFG);
+
+    // Calculate Osmolaridad = 2×Na + Glucosa/18 + Urea/2.8
+    const osmolaridadField = document.getElementById('osmolaridad');
+    const sodioField = document.getElementById('sodio');
+    const glucosaCentralField = document.getElementById('glucosa_central');
+    const ureaField = document.getElementById('urea');
+
+    function calcOsmolaridad() {
+        const sodio = parseFloat(sodioField?.value);
+        const glucosa = parseFloat(glucosaCentralField?.value);
+        const urea = parseFloat(ureaField?.value);
+        
+        if (sodio && sodio > 0) {
+            const glucosaTerm = glucosa && glucosa > 0 ? glucosa / 18 : 0;
+            const ureaTerm = urea && urea > 0 ? urea / 2.8 : 0;
+            const osm = (2 * sodio) + glucosaTerm + ureaTerm;
+            osmolaridadField.value = Math.round(osm * 10) / 10;
+        }
+    }
+
+    // Calcular Osmolaridad al inicio y cuando cambien los campos
+    calcOsmolaridad();
+    
+    if (sodioField) sodioField.addEventListener('input', calcOsmolaridad);
+    if (glucosaCentralField) glucosaCentralField.addEventListener('input', calcOsmolaridad);
+    if (ureaField) ureaField.addEventListener('input', calcOsmolaridad);
+
+    // ============================================================================
+    // CALCULADORA DE NUTRICIÓN
+    // ============================================================================
+    const tipoNutricionField = document.getElementById('tipo_nutricion');
+    const proteinasSliderField = document.getElementById('proteinas_slider');
+    const kcal100mlField = document.getElementById('kcal_100ml');
+    const prot100mlField = document.getElementById('prot_100ml');
+    
+    const nutricionCalculadaDiv = document.getElementById('nutricion_calculada');
+    const composicionManualDiv = document.getElementById('composicion_manual');
+    
+    // Campos calculados
+    const proteinasReqField = document.getElementById('proteinas_requeridas');
+    const volumenAporteField = document.getElementById('volumen_aporte');
+    const kcalAporteField = document.getElementById('kcal_aporte');
+    const proteinasAporteField = document.getElementById('proteinas_aporte');
+    const ml24hField = document.getElementById('ml_24h_calc');
+    const mlhField = document.getElementById('ml_h_calc');
+    const kcalTotalesField = document.getElementById('kcal_totales_calc');
+    const kcalKgField = document.getElementById('kcal_kg_calc');
+    
+    // Datos predefinidos de productos (por 100 mL)
+    const PRODUCTOS = {
+        'Vivase': { kcal100: 103.56, prot100: 4.00, volumen: 237 },
+        'Enteral': { kcal100: null, prot100: null, volumen: null },  // Manual
+        'Parenteral': { kcal100: null, prot100: null, volumen: null }  // Manual
+    };
+    
+    function getPesoUsado() {
+        // Si IMC > 25, usar peso ajustado; si no, peso ideal
+        const imc = parseFloat(document.getElementById('imc')?.value);
+        const pesoAjustado = parseFloat(document.getElementById('peso_ajustado')?.value);
+        const pesoIdeal = parseFloat(document.getElementById('peso_ideal')?.value);
+        
+        if (imc > 25 && pesoAjustado && pesoAjustado > 0) {
+            return pesoAjustado;
+        } else if (pesoIdeal && pesoIdeal > 0) {
+            return pesoIdeal;
+        }
+        return parseFloat(document.getElementById('peso_estimado')?.value) || 70;
+    }
+    
+    function mostrarOcultarCamposNutricion() {
+        const tipo = tipoNutricionField?.value;
+        
+        if (tipo === 'Normal' || tipo === 'Ayuno' || !tipo) {
+            nutricionCalculadaDiv.style.display = 'none';
+            composicionManualDiv.style.display = 'none';
+            return;
+        }
+        
+        nutricionCalculadaDiv.style.display = 'block';
+        
+        if (tipo === 'Enteral' || tipo === 'Parenteral') {
+            composicionManualDiv.style.display = 'block';
+        } else {
+            composicionManualDiv.style.display = 'none';
+        }
+    }
+    
+    function calcularNutricion() {
+        const tipo = tipoNutricionField?.value;
+        const proteinasSlider = parseFloat(proteinasSliderField?.value);
+        
+        if (!tipo || tipo === 'Normal' || tipo === 'Ayuno') {
+            return;
+        }
+        
+        if (!proteinasSlider || proteinasSlider <= 0) {
+            return;
+        }
+        
+        const pesoUsado = getPesoUsado();
+        if (!pesoUsado || pesoUsado <= 0) {
+            return;
+        }
+        
+        // Proteínas requeridas (g/día)
+        const proteinasReq = proteinasSlider * pesoUsado;
+        proteinasReqField.value = Math.round(proteinasReq * 10) / 10;
+        
+        // Datos del producto
+        let kcal100, prot100, volumenProd;
+        
+        if (tipo === 'Vivase') {
+            const prod = PRODUCTOS['Vivase'];
+            kcal100 = prod.kcal100;
+            prot100 = prod.prot100;
+            volumenProd = prod.volumen;
+        } else {
+            // Manual
+            kcal100 = parseFloat(kcal100mlField?.value);
+            prot100 = parseFloat(prot100mlField?.value);
+            
+            // Si no hay datos manuales, no calcular
+            if (!kcal100 || !prot100) {
+                return;
+            }
+            
+            // Para productos manuales, asumimos volumen de 1000mL o usar un campo
+            volumenProd = 1000; // Default
+        }
+        
+        // Proteínas del producto (g)
+        const proteinasProd = (prot100 / 100) * volumenProd;
+        proteinasAporteField.value = Math.round(proteinasProd * 10) / 10;
+        
+        // Volumen del producto
+        volumenAporteField.value = volumenProd;
+        
+        // Kcal del producto
+        const kcalProd = (kcal100 / 100) * volumenProd;
+        kcalAporteField.value = Math.round(kcalProd * 10) / 10;
+        
+        // mL / 24h necesarios para cubrir proteínas requeridas
+        // mL = (ProtReq / ProtProd) * VolumenProd
+        const ml24h = (proteinasReq / proteinasProd) * volumenProd;
+        ml24hField.value = Math.round(ml24h * 10) / 10;
+        
+        // mL / h (velocidad de infusión)
+        const mlh = ml24h / 24;
+        mlhField.value = Math.round(mlh * 10) / 10;
+        
+        // Kcal totales / 24h
+        const kcalTotales = (ml24h / volumenProd) * kcalProd;
+        kcalTotalesField.value = Math.round(kcalTotales * 10) / 10;
+        
+        // Kcal / kg
+        const kcalKg = kcalTotales / pesoUsado;
+        kcalKgField.value = Math.round(kcalKg * 10) / 10;
+    }
+    
+    // Event listeners
+    if (tipoNutricionField) {
+        tipoNutricionField.addEventListener('change', function() {
+            mostrarOcultarCamposNutricion();
+            calcularNutricion();
+        });
+    }
+    
+    if (proteinasSliderField) {
+        proteinasSliderField.addEventListener('input', calcularNutricion);
+    }
+    
+    if (kcal100mlField) {
+        kcal100mlField.addEventListener('input', calcularNutricion);
+    }
+    
+    if (prot100mlField) {
+        prot100mlField.addEventListener('input', calcularNutricion);
+    }
+    
+    // También recalcular cuando cambie el peso
+    if (pesoIdealField) {
+        pesoIdealField.addEventListener('change', calcularNutricion);
+    }
+    
+    const pesoAjustadoField = document.getElementById('peso_ajustado');
+    if (pesoAjustadoField) {
+        pesoAjustadoField.addEventListener('change', calcularNutricion);
+    }
+    
+    // Inicializar
+    mostrarOcultarCamposNutricion();
+    calcularNutricion();
+
+
+
+    // ============================================================================
+    // MANEJADOR DE FILAS DINÁMICAS (TABLAS DINÁMICAS)
+    // ============================================================================
+    
+    // ============================================================================
+    // MANEJADOR DE FILAS DINÁMICAS (COMPATIBLE CON FORMATO ACTUAL)
+    // ============================================================================
+    
+    function initDynamicRows() {
+        document.querySelectorAll('.add-dynamic-row').forEach(button => {
+            button.addEventListener('click', function() {
+                // Obtener la sección dinámica padre más cercana
+                const section = this.closest('.dynamic-form-section');
+                if (!section) {
+                    console.error('No se encontró .dynamic-form-section padre');
+                    return;
+                }
+                
+                // Obtener el grid actual como plantilla
+                const grid = section.querySelector('.section-grid');
+                if (!grid) {
+                    console.error('No se encontró .section-grid');
+                    return;
+                }
+                
+                // Clonar el grid
+                const newGrid = grid.cloneNode(true);
+                
+                // Limpiar valores de todos los inputs
+                newGrid.querySelectorAll('input, select, textarea').forEach(input => {
+                    input.value = '';
+                    if (input.tagName === 'SELECT') {
+                        input.selectedIndex = 0;
+                    }
+                });
+                
+                // Calcular el nuevo índice
+                const existingGrids = section.querySelectorAll('.section-grid');
+                const newIndex = existingGrids.length;
+                
+                // Actualizar índices en los name attributes
+                newGrid.querySelectorAll('input, select, textarea').forEach(input => {
+                    const name = input.getAttribute('name');
+                    if (name) {
+                        input.setAttribute('name', name.replace(/\[\d+\]/, '[' + newIndex + ']'));
+                    }
+                });
+                
+                // Agregar separador visual
+                newGrid.style.borderTop = '1px dashed var(--border)';
+                newGrid.style.marginTop = '15px';
+                newGrid.style.paddingTop = '15px';
+                
+                // Agregar botón de eliminar
+                const deleteBtn = document.createElement('button');
+                deleteBtn.type = 'button';
+                deleteBtn.textContent = '🗑️ ELIMINAR';
+                deleteBtn.style.cssText = 'margin-top: 10px; padding: 5px 10px; font-size: 0.8rem; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer;';
+                deleteBtn.onclick = function() {
+                    newGrid.remove();
+                };
+                
+                const deleteDiv = document.createElement('div');
+                deleteDiv.className = 'form-group';
+                deleteDiv.style.cssText = 'grid-column: 1 / -1; text-align: right;';
+                deleteDiv.appendChild(deleteBtn);
+                newGrid.appendChild(deleteDiv);
+                
+                // Insertar antes del botón
+                section.insertBefore(newGrid, this);
+            });
+        });
+    }
+    
+    // Inicializar filas dinámicas
+    initDynamicRows();
+
+
+    // ============================================================================
+    // Calcular Índice de Charlson
+    // ============================================================================
+    function calcularCharlson() {
+        const campos = [
+            'charlson_edad', 'charlson_im', 'charlson_evc', 'charlson_ep',
+            'charlson_demencia', 'charlson_epoc', 'charlson_tejido_conectivo',
+            'charlson_ulcera_peptica', 'charlson_enfermedad_hepatica_leve',
+            'charlson_enfermedad_hepatica_moderada', 'charlson_insuficiencia_renal',
+            'charlson_dmi', 'charlson_dmii', 'charlson_hemiparesia',
+            'charlson_leucemia', 'charlson_linfoma', 'charlson_tumor_solido',
+            'charlson_tumor_metastasis', 'charlson_sida'
+        ];
+        
+        let total = 0;
+        campos.forEach(campo => {
+            const el = document.getElementById(campo);
+            if (el) {
+                total += parseInt(el.value) || 0;
+            }
+        });
+        
+        document.getElementById('charlson_total').value = total;
+        
+        // Estimar mortalidad según puntuación
+        let mortalidad = '';
+        if (total === 0) mortalidad = '12% (10 años)';
+        else if (total <= 2) mortalidad = '26% (10 años)';
+        else if (total <= 4) mortalidad = '52% (10 años)';
+        else if (total <= 6) mortalidad = '78% (10 años)';
+        else mortalidad = '≥85% (10 años)';
+        
+        document.getElementById('charlson_mortalidad').value = 'Mortalidad: ' + mortalidad;
+    }
+
+    // ============================================================================
+    // Auto-calcular scores desde datos del formulario
+    // ============================================================================
+    window.autoCalcularScores = function() {
+        // Obtener valores del formulario
+        const edad = parseInt(document.getElementById('edad')?.value) || 0;
+        const glasgow = parseInt(document.getElementById('glasgow')?.value) || 15;
+        const tas = parseInt(document.getElementById('tas')?.value) || 0;
+        const tad = parseInt(document.getElementById('tad')?.value) || 0;
+        const fc = parseInt(document.getElementById('fc')?.value) || 0;
+        const fr = parseInt(document.getElementById('fr')?.value) || 0;
+        const temp = parseFloat(document.getElementById('temperatura')?.value) || 0;
+        const pao2 = parseFloat(document.getElementById('pao2')?.value) || 0;
+        const fio2 = parseFloat(document.getElementById('fio2')?.value) || 100;
+        const plaquetas = parseFloat(document.getElementById('plaquetas')?.value) || 0;
+        const bilirrubina = parseFloat(document.getElementById('bilirrubina')?.value) || 0;
+        const creatinina = parseFloat(document.getElementById('creatinina')?.value) || 0;
+        
+        // Calcular PaFi
+        const pafi = pao2 && fio2 ? (pao2 / (fio2 / 100)) : 400;
+        
+        let scoresCalculados = [];
+        
+        // Calcular SOFA Score
+        let sofa = 0;
+        
+        // Respiratorio (PaO2/FiO2)
+        if (pafi < 100) sofa += 4;
+        else if (pafi < 200) sofa += 3;
+        else if (pafi < 300) sofa += 2;
+        else if (pafi < 400) sofa += 1;
+        
+        // Coagulación (Plaquetas)
+        if (plaquetas && plaquetas > 0) {
+            if (plaquetas < 20) sofa += 4;
+            else if (plaquetas < 50) sofa += 3;
+            else if (plaquetas < 100) sofa += 2;
+            else if (plaquetas < 150) sofa += 1;
+        }
+        
+        // Hepático (Bilirrubina en mg/dL)
+        if (bilirrubina && bilirrubina > 0) {
+            if (bilirrubina >= 12.0) sofa += 4;
+            else if (bilirrubina >= 6.0) sofa += 3;
+            else if (bilirrubina >= 2.0) sofa += 2;
+            else if (bilirrubina >= 1.2) sofa += 1;
+        }
+        
+        // Cardiovascular (presión arterial)
+        if (tas && tad) {
+            const tam = tad + (tas - tad) / 3;
+            if (tam < 70) sofa += 3;
+            else if (tas < 90) sofa += 1;
+        }
+        
+        // Renal (Creatinina en mg/dL)
+        if (creatinina && creatinina > 0) {
+            if (creatinina >= 5.0) sofa += 4;
+            else if (creatinina >= 3.5) sofa += 3;
+            else if (creatinina >= 2.0) sofa += 2;
+            else if (creatinina >= 1.2) sofa += 1;
+        }
+        
+        // Neurológico (Glasgow)
+        if (glasgow < 6) sofa += 4;
+        else if (glasgow < 10) sofa += 3;
+        else if (glasgow < 13) sofa += 2;
+        else if (glasgow < 15) sofa += 1;
+
+        // Calcular SOFA Mortalidad
+        const sofaMort = sofa >= 15 ? ">90%" : sofa >= 11 ? "50-90%" : sofa >= 7 ? "30-50%" : sofa >= 3 ? "10-30%" : "<10%";
+        
+        // Asignar SOFA si se pudo calcular con datos suficientes
+        if (sofa > 0) {
+            document.getElementById('sofa_ingreso').value = sofa;
+            document.getElementById('sofa_mortalidad').value = sofaMort;
+            scoresCalculados.push(`SOFA: ${sofa} (${sofaMort})`);
+        }
+        
+        // Calcular NEWS2
+        let news2 = 0;
+        
+        // Respiración
+        if (fr) {
+            if (fr <= 8 || fr >= 25) news2 += 3;
+            else if (fr >= 21) news2 += 2;
+            else if (fr >= 9 && fr <= 11) news2 += 1;
+        }
+        
+        // SpO2 (estimado del PaFi)
+        if (pafi < 200) news2 += 3;
+        else if (pafi < 300) news2 += 2;
+        else if (pafi < 400) news2 += 1;
+        
+        // Presión arterial sistólica
+        if (tas) {
+            if (tas <= 90 || tas >= 220) news2 += 3;
+            else if (tas < 100) news2 += 2;
+            else if (tas < 110) news2 += 1;
+        }
+        
+        // Frecuencia cardíaca
+        if (fc) {
+            if (fc <= 40 || fc >= 131) news2 += 3;
+            else if (fc >= 111) news2 += 2;
+            else if (fc >= 91) news2 += 1;
+        }
+        
+        // Temperatura
+        if (temp && temp > 0) {
+            if (temp <= 35.0 || temp >= 39.1) news2 += 3;
+            else if (temp >= 38.1) news2 += 2;
+            else if (temp >= 37.6 || temp <= 36.0) news2 += 1;
+        }
+        
+        // Asignar NEWS2
+        if (news2 > 0) {
+            document.getElementById('news2_ingreso').value = news2;
+            const news2Interp = news2 >= 7 ? "Riesgo Alto - Evaluación médica inmediata" :
+                               news2 >= 5 ? "Riesgo Moderado - Revisión urgente" :
+                               news2 >= 1 ? "Riesgo Bajo - Revisión en 4-6h" : "Normal";
+            document.getElementById('news2_interpretado').value = news2Interp;
+            scoresCalculados.push(`NEWS2: ${news2}`);
+        }
+        
+        // Calcular APACHE II (simplificado)
+        let apache = 0;
+        
+        // Edad
+        if (edad > 0) {
+            if (edad >= 75) apache += 6;
+            else if (edad >= 65) apache += 5;
+            else if (edad >= 55) apache += 3;
+            else if (edad >= 45) apache += 2;
+        }
+        
+        // Temperatura
+        if (temp && temp > 0) {
+            if (temp >= 41 || temp < 30) apache += 4;
+            else if (temp >= 39) apache += 3;
+            else if (temp >= 38.5) apache += 1;
+            else if (temp >= 36) apache += 0;
+            else if (temp >= 34) apache += 1;
+            else if (temp >= 32) apache += 2;
+            else if (temp >= 30) apache += 3;
+        }
+        
+        // FC
+        if (fc) {
+            if (fc >= 180 || fc < 40) apache += 4;
+            else if (fc >= 140) apache += 3;
+            else if (fc >= 110) apache += 2;
+            else if (fc >= 70) apache += 0;
+            else if (fc >= 55) apache += 2;
+            else if (fc >= 40) apache += 3;
+        }
+        
+        // FR
+        if (fr) {
+            if (fr >= 50 || fr < 6) apache += 4;
+            else if (fr >= 35) apache += 3;
+            else if (fr >= 25) apache += 1;
+            else if (fr >= 12) apache += 0;
+            else if (fr >= 10) apache += 1;
+            else if (fr >= 6) apache += 2;
+        }
+        
+        // Glasgow
+        if (glasgow < 15) {
+            if (glasgow <= 5) apache += 16;
+            else if (glasgow <= 7) apache += 13;
+            else if (glasgow <= 9) apache += 10;
+            else if (glasgow <= 11) apache += 7;
+            else if (glasgow <= 13) apache += 4;
+            else apache += 2;
+        }
+        
+        // Creatinina
+        if (creatinina && creatinina > 0) {
+            if (creatinina >= 3.5) apache += 4;
+            else if (creatinina >= 2.0) apache += 2;
+            else if (creatinina >= 0.6) apache += 0;
+            else apache += 2;
+        }
+        
+        // Asignar APACHE II
+        if (apache > 0) {
+            document.getElementById('apache2_ingreso').value = apache;
+            const apacheMort = apache >= 35 ? "80-100%" : apache >= 25 ? "50-80%" : apache >= 15 ? "20-50%" : apache >= 10 ? "10-20%" : "<10%";
+            document.getElementById('apache2_mortalidad').value = apacheMort;
+            scoresCalculados.push("APACHE II: " + apache + " (" + apacheMort + ")");
+        }
+        
+        // ==========================================
+        // Calcular SOFA2 (SOFA de 2 horas - simplificado)
+        // ==========================================
+        // SOFA2 es igual al SOFA pero con 2 horas de ventana temporal
+        // En la practica clinica, SOFA2 = SOFA score actual (no cambia el calculo)
+        let sofa2 = sofa;
+        
+        if (sofa2 > 0) {
+            document.getElementById('sofa2_ingreso').value = sofa2;
+            scoresCalculados.push("SOFA2: " + sofa2);
+        }
+        
+        // ==========================================
+        // Calcular SAPS3 (Simplified Acute Physiology Score 3)
+        // ==========================================
+        let saps3 = 0;
+        
+        // Edad
+        if (edad > 0) {
+            if (edad >= 80) saps3 += 28;
+            else if (edad >= 70) saps3 += 24;
+            else if (edad >= 60) saps3 += 16;
+            else if (edad >= 50) saps3 += 10;
+            else if (edad >= 40) saps3 += 6;
+        }
+        
+        // Glasgow
+        if (glasgow <= 3) saps3 += 26;
+        else if (glasgow <= 5) saps3 += 22;
+        else if (glasgow <= 8) saps3 += 17;
+        else if (glasgow <= 10) saps3 += 12;
+        else if (glasgow <= 13) saps3 += 7;
+        
+        // FC
+        if (fc) {
+            if (fc >= 160 || fc < 40) saps3 += 12;
+            else if (fc >= 120) saps3 += 7;
+            else if (fc >= 100) saps3 += 3;
+            else if (fc >= 60) saps3 += 0;
+            else saps3 += 5;
+        }
+        
+        // TAS
+        if (tas) {
+            if (tas >= 200 || tas < 40) saps3 += 15;
+            else if (tas >= 160) saps3 += 7;
+            else if (tas >= 120) saps3 += 3;
+            else if (tas >= 80) saps3 += 0;
+            else saps3 += 11;
+        }
+        
+        // Temperatura
+        if (temp > 0) {
+            if (temp >= 40 || temp < 32) saps3 += 14;
+            else if (temp >= 38) saps3 += 4;
+            else if (temp >= 36) saps3 += 0;
+            else saps3 += 8;
+        }
+        
+        // PaO2/FiO2
+        if (pafi < 50) saps3 += 20;
+        else if (pafi < 100) saps3 += 17;
+        else if (pafi < 150) saps3 += 12;
+        else if (pafi < 200) saps3 += 7;
+        else if (pafi < 300) saps3 += 3;
+        
+        // Creatinina
+        if (creatinina > 0) {
+            if (creatinina >= 5) saps3 += 16;
+            else if (creatinina >= 3.5) saps3 += 10;
+            else if (creatinina >= 2) saps3 += 5;
+            else if (creatinina >= 0.7) saps3 += 0;
+            else saps3 += 4;
+        }
+        
+        // Plaquetas
+        if (plaquetas > 0) {
+            if (plaquetas < 20) saps3 += 8;
+            else if (plaquetas < 50) saps3 += 5;
+            else if (plaquetas < 100) saps3 += 3;
+            else if (plaquetas < 150) saps3 += 1;
+        }
+        
+        // Bilirrubina
+        if (bilirrubina > 0) {
+            if (bilirrubina >= 12) saps3 += 14;
+            else if (bilirrubina >= 6) saps3 += 7;
+            else if (bilirrubina >= 2) saps3 += 3;
+        }
+        
+        let saps3Mort = "";
+        if (saps3 >= 140) saps3Mort = ">90%";
+        else if (saps3 >= 120) saps3Mort = "70-90%";
+        else if (saps3 >= 100) saps3Mort = "50-70%";
+        else if (saps3 >= 80) saps3Mort = "30-50%";
+        else if (saps3 >= 60) saps3Mort = "15-30%";
+        else saps3Mort = "<15%";
+        
+        if (saps3 > 0) {
+            document.getElementById('saps3_ingreso').value = saps3;
+            document.getElementById('saps3_mortalidad').value = saps3Mort;
+            scoresCalculados.push("SAPS3: " + saps3 + " (" + saps3Mort + ")");
+        }
+        
+        // ==========================================
+        // Calcular SWIFT Score
+        // ==========================================
+        let swift = 0;
+        
+        // Edad
+        if (edad >= 80) swift += 4;
+        else if (edad >= 70) swift += 3;
+        else if (edad >= 60) swift += 2;
+        else if (edad >= 50) swift += 1;
+        
+        // SOFA Score
+        if (sofa >= 15) swift += 5;
+        else if (sofa >= 11) swift += 4;
+        else if (sofa >= 7) swift += 3;
+        else if (sofa >= 3) swift += 2;
+        else if (sofa > 0) swift += 1;
+        
+        // Glasgow
+        if (glasgow <= 3) swift += 3;
+        else if (glasgow <= 7) swift += 2;
+        else if (glasgow <= 11) swift += 1;
+        
+        // PaFi
+        if (pafi < 100) swift += 2;
+        else if (pafi < 200) swift += 1;
+        
+        // Presion arterial
+        if (tas < 90 || tas > 180) swift += 2;
+        else if (tas < 100 || tas > 160) swift += 1;
+        
+        if (swift > 0) {
+            document.getElementById('swift_score').value = swift;
+            scoresCalculados.push("SWIFT: " + swift);
+        }
+        
+        // Mostrar alerta con resultados
+        if (scoresCalculados.length > 0) {
+            alert('✅ Scores calculados:\n\n' + scoresCalculados.join('\n') + '\n\nLos valores han sido asignados a los campos correspondientes.');
+        } else {
+            alert('⚠️ No se pudieron calcular scores.\n\nAsegúrate de llenar los datos básicos:\n- Signos vitales (TAS, TAD, FC, FR, Temp)\n- Laboratorios (Plaquetas, Bilirrubina, Creatinina)\n- Glasgow\n- PaO2/FiO2 (opcional)');
+        }
+    };
+
+    // ============================================================================
+    // CÁLCULOS AUTOMÁTICOS - DATOS CONTEXTUALES
+    // ============================================================================
+    
+    function calculateEdad() {
+        const fechaNac = document.getElementById('fecha_nacimiento');
+        const edadField = document.getElementById('edad');
+        if (!fechaNac || !edadField || !fechaNac.value) return;
+        
+        const birth = new Date(fechaNac.value);
+        const today = new Date();
+        let edad = today.getFullYear() - birth.getFullYear();
+        const m = today.getMonth() - birth.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) edad--;
+        
+        if (edad >= 0) {
+            edadField.value = edad;
+            edadField.classList.add('field-updated');
+            setTimeout(() => edadField.classList.remove('field-updated'), 500);
+        }
+    }
+    
+    function calculateDiasEstancia() {
+        const fechaIng = document.getElementById('fecha_ingreso');
+        const diasField = document.getElementById('dias_estancia');
+        if (!fechaIng || !diasField || !fechaIng.value) return;
+        
+        const ing = new Date(fechaIng.value);
+        const today = new Date();
+        const diff = Math.floor((today - ing) / (1000 * 60 * 60 * 24));
+        
+        if (diff >= 0) {
+            diasField.value = diff;
+            diasField.classList.add('field-updated');
+            setTimeout(() => diasField.classList.remove('field-updated'), 500);
+        }
+    }
+    
+    function calculatePesoIdeal() {
+        const talla = parseFloat(document.getElementById('talla')?.value);
+        const sexo = document.getElementById('sexo')?.value;
+        const pesoIdealField = document.getElementById('peso_ideal');
+        if (!pesoIdealField || !talla || !sexo) return;
+        
+        const tallaCm = talla * 100;
+        let pesoIdeal;
+        if (sexo === 'M') {
+            pesoIdeal = 50 + 0.91 * (tallaCm - 152.4);
+        } else if (sexo === 'F') {
+            pesoIdeal = 45.5 + 0.91 * (tallaCm - 152.4);
+        } else { return; }
+        
+        pesoIdealField.value = pesoIdeal.toFixed(1);
+        pesoIdealField.classList.add('field-updated');
+        setTimeout(() => pesoIdealField.classList.remove('field-updated'), 500);
+        
+        // Disparar evento input para que los campos calculados se actualicen
+        pesoIdealField.dispatchEvent(new Event('input'));
+        
+        calculatePesoAjustado();
+    }
+    
+    function calculateIMC() {
+        const peso = parseFloat(document.getElementById('peso_estimado')?.value);
+        const talla = parseFloat(document.getElementById('talla')?.value);
+        const imcField = document.getElementById('imc');
+        if (!imcField || !peso || !talla) return;
+        
+        const imc = peso / (talla * talla);
+        imcField.value = imc.toFixed(1);
+        imcField.classList.add('field-updated');
+        setTimeout(() => imcField.classList.remove('field-updated'), 500);
+    }
+    
+    function calculatePesoAjustado() {
+        const peso = parseFloat(document.getElementById('peso_estimado')?.value);
+        const pesoIdeal = parseFloat(document.getElementById('peso_ideal')?.value);
+        const pesoAjustadoField = document.getElementById('peso_ajustado');
+        if (!pesoAjustadoField || !peso || !pesoIdeal) return;
+        
+        let ajustado;
+        if (peso <= pesoIdeal) {
+            ajustado = peso;
+        } else {
+            ajustado = pesoIdeal + 0.25 * (peso - pesoIdeal);
+        }
+        
+        pesoAjustadoField.value = ajustado.toFixed(1);
+        pesoAjustadoField.classList.add('field-updated');
+        setTimeout(() => pesoAjustadoField.classList.remove('field-updated'), 500);
+    }
+    
+    function generateEpisodio() {
+        const episodioField = document.getElementById('episodio');
+        const hospital = document.getElementById('procedencia')?.value;
+        if (!episodioField || !hospital) return;
+        
+        // Solo generar si está vacío (nuevo paciente)
+        if (episodioField.value && episodioField.value.trim() !== '') return;
+        
+        const prefix = hospital === 'HGSJDR' ? 'HGS' : 'OTR';
+        const timestamp = Date.now().toString(36).toUpperCase();
+        const random = Math.random().toString(36).substring(2, 5).toUpperCase();
+        episodioField.value = prefix + '-' + timestamp + '-' + random;
+    }
+    
+    // Event listeners
+    const fechaNac = document.getElementById('fecha_nacimiento');
+    if (fechaNac) {
+        fechaNac.addEventListener('change', calculateEdad);
+        if (fechaNac.value) calculateEdad();
+    }
+    
+    const fechaIng = document.getElementById('fecha_ingreso');
+    if (fechaIng) {
+        fechaIng.addEventListener('change', calculateDiasEstancia);
+        if (fechaIng.value) calculateDiasEstancia();
+    }
+    
+    const tallaField = document.getElementById('talla');
+    const sexoField = document.getElementById('sexo');
+    const pesoField = document.getElementById('peso_estimado');
+    
+    if (tallaField) {
+        tallaField.addEventListener('input', () => { calculatePesoIdeal(); calculateIMC(); });
+    }
+    if (sexoField) {
+        sexoField.addEventListener('change', calculatePesoIdeal);
+    }
+    if (pesoField) {
+        pesoField.addEventListener('input', () => { calculateIMC(); calculatePesoAjustado(); });
+    }
+    
+    const hospitalField = document.getElementById('procedencia');
+    if (hospitalField) {
+        hospitalField.addEventListener('change', generateEpisodio);
+    }
+    
+    // Cálculos iniciales
+    calculateEdad();
+    calculateDiasEstancia();
+    calculatePesoIdeal();
+    calculateIMC();
+    calculatePesoAjustado();
+    
+    // Calcular Charlson al cargar (por si hay valores guardados)
+    calcularCharlson();
+    
+});
+</script>
+
+<style>
+/* Modal Styles - DOGMA Theme */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.modal-container {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    width: 100%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow: hidden;
+    box-shadow: 0 0 30px rgba(255, 107, 53, 0.2);
+    animation: modalSlideIn 0.3s ease;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-tertiary);
+}
+
+.modal-header h3 {
+    color: var(--accent);
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 0;
+}
+
+.modal-close {
+    background: transparent;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.3s;
+}
+
+.modal-close:hover {
+    color: var(--accent);
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.modal-text {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin: 0 0 15px 0;
+}
+
+.modal-textarea {
+    width: 100%;
+    min-height: 200px;
+    padding: 12px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 0.85rem;
+    resize: vertical;
+    border-radius: 2px;
+}
+
+.modal-textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 15px 20px;
+    border-top: 1px solid var(--border);
+    background: var(--bg-tertiary);
+}
+
+/* Form Actions */
+.form-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .tabs {
+        flex-wrap: wrap;
+    }
+
+    .tab {
+        flex: 1 1 auto;
+        text-align: center;
+        padding: 10px 12px;
+        font-size: 0.75rem;
+    }
+
+    .section-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .card-header {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+    }
+
+    .modal-container {
+        margin: 10px;
+    }
+}
+
+// ============================================================================
+// Nota de Ingreso Generator
+// ============================================================================
+function generateNotaIngreso() {
+    // Datos del paciente
+    const nombre = document.querySelector('[name="nombre_completo"]')?.value || '';
+    const edad = document.querySelector('[name="edad"]')?.value || '';
+    const sexo = document.querySelector('[name="sexo"]')?.value || '';
+    const expediente = document.querySelector('[name="expediente"]')?.value || '';
+    const curp = document.querySelector('[name="curp"]')?.value || '';
+    const episodio = document.querySelector('[name="episodio"]')?.value || '';
+    const cama = document.querySelector('[name="cama"]')?.value || '';
+    const fecha_ingreso = document.querySelector('[name="fecha_ingreso"]')?.value || '';
+    const dias_estancia = document.querySelector('[name="dias_estancia"]')?.value || '0';
+    
+    // Antecedentes y padecimiento
+    const ant_no_pat = document.getElementById('antecedentes_no_patologicos')?.value || 'Sin antecedentes relevantes.';
+    const ant_pat = document.getElementById('antecedentes_patologicos')?.value || 'Sin antecedentes patológicos relevantes.';
+    const padecimiento = document.getElementById('padecimiento_actual')?.value || '';
+    
+    // Signos vitales
+    const glasgow = document.querySelector('[name="glasgow"]')?.value || '';
+    const tas = document.querySelector('[name="tas"]')?.value || '';
+    const tad = document.querySelector('[name="tad"]')?.value || '';
+    const tam = document.querySelector('[name="tam"]')?.value || '';
+    const fc = document.querySelector('[name="fc"]')?.value || '';
+    const fr = document.querySelector('[name="fr"]')?.value || '';
+    const temperatura = document.querySelector('[name="temperatura"]')?.value || '';
+    
+    // Exploración
+    const expl_neuro = document.querySelector('[name="exploracion_neurologica"]')?.value || '';
+    const expl_hemo = document.querySelector('[name="exploracion_hemodinamica"]')?.value || '';
+    const expl_vent = document.querySelector('[name="exploracion_ventilatoria"]')?.value || '';
+    
+    // Diagnóstico y plan
+    const diagnostico = document.querySelector('[name="diagnostico_ingreso"]')?.value || '';
+    const plan = document.querySelector('[name="plan_ingreso"]')?.value || '';
+    
+    // Escalas
+    const sofa = document.querySelector('[name="sofa_ingreso"]')?.value || '';
+    const sofa_mort = document.querySelector('[name="sofa_mortalidad"]')?.value || '';
+    const apache2 = document.querySelector('[name="apache2_ingreso"]')?.value || '';
+    const apache2_mort = document.querySelector('[name="apache2_mortalidad"]')?.value || '';
+    
+    // Construir nota
+    let nota = `NOTA DE INGRESO A UNIDAD DE CUIDADOS INTENSIVOS
+
+DATOS DEL PACIENTE:
+Nombre: ${nombre}
+Edad: ${edad} años
+Sexo: ${sexo === 'M' ? 'Masculino' : sexo === 'F' ? 'Femenino' : sexo}
+Expediente: ${expediente}
+CURP: ${curp}
+Episodio: ${episodio}
+Cama: ${cama}
+Fecha de Ingreso: ${fecha_ingreso}
+Días de Estancia: ${dias_estancia}
+
+ANTECEDENTES NO PATOLÓGICOS:
+${ant_no_pat}
+
+ANTECEDENTES PATOLÓGICOS:
+${ant_pat}
+
+PADECIMIENTO ACTUAL:
+${padecimiento}
+
+EXPLORACIÓN FÍSICA:
+
+NEUROLÓGICO:
+Glasgow: ${glasgow}
+${expl_neuro ? expl_neuro : 'Sin alteraciones neurológicas aparentes.'}
+
+HEMODINÁMICO:
+TA: ${tas}/${tad} mmHg (TAM ${tam})
+FC: ${fc} lpm
+${expl_hemo ? expl_hemo : 'Estable hemodinámicamente.'}
+
+VENTILATORIO:
+FR: ${fr} rpm
+${expl_vent ? expl_vent : 'Sin dificultad respiratoria.'}
+
+SIGNOS VITALES:
+FC: ${fc} lpm, FR: ${fr} rpm
+TA: ${tas}/${tad} mmHg, T: ${temperatura}°C
+Glasgow: ${glasgow}
+
+DIAGNÓSTICO(S) DE INGRESO:
+${diagnostico || 'Pendiente de definir.'}
+
+PLAN DE MANEJO:
+${plan || '1. Monitoreo continuo de signos vitales.\n2. Laboratorios de control.\n3. Manejo según protocolos institucionales.'}
+
+ESCALAS PRONÓSTICAS:
+SOFA: ${sofa || 'N/A'}${sofa_mort ? ' (Mortalidad estimada: ' + sofa_mort + ')' : ''}
+APACHE II: ${apache2 || 'N/A'}${apache2_mort ? ' (Mortalidad estimada: ' + apache2_mort + ')' : ''}
+
+_______________________________
+Médico Responsable`;
+    
+    // Actualizar preview y campo final
+    document.getElementById('notaIngresoPreview').textContent = nota;
+    document.getElementById('nota_ingreso_final').value = nota;
+    
+    // Mostrar mensaje
+    if (typeof showToast === 'function') {
+        showToast('✅ Nota de ingreso generada', 'success');
+    } else {
+        alert('✅ Nota de ingreso generada');
+    }
+}
+
+</style>
+{% endblock %}

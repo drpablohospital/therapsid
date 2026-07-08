@@ -1,0 +1,2493 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delirium en UCI - Presentación</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a1628;
+            --bg-secondary: #111d2e;
+            --accent-cyan: #00d4ff;
+            --accent-orange: #ff6b35;
+            --accent-green: #00d9a3;
+            --text-primary: #ffffff;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border-subtle: rgba(255,255,255,0.1);
+        }
+
+        @page {
+            size: 1920px 1080px;
+            margin: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.5;
+            overflow-x: hidden;
+        }
+
+        .slide {
+            width: 1920px;
+            height: 1080px;
+            margin: 0 auto 20px;
+            background: var(--bg-primary);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            padding: 60px 80px;
+            page-break-after: always;
+            overflow: hidden;
+        }
+
+        /* Header decoration */
+        .slide::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-orange));
+        }
+
+        /* Slide number */
+        .slide-number {
+            position: absolute;
+            bottom: 40px;
+            right: 80px;
+            font-size: 14px;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        /* Title styles */
+        h1 {
+            font-size: 56px;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 40px;
+            background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent-cyan) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        h2 {
+            font-size: 42px;
+            font-weight: 600;
+            margin-bottom: 30px;
+            color: var(--text-primary);
+        }
+
+        h3 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--accent-cyan);
+        }
+
+        /* Content layout */
+        .content {
+            flex: 1;
+            display: flex;
+            gap: 60px;
+        }
+
+        .content-full {
+            flex: 1;
+        }
+
+        .content-text {
+            flex: 0 0 45%;
+        }
+
+        .content-visual {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Bullet lists */
+        ul {
+            list-style: none;
+        }
+
+        li {
+            font-size: 24px;
+            color: var(--text-secondary);
+            margin-bottom: 20px;
+            padding-left: 30px;
+            position: relative;
+            line-height: 1.6;
+        }
+
+        li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 12px;
+            width: 10px;
+            height: 10px;
+            background: var(--accent-cyan);
+            border-radius: 50%;
+        }
+
+        li strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        /* Highlight boxes */
+        .highlight-box {
+            background: var(--bg-secondary);
+            border-left: 4px solid var(--accent-cyan);
+            padding: 25px 30px;
+            border-radius: 0 8px 8px 0;
+            margin: 20px 0;
+        }
+
+        .highlight-box.orange {
+            border-left-color: var(--accent-orange);
+        }
+
+        .highlight-box.green {
+            border-left-color: var(--accent-green);
+        }
+
+        .stat-number {
+            font-size: 72px;
+            font-weight: 700;
+            color: var(--accent-cyan);
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        .stat-label {
+            font-size: 18px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Visual placeholders */
+        .visual {
+            width: 100%;
+            height: 100%;
+        }
+
+        .placeholder {
+            width: 100%;
+            height: 600px;
+            background: var(--bg-secondary);
+            border: 2px dashed var(--border-subtle);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-size: 18px;
+            text-align: center;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 20px;
+        }
+
+        th {
+            background: var(--bg-secondary);
+            color: var(--accent-cyan);
+            font-weight: 600;
+            text-align: left;
+            padding: 18px 20px;
+            border-bottom: 2px solid var(--accent-cyan);
+        }
+
+        td {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+        }
+
+        tr:hover td {
+            background: rgba(255,255,255,0.02);
+        }
+
+        /* Footer / References */
+        footer {
+            position: absolute;
+            bottom: 40px;
+            left: 80px;
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        footer strong {
+            color: var(--accent-cyan);
+            font-weight: 600;
+        }
+
+        /* Special slide types */
+        .slide-cover {
+            justify-content: center;
+            text-align: center;
+        }
+
+        .slide-cover h1 {
+            font-size: 72px;
+            margin-bottom: 30px;
+        }
+
+        .slide-cover .subtitle {
+            font-size: 28px;
+            color: var(--text-secondary);
+            margin-bottom: 60px;
+        }
+
+        .slide-cover .author {
+            font-size: 24px;
+            color: var(--accent-cyan);
+            margin-bottom: 10px;
+        }
+
+        .slide-cover .institution {
+            font-size: 18px;
+            color: var(--text-muted);
+        }
+
+        /* Grid layouts */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 40px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 30px;
+            border: 1px solid var(--border-subtle);
+        }
+
+        .card h4 {
+            color: var(--accent-cyan);
+            font-size: 20px;
+            margin-bottom: 15px;
+        }
+
+        /* Timeline */
+        .timeline {
+            position: relative;
+            padding-left: 40px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(180deg, var(--accent-cyan), var(--accent-orange));
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 30px;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -35px;
+            top: 5px;
+            width: 12px;
+            height: 12px;
+            background: var(--accent-cyan);
+            border-radius: 50%;
+            border: 3px solid var(--bg-primary);
+        }
+
+        .timeline-year {
+            color: var(--accent-orange);
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        /* Print optimization */
+        @media print {
+            body {
+                background: white;
+            }
+            .slide {
+                margin: 0;
+                box-shadow: none;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- SLIDE 1: PORTADA -->
+<section class="slide slide-cover">
+    <h1>Delirium en Terapia Intensiva</h1>
+    <div class="subtitle">De la Neuroinflamación a la Medicina de Precisión</div>
+    <div class="author">José Pablo Fernández Magaña</div>
+    <div class="institution">R1 UCI HGSJDR · 22/04/2026</div>
+    <span class="slide-number">1 / 48</span>
+</section>
+
+<!-- SLIDE 2: AGENDA -->
+<section class="slide">
+    <h1>Agenda</h1>
+    <div class="content">
+        <div class="content-text">
+            <ul>
+                <li><strong>Definición y epidemiología</strong> - La paradoja del delirium</li>
+                <li><strong>Línea de tiempo histórica</strong> - 4 eras del concepto</li>
+                <li><strong>Fisiopatología integrada</strong> - Mecanismos y biomarcadores</li>
+                <li><strong>Historia natural</strong> - Fenotipos y PICS</li>
+                <li><strong>Diagnóstico</strong> - CAM-ICU, biomarcadores, EEG</li>
+            </ul>
+        </div>
+        <div class="content-text">
+            <ul>
+                <li><strong>Tratamiento no farmacológico</strong> - Bundle ABCDEF</li>
+                <li><strong>Tratamiento farmacológico</strong> - Evidencia 2025-2026</li>
+                <li><strong>Algoritmo de manejo</strong> - Enfoque por fenotipos</li>
+                <li><strong>Futuro</strong> - IA y medicina de precisión</li>
+                <li><strong>Conclusiones</strong> - Mensajes clave</li>
+            </ul>
+        </div>
+    </div>
+    <span class="slide-number">2 / 48</span>
+</section>
+
+<!-- SLIDE 3: DEFINICIÓN -->
+<section class="slide">
+    <h1>Definición de Delirium</h1>
+    <div class="content">
+        <div class="content-text">
+            <div class="highlight-box">
+                <p style="font-size: 22px; line-height: 1.7; color: var(--text-secondary);">
+                    Síndrome neuropsiquiátrico <strong style="color: var(--accent-cyan);">agudo, fluctuante y potencialmente reversible</strong>, 
+                    caracterizado por alteración de la <strong style="color: var(--accent-cyan);">atención y cognición</strong> que se desarrolla 
+                    en un período breve de tiempo (<strong>horas a días</strong>) y está asociado a una causa médica subyacente.
+                </p>
+            </div>
+            
+            <ul style="margin-top: 30px;">
+                <li>Desarrollo <strong>rápido</strong> (horas a días)</li>
+                <li>Curso <strong>fluctuante</strong> durante el día</li>
+                <li>Siempre hay <strong>causa subyacente</strong> identificable</li>
+                <li>Potencialmente <strong>reversible</strong> con tratamiento</li>
+            </ul>
+        </div>
+        <div class="content-visual">
+            <div class="placeholder">
+                [DIAGRAMA: Características fundamentales del delirium]
+            </div>
+        </div>
+    </div>
+    <span class="slide-number">3 / 48</span>
+</section>
+
+<!-- SLIDE 4: PREVALENCIA -->
+<section class="slide">
+    <h1>Prevalencia de Delirium en UCI</h1>
+    <div class="content">
+        <div class="content-text">
+            <div class="highlight-box">
+                <span class="stat-number">35,7%</span>
+                <span class="stat-label">Prevalencia agrupada</span>
+            </div>
+            <ul>
+                <li>Metaanálisis 2025: <strong>226 publicaciones</strong></li>
+                <li>Población: <strong>183,285 pacientes</strong></li>
+                <li>IC 95%: <strong>32,4 - 39,0%</strong></li>
+            </ul>
+        </div>
+        <div class="content-visual">
+            <div class="placeholder" style="height: 500px;">
+                [GRÁFICO DE BARRAS: Prevalencia del delirium en UCI - Estudios principales]
+                <br><br>
+                Eje Y: Porcentaje (%)<br>
+                Barra principal: 35,7% (IC 95%)
+            </div>
+        </div>
+    </div>
+    <footer><strong>Ref:</strong> Leong AY et al. Intensive Care Med. 2025;51(11):2079-2092 [1]</footer>
+    <span class="slide-number">4 / 48</span>
+</section>
+
+<!-- SLIDE 5: INCIDENCIA Y SUBTIPOS -->
+<section class="slide">
+    <h1>Incidencia y Distribución de Subtipos</h1>
+    <div class="content">
+        <div class="content-text">
+            <div class="highlight-box" style="margin-bottom: 30px;">
+                <span class="stat-number">28,8%</span>
+                <span class="stat-label">Incidencia agrupada</span>
+            </div>
+            <ul>
+                <li>IC 95%: <strong>23,2 - 34,8%</strong></li>
+                <li>En ventilación mecánica: <strong>hasta 70-80%</strong></li>
+                <li>Subtipo más frecuente: <strong>hipoactivo (16,5%)</strong></li>
+            </ul>
+        </div>
+        <div class="content-visual">
+            <div class="placeholder" style="height: 500px;">
+                [GRÁFICO CIRCULAR: Distribución de subtipos]<br><br>
+                • Hipoactivo: 50% (16.5% prevalencia)<br>
+                • Mixto: 25-50%<br>
+                • Hiperactivo: ~25%
+            </div>
+        </div>
+    </div>
+    <footer><strong>Ref:</strong> Leong AY et al. Intensive Care Med. 2025 [1]</footer>
+    <span class="slide-number">5 / 48</span>
+</section>
+
+<!-- SLIDE 6: RELEVANCIA CLÍNICA -->
+<section class="slide">
+    <h1>Relevancia Clínica: Impacto Pronóstico</h1>
+    <div class="content">
+        <div class="content-full">
+            <div class="grid-3">
+                <div class="card">
+                    <h4>🏥 Estancia</h4>
+                    <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                        Prolongación significativa de estancia en UCI y hospital
+                    </p>
+                </div>
+                <div class="card">
+                    <h4>🫁 Ventilación</h4>
+                    <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                        Mayor duración de ventilación mecánica
+                    </p>
+                </div>
+                <div class="card">
+                    <h4>⚰️ Mortalidad</h4>
+                    <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                        Incremento independiente de mortalidad intrahospitalaria y a 6 meses
+                    </p>
+                </div>
+            </div>
+            <div class="highlight-box orange" style="margin-top: 40px;">
+                <h3 style="margin-bottom: 15px;">Síndrome Post-UCI (PICS)</h3>
+                <p style="font-size: 20px; color: var(--text-secondary);">
+                    Más del <strong style="color: var(--accent-orange);">50%</strong> de supervivientes desarrollan deterioro cognitivo persistente, 
+                    discapacidad funcional y problemas de salud mental. El delirium es predictor independiente.
+                </p>
+            </div>
+        </div>
+    </div>
+    <footer><strong>Ref:</strong> ATS 2025 [14] | MIND-USA 2025 [8]</footer>
+    <span class="slide-number">6 / 48</span>
+</section>
+
+<!-- SLIDE 7: LA PARADOJA -->
+<section class="slide">
+    <h1>La Paradoja del Delirium</h1>
+    <div class="content">
+        <div class="content-full">
+            <div class="grid-2">
+                <div class="card" style="border-left: 4px solid var(--accent-cyan);">
+                    <h4>🔴 El Problema</h4>
+                    <ul style="margin-top: 20px;">
+                        <li>Muy frecuente y grave [1]</li>
+                        <li>Alto impacto en PICS [8,14]</li>
+                        <li>Sigue <strong>infradiagnosticado</strong> [1]</li>
+                        <li>Guías PADIS desde 2018 [15]</li>
+                    </ul>
+                </div>
+                <div class="card" style="border-left: 4px solid var(--accent-orange);">
+                    <h4>🟡 La Disonancia</h4>
+                    <ul style="margin-top: 20px;">
+                        <li>Evidencia <strong>limitada/negativa</strong> para antipsicóticos [3,4,8]</li>
+                        <li>ECA MIND-USA y AID-ICU: <strong>sin beneficio</strong> [8]</li>
+                        <li>Pero antipsicóticos se siguen usando <strong>ampliamente</strong> [4]</li>
+                        <li>¿Por qué?</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="highlight-box" style="margin-top: 40px; text-align: center;">
+                <p style="font-size: 24px;">
+                    <strong style="color: var(--text-primary);">Esta disonancia entre evidencia y práctica clínica</strong>
+                    <br>constituye la paradoja central que motiva esta clase.
+                </p>
+            </div>
+        </div>
+    </div>
+    <footer><strong>Ref:</strong> [1,3,4,8,14,15]</footer>
+    <span class="slide-number">7 / 48</span>
+</section>
+
+<!-- SLIDE 8: LÍNEA DE TIEMPO - 4 ERAS -->
+<section class="slide">
+    <h1>Línea de Tiempo: 4 Eras del Delirium</h1>
+    <div class="content">
+        <div class="content-full">
+            <div class="grid-2">
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <span class="timeline-year">Antigüedad - Siglo XIX</span>
+                        <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                            <strong>Era Premoderna</strong><br>
+                            Hipócrates: "phrenitis" · Celsus: término "delirium"
+                        </p>
+                    </div>
+                    <div class="timeline-item">
+                        <span class="timeline-year">Siglo XIX - Medios XX</span>
+                        <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                            <strong>Era de la Observación Clínica</strong><br>
+                            Delirium tremens · "Psicosis de UCI"
+                        </p>
+                    </div>
+                    <div class="timeline-item">
+                        <span class="timeline-year">1980 - 2010</span>
+                        <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                            <strong>Era de la Cuantificación</strong><br>
+                            DSM-III · CAM (1990) · CAM-ICU (2001) · ICDSC (2002)
+                        </p>
+                    </div>
+                    <div class="timeline-item">
+                        <span class="timeline-year">2010 - Presente</span>
+                        <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                            <strong>Era de la Evidencia y la Paradoja</strong><br>
+                            PADIS 2018/2025 · ECA negativos · Dexmedetomidina · IA
+                        </p>
+                    </div>
+                </div>
+                <div class="content-visual">
+                    <div class="placeholder" style="height: 550px;">
+                        [TIMELINE VISUAL: Cuatro eras con iconos representativos]
+                        <br><br>
+                        ↓ Flujo histórico del concepto
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <span class="slide-number">8 / 48</span>
+</section>
+
+<!-- SLIDE 9: ERA PREMODERNA -->
+<section class="slide">
+    <h1>Era Premoderna: Orígenes del Concepto</h1>
+    <div class="content">
+        <div class="content-text">
+            <div class="highlight-box">
+                <span class="timeline-year">Siglo V a.C.</span>
+                <h4 style="margin-top: 15px;">Hipócrates</h4>
+                <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                    Describe el <strong>"phrenitis"</strong>: inflamación aguda del cerebro 
+                    asociada a fiebre y confusión.
+                </p>
+            </div>
+            <div class="highlight-box orange">
+                <span class="timeline-year">Siglo I d.C.</span>
+                <h4 style="margin-top: 15px;">Celsus</h4>
+                <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                    Introduce el término <strong>"delirium"</strong> del latín 
+                    <em>delirare</em>: "salirse del surco" (agricultura romana).
+                </p>
+            </div>
+            <ul>
+                <li><strong>Siglo XVIII:</strong> Diferenciación entre delirium (agudo) y demencia (crónico)</li>
+            </ul>
+        </div>
+        <div class="content-visual">
+            <div class="placeholder" style="height: 550px;">
+                [ILUSTRACIÓN: Hipócrates y Celsus con timeline antiguo]
+                <br><br>
+                • Iconografía clásica
+                • Mapa del mundo antiguo
+                • Lenguaje médico primitivo
+            </div>
+        </div>
+    </div>
+    <span class="slide-number">9 / 48</span>
+</section>
+
+<!-- SLIDES RESTANTES -->
+
+<!-- SLIDE 10: ERA DE LA OBSERVACIÓN CLÍNICA -->
+<section class="slide">
+    <h1>Era de la Observación Clínica</h1>
+    <div class="content">
+        <div class="content-text">
+            <div class="highlight-box">
+                <span class="timeline-year">Principios 1800</span>
+                <h4 style="margin-top: 15px;">Pinel y Esquirol</h4>
+                <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                    Clasifican trastornos mentales y describen confusión asociada a enfermedades médicas.
+                </p>
+            </div>
+            <div class="highlight-box orange">
+                <span class="timeline-year">Siglo XIX</span>
+                <h4 style="margin-top: 15px;">Delirium Tremens</h4>
+                <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                    Reconocimiento del síndrome de abstinencia alcohólica como causa específica.
+                </p>
+            </div>
+            <ul>
+                <li><strong>Primera mitad siglo XX:</strong> "Síndrome cerebral orgánico agudo", "Psicosis de UCI"</li>
+                <li>Atribuido a privación sensorial y entorno de UCI</li>
+            </ul>
+        </div>
+        <div class="content-visual">
+            <div class="placeholder" style="height: 550px;">
+                [ILUSTRACIÓN: Evolución conceptual del delirium]
+                <br><br>
+                • Hospices del siglo XIX
+                • Primeras UCI (1950s)
+                • Abordaje psiquiátrico temprano
+            </div>
+        </div>
+    </div>
+    <span class="slide-number">10 / 48</span>
+</section>
+
+<!-- SLIDE 11: ERA DE LA CUANTIFICACIÓN -->
+<section class="slide">
+    <h1>Era de la Cuantificación (1980-2010)</h1>
+    <div class="content">
+        <div class="content-full">
+            <div class="grid-2">
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <span class="timeline-year">1980</span>
+                        <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                            <strong>DSM-III:</strong> Criterios diagnósticos estandarizados para delirium.
+                        </p>
+                    </div>
+                    <div class="timeline-item">
+                        <span class="timeline-year">1990</span>
+                        <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                            <strong>CAM:</strong> Confusion Assessment Method (Inouye y col.)
+                        </p>
+                    </div>
+                    <div class="timeline-item">
+                        <span class="timeline-year">2001</span>
+                        <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                            <strong>CAM-ICU:</strong> Adaptación para UCI (Ely y col.)
+                        </p>
+                    </div>
+                    <div class="timeline-item">
+                        <span class="timeline-year">2002</span>
+                        <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                            <strong>ICDSC:</strong> Intensive Care Delirium Screening Checklist (Bergeron)
+                        </p>
+                    </div>
+                    <div class="timeline-item">
+                        <span class="timeline-year">2013</span>
+                        <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                            <strong>Primeras guías PAD:</strong> Pain, Agitation, and Delirium (SCCM)
+                        </p>
+                    </div>
+                </div>
+                <div class="content-visual">
+                    <div class="placeholder" style="height: 550px;">
+                        [HERRAMIENTAS: Evolución de las escalas de evaluación]
+                        <br><br>
+                        • DSM-III → CAM → CAM-ICU<br>
+                        • Validación en diferentes poblaciones<br>
+                        • Sensibilidad y especificidad mejoradas
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <span class="slide-number">11 / 48</span>
+</section>
+
+<!-- SLIDE 12: ERA DE LA EVIDENCIA Y LA PARADOJA -->
+<section class="slide">
+    <h1>Era de la Evidencia y la Paradoja (2010-Presente)</h1>
+    <div class="content">
+        <div class="content-text">
+            <div class="highlight-box">
+                <span class="timeline-year">2018</span>
+                <h4 style="margin-top: 15px;">Guías PADIS</h4>
+                <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                    Actualización: Pain, Agitation/Sedation, Delirium, Immobility, Sleep Disruption.
+                    <strong style="color: var(--accent-orange);">Recomiendan contra antipsicóticos.</strong>
+                </p>
+            </div>
+            <div class="highlight-box orange">
+                <span class="timeline-year">2018-2025</span>
+                <h4 style="margin-top: 15px;">Grandes ECA Negativos</h4>
+                <ul style="margin-top: 10px; font-size: 16px;">
+                    <li><strong>MIND-USA (2018):</strong> Haloperidol y ziprasidona sin beneficios</li>
+                    <li><strong>AID-ICU (2022):</strong> Haloperidol no acorta delirium</li>
+                    <li><strong>AID-ICU 1 año (2025):</strong> Sin diferencias en cognición</li>
+                </ul>
+            </div>
+        </div>
+        <div class="content-text">
+            <div class="highlight-box green">
+                <span class="timeline-year">2025-2026</span>
+                <h4 style="margin-top: 15px;">Avances Actuales</h4>
+                <ul style="margin-top: 10px;">
+                    <li><strong>Dexmedetomidina:</strong> Emergiendo como agente más prometedor</li>
+                    <li><strong>Modelos IA:</strong> DeLLiriuM con AUROC 82,4%</li>
+                    <li><strong>Medicina de precisión:</strong> Endotipos basados en biomarcadores</li>
+                </ul>
+            </div>
+            <div class="placeholder" style="height: 280px; margin-top: 20px;">
+                [GRÁFICO: Timeline de ECA 2018-2025 con resultados]
+            </div>
+        </div>
+    </div>
+    <footer><strong>Ref:</strong> [4,5,8,9,12,15]</footer>
+    <span class="slide-number">12 / 48</span>
+</section>
+
+<!-- SLIDE 13: FISIOPATOLOGÍA - MODELO DE LA TORMENTA PERFECTA -->
+<section class="slide">
+    <h1>Fisiopatología: El Modelo de la Tormenta Perfecta</h1>
+    <div class="content">
+        <div class="content-full">
+            <div class="grid-2">
+                <div class="card">
+                    <h4>🔵 Factores Predisponentes</h4>
+                    <ul style="margin-top: 15px; font-size: 18px;">
+                        <li>Edad avanzada</li>
+                        <li>Deterioro cognitivo preexistente</li>
+                        <li>Comorbilidades graves</li>
+                        <li>Fragilidad</li>
+                        <li>Reserva cerebral ↓</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4>🟠 Factores Precipitantes</h4>
+                    <ul style="margin-top: 15px; font-size: 18px;">
+                        <li>Infección / Sepsis</li>
+                        <li>Cirugía mayor</li>
+                        <li>Fármacos (sedantes, opioides)</li>
+                        <li>Privación del sueño</li>
+                        <li>Inmovilización</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="highlight-box" style="margin-top: 30px; text-align: center;">
+                <p style="font-size: 22px;">
+                    <strong style="color: var(--accent-cyan);">Interacción dinámica:</strong> 
+                    Cuando los insultos agudos superan la capacidad de reserva → <strong style="color: var(--accent-orange);">DELIRIUM</strong>
+                </p>
+            </div>
+            <div class="placeholder" style="height: 280px; margin-top: 20px;">
+                [DIAGRAMA: Modelo integrador de vulnerabilidad vs reserva cerebral]
+            </div>
+        </div>
+    </div>
+    <footer><strong>Ref:</strong> O'Keeffe F et al. 2025 [2]</footer>
+    <span class="slide-number">13 / 48</span>
+</section>
+
+<!-- SLIDE 14: NEUROINFLAMACIÓN -->
+<section class="slide">
+    <h1>Neuroinflamación: La Vía Central</h1>
+    <div class="content">
+        <div class="content-text">
+            <div class="highlight-box">
+                <h4 style="color: var(--accent-cyan);">Mecanismo central mejor validado</h4>
+                <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                    Inflamación sistémica → Activación del sistema inmune cerebral
+                </p>
+            </div>
+            <ul>
+                <li><strong>Citoquinas proinflamatorias:</strong> IL-1β, IL-6, TNF-α</li>
+                <li><strong>Acceso al SNC:</strong>
+                    <ul style="margin-top: 10px; margin-left: 20px;">
+                        <li>BHE disfuncional (permeabilidad aumentada)</li>
+                        <li>Órganos circumventriculares</li>
+                        <li>Activación vía nervio vago</li>
+                    </ul>
+                </li>
+                <li><strong>Activación glial:</strong> Microglía y astrocitos → Ciclo de neuroinflamación</li>
+            </ul>
+            <div class="highlight-box green">
+                <p style="font-size: 18px;">
+                    <strong>Metaanálisis 2025:</strong> Niveles significativamente más altos de <strong style="color: var(--accent-green);">IL-6</strong> 
+                    (DM 21,29, IC 95%: 11,78-30,80) durante el delirium.
+                </p>
+            </div>
+        </div>
+        <div class="content-visual">
+            <div class="placeholder" style="height: 550px;">
+                [DIAGRAMA: Vía de la neuroinflamación]
+                <br><br>
+                Periferia → BHE → SNC → Activación microglial
+            </div>
+        </div>
+    </div>
+    <footer><strong>Ref:</strong> O'Keeffe F et al. 2025 [2]</footer>
+    <span class="slide-number">14 / 48</span>
+</section>
+
+<!-- SLIDE 15: BARRERA HEMATOENCEFÁLICA Y BIOMARCADORES -->
+<section class="slide">
+    <h1>Daño de la BHE y Biomarcadores de Lesión</h1>
+    <div class="content">
+        <div class="content-text">
+            <div class="highlight-box">
+                <h4 style="color: var(--accent-cyan);">Disfunción de la BHE</h4>
+                <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                    Hallazgo temprano: inflamación y estrés oxidativo dañan uniones estrechas
+                </p>
+            </div>
+            <div class="highlight-box orange">
+                <h4 style="color: var(--accent-orange);">Biomarcadores más consistentes</h4>
+                <ul style="margin-top: 15px;">
+                    <li><strong>S100β:</strong> Daño astrocítico</li>
+                    <li><strong>NfL (neurofilamento cadena ligera):</strong> Daño axonal</li>
+                </ul>
+            </div>
+            <ul>
+                <li>Permiten entrada de moléculas neurotóxicas al SNC</li>
+                <li>Predicen desarrollo de delirium al ingreso [10]</li>
+            </ul>
+        </div>
+        <div class="content-visual">
+            <div class="placeholder" style="height: 550px;">
+                [DIAGRAMA: Estructura de la BHE y biomarcadores]
+                <br><br>
+                • Endoteliocitos + Tight junctions
+                • S100β desde astrocitos
+                • NfL desde axones
+            </div>
+        </div>
+    </div>
+    <footer><strong>Ref:</strong> O'Keeffe F et al. 2025 [2] | Pham AT et al. 2025 [10]</footer>
+    <span class="slide-number">15 / 48</span>
+</section>
+
+<!-- SLIDE 16: DESREGULACIÓN NEUROTRANSMISORES -->
+<section class="slide">
+    <h1>Desregulación de Neurotransmisores</h1>
+    <div class="content">
+        <div class="content-full">
+            <div class="grid-2">
+                <div class="card">
+                    <h4 style="color: var(--accent-cyan);">🔵 Déficit Colinérgico</h4>
+                    <p style="font-size: 18px; color: var(--text-secondary); margin-top: 15px;">
+                        La hipótesis más antigua y robusta. La acetilcolina es clave para la atención y cognición.
+                    </p>
+                    <ul style="margin-top: 15px; font-size: 16px;">
+                        <li>Fármacos anticolinérgicos inducen delirium</li>
+                        <li>Inflamación reduce síntesis de ACh</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4 style="color: var(--accent-orange);">🟠 Exceso Dopaminérgico</h4>
+                    <p style="font-size: 18px; color: var(--text-secondary); margin-top: 15px;">
+                        Hiperactividad en vías mesolímbicas y mesocorticales.
+                    </p>
+                    <ul style="margin-top: 15px; font-size: 16px;">
+                        <li>Contribuye a síntomas psicóticos</li>
+                        <li>Asociado a agitación del delirium hiperactivo</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="highlight-box" style="margin-top: 30px;">
+                <h4 style="color: var(--accent-cyan);">Otros sistemas afectados</h4>
+                <div class="grid-3" style="margin-top: 20px;">
+                    <div style="text-align: center;">
+                        <strong style="font-size: 20px; color: var(--text-primary);">GABA</strong>
+                        <p style="font-size: 16px; color: var(--text-secondary); margin-top: 5px;">Relacionado con sedantes</p>
+                    </div>
+                    <div style="text-align: center;">
+                        <strong style="font-size: 20px; color: var(--text-primary);">Glutamato</strong>
+                        <p style="font-size: 16px; color: var(--text-secondary); margin-top: 5px;">Excitotoxicidad</p>
+                    </div>
+                    <div style="text-align: center;">
+                        <strong style="font-size: 20px; color: var(--text-primary);">Noradrenalina</strong>
+                        <p style="font-size: 16px; color: var(--text-secondary); margin-top: 5px;">Respuesta al estrés</p>
+                    </div>
+                </div>
+            </div>
+            <div class="placeholder" style="height: 220px; margin-top: 20px;">
+                [DIAGRAMA: Balance neurotransmisores - Colinérgico vs Dopaminérgico]
+            </div>
+        </div>
+    </div>
+    <footer><strong>Ref:</strong> O'Keeffe F et al. 2025 [2]</footer>
+    <span class="slide-number">16 / 48</span>
+</section>
+
+<!-- SLIDE 17: ESTRÉS OXIDATIVO -->
+<section class="slide">
+    <h1>Estrés Oxidativo y Disfunción Mitocondrial</h1>
+    <div class="content">
+        <div class="content-text">
+            <div class="highlight-box orange">
+                <h4 style="color: var(--accent-orange);">Generación de ROS y RNS</h4>
+                <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                    La inflamación y la hipoperfusión generan especies reactivas de oxígeno y nitrógeno.
+                </p>
+            </div>
+            <ul>
+                <li><strong>Daño mitocondrial</strong> en neuronas y glía</li>
+                <li>Producción deficiente de <strong>ATP</strong></li>
+                <li>Exacerba la disfunción neuronal</li>
+                <li>Amplifica el ciclo de neuroinflamación</li>
+            </ul>
+            <div class="highlight-box" style="margin-top: 30px;">
+                <p style="font-size: 18px;">
+                    <strong>Efecto cascada:</strong> Estrés oxidativo → Daño mitocondrial → 
+                    ↓ ATP → Disfunción de bombas iónicas → Alteración homeostasis neuronal
+                </p>
+            </div>
+        </div>
+        <div class="content-visual">
+            <div class="placeholder" style="height: 550px;">
+                [DIAGRAMA: Vía del estrés oxidativo]
+                <br><br>
+                • Mitocondria dañada
+                • Especies reactivas de oxígeno
+                • Cadena de daño celular
+            </div>
+        </div>
+    </div>
+    <footer><strong>Ref:</strong> O'Keeffe F et al. 2025 [2]</footer>
+    <span class="slide-number">17 / 48</span>
+</section>
+
+<!-- SLIDE 18: VENTANA MICROCIRCULACIÓN CEREBRAL -->
+<section class="slide">
+    <h1>Ventana a la Microcirculación Cerebral</h1>
+    <div class="content">
+        <div class="content-text">
+            <div class="highlight-box">
+                <h4 style="color: var(--accent-cyan);">Concepto Emergente</h4>
+                <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                    La inflamación sistémica induce disfunción de células endoteliales cerebrales [2]
+                </p>
+            </div>
+            <ul>
+                <li><strong>Alteración autorregulación</strong> del flujo sanguíneo regional</li>
+                <li><strong>Hipoperfusión</strong> o hiperperfusión heterogénea</li>
+                <li><strong>"Incoherencia hemodinámica cerebral"</strong></li>
+            </ul>
+            <div class="highlight-box green">
+                <h4 style="color: var(--accent-green);">Técnicas de evaluación</h4>
+                <ul style="margin-top: 15px;">
+                    <li>RMN con ASL (arterial spin labeling)</li>
+                    <li>Doppler de rayas láser (experimental)</li>
+                </ul>
+            </div>
+            <div class="highlight-box orange" style="margin-top: 20px;">
+                <p style="font-size: 18px;">
+                    <strong>Pregunta futura:</strong> ¿Podría la monitorización de microcirculación 
+                    guiar el tratamiento en la UCI?
+                </p>
+            </div>
+        </div>
+        <div class="content-visual">
+            <div class="placeholder" style="height: 550px;">
+                [DIAGRAMA: Microcirculación cerebral y "incoherencia"]
+                <br><br>
+                • Macrohemodinamia normal
+                • Microcirculación alterada
+                • Heterogeneidad regional
+            </div>
+        </div>
+    </div>
+    <footer><strong>Ref:</strong> O'Keeffe F et al. 2025 [2]</footer>
+    <span class="slide-number">18 / 48</span>
+</section>
+
+<!-- SLIDE 19: HISTORIA NATURAL - FASE 1 -->
+<section class="slide">
+    <h1>Historia Natural: Fase 1 - Susceptibilidad</h1>
+    <div class="content">
+        <div class="content-full">
+            <h3>Factores Predisponentes (Determinan la "Reserva")</h3>
+            <div class="grid-3" style="margin-top: 30px;">
+                <div class="card">
+                    <h4>🧠 Neurológicos</h4>
+                    <ul style="margin-top: 15px; font-size: 16px;">
+                        <li>Demencia</li>
+                        <li>Deterioro cognitivo leve</li>
+                        <li>Enfermedad de Parkinson</li>
+                        <li>ICTUS previo</li>
+                        <li>Depresión</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4>🏥 Médicos</h4>
+                    <ul style="margin-top: 15px; font-size: 16px;">
+                        <li>Insuficiencia cardíaca</li>
+                        <li>EPOC grave</li>
+                        <li>Insuficiencia renal</li>
+                        <li>Cirrosis hepática</li>
+                        <li>Fragilidad</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4>⚠️ Sociales/Conductuales</h4>
+                    <ul style="margin-top: 15px; font-size: 16px;">
+                        <li>Edad avanzada</li>
+                        <li>Abuso de alcohol</li>
+                        <li>Abuso de sustancias</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="highlight-box" style="margin-top: 30px; text-align: center;">
+                <p style="font-size: 20px;">
+                    <strong>Concepto clave:</strong> Estos factores disminuyen la 
+                    <strong style="color: var(--accent-cyan);">reserva cerebral</strong> y 
+                    <strong style="color: var(--accent-cyan);">reserva cognitiva</strong>,
+                    aumentando la vulnerabilidad al delirium.
+                </p>
+            </div>
+        </div>
+    </div>
+    <span class="slide-number">19 / 48</span>
+</section>
+
+<!-- SLIDE 20: HISTORIA NATURAL - FASE 2 -->
+<section class="slide">
+    <h1>Historia Natural: Fase 2 - Precipitantes y Fase Prodrómica</h1>
+    <div class="content">
+        <div class="content-text">
+            <h3>Factores Precipitantes</h3>
+            <ul style="margin-top: 20px;">
+                <li><strong>Infección/Sepsis:</strong> El precipitante más común</li>
+                <li><strong>Cirugía mayor y anestesia</strong></li>
+                <li><strong>Fármacos:</strong> Sedantes, anticolinérgicos, opioides, glucocorticoides</li>
+                <li><strong>Desequilibrios metabólicos:</strong> Na, Ca, glucosa</li>
+                <li><strong>Factores ambientales UCI:</strong> Privación sueño, inmovilización, restricciones físicas</li>
+            </ul>
+            <div class="highlight-box orange" style="margin-top: 30px;">
+                <h4>Fase Prodrómica (horas a días)</h4>
+                <ul style="margin-top: 15px; font-size: 16px;">
+                    <li>Ansiedad, inquietud</li>
+                    <li>Cambios en ciclo sueño-vigilia</li>
+                    <li>Déficits de atención leves</li>
+                </ul>
+            </div>
+        </div>
+        <div class="content-visual">
+            <div class="placeholder" style="height: 550px;">
+                [DIAGRAMA: Fase prodrómica - Ventana de oportunidad]
+                <br><br>
+                • Súbito vs gradual
+                • Identificación temprana
+                • Intervención preventiva
+            </div>
+        </div>
+    </div>
+    <span class="slide-number">20 / 48</span>
+</section>
+
+<!-- SLIDE 21: HISTORIA NATURAL - FASE 3: CLASIFICACIÓN MOTORA -->
+<section class="slide">
+    <h1>Historia Natural: Fase 3 - Delirium Establecido (Fenotipos)</h1>
+    <div class="content">
+        <div class="content-full">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fenotipo</th>
+                        <th>Prevalencia</th>
+                        <th>Características</th>
+                        <th>Pronóstico</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong style="color: var(--text-primary);">🔴 Hiperactivo</strong></td>
+                        <td>~25%</td>
+                        <td>Agitación, inquietud, hipervigilancia, intentos retirar dispositivos, alucinaciones</td>
+                        <td style="color: var(--accent-green);">Más fácil de detectar</td>
+                    </tr>
+                    <tr>
+                        <td><strong style="color: var(--text-primary);">🔵 Hipoactivo</strong></td>
+                        <td>25-50% (16.5% prevalencia)</td>
+                        <td>Letargo, apatía, retraimiento, somnolencia, ↓ conciencia</td>
+                        <td style="color: var(--accent-orange);"><strong>Peor pronóstico, infradiagnosticado</strong></td>
+                    </tr>
+                    <tr>
+                        <td><strong style="color: var(--text-primary);">🟠 Mixto</strong></td>
+                        <td>25-50%</td>
+                        <td>Alternancia entre características hiperactivas e hipoactivas</td>
+                        <td style="color: var(--text-secondary);">Más común en algunos estudios</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="highlight-box orange" style="margin-top: 30px; text-align: center;">
+                <p style="font-size: 22px;">
+                    <strong>Crítico:</strong> El fenotipo <strong style="color: var(--accent-orange);">hipoactivo</strong> representa hasta el 
+                    <strong style="color: var(--accent-orange);">53,8%</strong> de casos en algunas series y tiene 
+                    <strong>peor pronóstico</strong>, pero pasa desapercibido.
+                </p>
+            </div>
+        </div>
+    </div>
+    <footer><strong>Ref:</strong> Leong AY et al. 2025 [1]</footer>
+    <span class="slide-number">21 / 48</span>
+</section>
+
+<!-- SLIDE 22: FASE 4 Y PICS -->
+<section class="slide">
+    <h1>Fase 4: Resolución, Persistencia y Secuelas (PICS)</h1>
+    <div class="content">
+        <div class="content-full">
+            <div class="grid-2">
+                <div class="card">
+                    <h4>🟢 Resolución Completa (1-7 días)</h4>
+                    <p style="font-size: 18px; color: var(--text-secondary); margin-top: 15px;">
+                        Lo más común si se trata la causa subyacente. 
+                        <strong>Episodios breves (&lt;48-72h) tienen mejor pronóstico.</strong>
+                    </p>
+                </div>
+                <div class="card">
+                    <h4>🟡 Persistencia</h4>
+                    <p style="font-size: 18px; color: var(--text-secondary); margin-top: 15px;">
+                        Semanas o meses. <strong>Duración prolongada se asocia con peores resultados.</strong>
+                    </p>
+                </div>
+            </div>
+            <div class="highlight-box orange" style="margin-top: 30px;">
+                <h4 style="color: var(--accent-orange);">Complicaciones Directas</h4>
+                <ul style="margin-top: 15px;">
+                    <li>Autolisis de vías centrales · Caídas · Retirada accidental de catéteres</li>
+                    <li>Neumonía aspirativa · Lesiones autoinfligidas</li>
+                </ul>
+            </div>
+            <div class="highlight-box" style="margin-top: 20px; text-align: center;">
+                <h3 style="color: var(--accent-cyan); margin-bottom: 20px;">Síndrome Post-UCI (PICS) - 50-70% de supervivientes</h3>
+                <div class="grid-3">
+                    <div>
+                        <strong style="font-size: 18px;">🧠 Cognitivo</strong>
+                        <p style="font-size: 14px; color: var(--text-secondary); margin-top: 5px;">Deterioro tipo demencia</p>
+                    </div>
+                    <div>
+                        <strong style="font-size: 18px;">🚶 Funcional</strong>
+                        <p style="font-size: 14px; color: var(--text-secondary); margin-top: 5px;">Discapacidad ABVD/IAVD</p>
+                    </div>
+                    <div>
+                        <strong style="font-size: 18px;">😔 Mental</strong>
+                        <p style="font-size: 14px; color: var(--text-secondary); margin-top: 5px;">Depresión, ansiedad, TEPT</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <footer><strong>Ref:</strong> ATS 2025 [14] | MIND-USA 2025 [8]</footer>
+    <span class="slide-number">22 / 48</span>
+</section>
+
+<!-- SLIDE 23: MÉTODOS HISTÓRICOS Y LIMITACIONES -->
+<section class="slide">
+    <h1>Métodos Históricos y sus Limitaciones</h1>
+    <div class="content">
+        <div class="content-text">
+            <div class="highlight-box orange">
+                <h4 style="color: var(--accent-orange);">Juicio Clínico No Estructurado</h4>
+                <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                    Hasta el <strong>70%</strong> de episodios pasan desapercibidos, 
+                    especialmente el fenotipo hipoactivo.
+                </p>
+            </div>
+            <ul>
+                <li><strong>MMSE:</strong> No diseñado para delirium, no evalúa fluctuación ni atención adecuadamente</li>
+                <li><strong>Escalas de sedación (Ramsay, SAS):</strong> Evalúan conciencia pero no cognición</li>
+            </ul>
+            <div class="highlight-box" style="margin-top: 20px;">
+                <h4>Limitaciones Clave</h4>
+                <ul style="margin-top: 10px;">
+                    <li>Falta de estandarización</li>
+                    <li>No validadas para UCI</li>
+                    <li>No distinguen delirium de demencia</li>
+                    <li>No factibles para intubados</li>
+                </ul>
+            </div>
+        </div>
+        <div class="content-visual">
+            <div class="placeholder" style="height: 550px;">
+                [DIAGRAMA: Comparativa de métodos diagnósticos]
+                <br><br>
+                • Juicio clínico: Subjetivo, incompleto
+                • MMSE: Inadecuado para UCI
+                • Necesidad de herramientas validadas
+            </div>
+        </div>
+    </div>
+    <span class="slide-number">23 / 48</span>
+</section>
+
+<!-- SLIDE 24: CAM-ICU -->
+<section class="slide">
+    <h1>CAM-ICU: El Estándar de Oro</h1>
+    <div class="content">
+        <div class="content-text">
+            <div class="highlight-box">
+                <h4 style="color: var(--accent-cyan);">Confusion Assessment Method for the ICU</h4>
+                <p style="font-size: 16px; color: var(--text-secondary); margin-top: 10px;">
+                    Ely et al., 2001 · Validada para intubados y no intubados
+                </p>
+            </div>
+            
+            <h3 style="margin-top: 20px;">Las 4 Características</h3>
+            <ol style="margin-top: 15px; font-size: 18px; color: var(--text-secondary);">
+                <li>Inicio <strong>agudo</strong> o curso <strong>fluctuante</strong></li>
+                <li>Falta de <strong>atención</strong> (test de letras o imágenes)</li>
+                <li>Pensamiento <strong>desorganizado</strong> (preguntas simples)</li>
+                <li>Nivel de <strong>conciencia alterado</strong> (RASS ≠ 0)</li>
+            </ol>
+            
+            <div class="highlight-box green" style="margin-top: 25px;">
+                <h4>Diagnóstico CAM-ICU (+)</h4>
+                <p style="font-size: 18px; margin-top: 10px;">
+                    Características <strong>1 + 2 + (3 o 4)</strong>
+                </p>
+            </div>
+            
+            <div class="highlight-box" style="margin-top: 15px;">
+                <p style="font-size: 16px;">
+                    <strong>Sensibilidad ≈80% · Especificidad ≈95%</strong>
+                </p>
+            </div>
+        </div>
+        <div class="content-visual">
+            <div class="placeholder" style="height: 550px;">
+                [ALGORITMO: Flujo CAM-ICU con decisiones]
+                <br><br>
+                • RASS screening
+                • Test atención (ASE)
+                • 4 características
+                • Resultado + / -
+            </div>
+        </div>
+    </div>
+    <footer><strong>Ref:</strong> Guías PADIS 2025 [15]</footer>
+    <span class="slide-number">24 / 48</span>
+</section>
+
+<!-- SLIDE 25: ICDSC -->
+<section class="slide">
+    <h1>ICDSC: Alternativa al CAM-ICU</h1>
+    <div class="content">
+        <div class="content-text">
+            <div class="highlight-box">
+                <h4 style="color: var(--accent-cyan);">Intensive Care Delirium Screening Checklist</h4>
+                <p style="font-size: 16px; color: var(--text-secondary); margin-top: 10px;">
+                    Bergeron et al., 2002 · Puntuación de 8 ítems
+                </p>
+            </div>
+            
+            <h3 style="margin-top: 20px;">Los 8 Ítems (0-1 cada uno)</h3>
+            <ul style="margin-top: 15px; font-size: 16px;">
+                <li>1. Alteración del nivel de conciencia</li>
+                <li>2. Falta de atención</li>
+                <li>3. Desorientación</li>
+                <li>4. Alucinaciones</li>
+                <li>5. Agitación o letargo psicomotor</li>
+                <li>6. Lenguaje o discurso inapropiado</li>
+                <li>7. Alteración ciclo sueño-vigilia</li>
+                <li>8. Cambios fluctuantes del estado mental</li>
+            </ul>
+            
+            <div class="highlight-box green" style="margin-top: 20px;">
+                <p style="font-size: 20px;">
+                    <strong>Puntuación ≥4 = Delirium (+)</strong>
+                </p>
+            </div>
+        </div>
+        <div class="content-text">
+            <div class="highlight-box" style="margin-bottom: 20px;">
+                <h4>Sensibilidad y Especificidad</h4>
+                <ul style="margin-top: 15px;">
+                    <li><strong>Sensibilidad ≈74%</strong></li>
+                    <li><strong>Especificidad ≈82%</strong></li>
+                    <li>Útil para <strong>delirium subsindrómico</strong></li>
+                </ul>
+            </div>
+            
+            <h3 style="margin-top: 20px;">Comparación CAM-ICU vs ICDSC</h3>
+            
+            <div class="placeholder" style="height: 280px; margin-top: 15px;">
+                [TABLA COMPARATIVA: Ambas herramientas]
+                <br><br>
+                • CAM-ICU: Más rápido, 4 características
+                • ICDSC: Más detallado, útil para seguimiento
+            </div>
+        </div>
+    </div>
+    <footer><strong>Ref:</strong> Guías PADIS 2025 [15]</footer>
+    <span class="slide-number">25 / 48</span>
+</section>
+
+<!-- SLIDE 26: RASS -->
+<section class="slide">
+    <h1>RASS: Evaluación del Nivel de Conciencia</h1>
+    <div class="content">
+        <div class="content-text">
+            <div class="highlight-box">
+                <h4 style="color: var(--accent-cyan);">Richmond Agitation-Sedation Scale</h4>
+                <p style="font-size: 16px; color: var(--text-secondary); margin-top: 10px;">
+                    Escala de -5 (no despertable) a +4 (combativo)
+                </p>
+            </div>
+            
+            <h3 style="margin-top: 20px;">Puntos Clave</h3>
+            <ul>
+                <li>Esencial para <strong>sedación</strong> y <strong>diagnóstico de delirium</strong></li>
+                <li><strong>RASS ≠ 0</strong> es parte del CAM-ICU</li>
+                <li>Puntuación baja puede reflejar sedación <strong>o</strong> delirium hipoactivo</li>
+            </ul>
+            
+            <div class="highlight-box green" style="margin-top: 20px;">
+                <h4>Objetivo en UCI</h4>
+                <p style="font-size: 18px; margin-top: 10px;">
+                    Generalmente <strong>RASS -1 a 0</strong> (tranquilo/despierto)
+                </p>
+            </div>
+        </div>
+        <div class="content-visual">
+            <div class="placeholder" style="height: 550px;">
+                [ESCALA GRÁFICA: RASS de -5 a +4]
+                <br><br>
+                • +4 Combativo
+                • +3 Muy agitado
+                • +2 Agitado
+                • +1 Inquieto
+                • 0 Alerta y tranquilo
+                • -1 Somnoliento
+                • -2 Sedación ligera
+                • -3 Sedación moderada
+                • -4 Sedación profunda
+                • -5 No despertable
+            </div>
+        </div>
+    </div>
+    <footer><strong>Ref:</strong> Guías PADIS 2025 [15]</footer>
+    <span class="slide-number">26 / 48</span>
+</section>
+
+<!-- SLIDE 27: BIOMARCADORES -->
+<section class="slide">
+    <h1>Biomarcadores: Evidencia Experimental</h1>
+    <div class="content">
+        <div class="content-text">
+            <div class="highlight-box orange">
+                <h4 style="color: var(--accent-orange);">Limitaciones Actuales</h4>
+                <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                    "Siguen siendo experimentales y requieren más validación antes de su aplicación clínica" [2]
+                </p>
+            </div>
+            
+            <h3 style="margin-top: 20px;">Biomarcadores más Estudiados</h3>
+            
+            <table style="margin-top: 15px; font-size: 16px;">
+                <thead>
+                    <tr>
+                        <th>Biomarcador</th>
+                        <th>Origen</th>
+                        <th>Significado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>S100β</strong></td>
+                        <td>Astrocitos</td>
+                        <td>Daño astrocítico</td>
+                    </tr>
+                    <tr>
+                        <td><strong>NfL</strong></td>
+                        <td>Neuronas</td>
+                        <td>Daño axonal</td>
+                    </tr>
+                    <tr>
+                        <td><strong>IL-6</strong></td>
+                        <td>Inflamación</td>
+                        <td>Neuroinflamación</td>
+                    </tr>
+                    <tr>
+                        <td><strong>PCR</strong></td>
+                        <td>Inflamación</td>
+                        <td>No específico</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="content-visual">
+            <div class="placeholder" style="height: 550px;">
+                [DIAGRAMA: Biomarcadores y su correlación con mecanismos]
+                <br><br>
+                • S100β: LCR y suero
+                • NfL: Lesión axonal
+                • IL-6: Eje inflamatorio
+            </div>
+        </div>
+    </div>
+    <footer><strong>Ref:</strong> O'Keeffe F et al. 2025 [2]</footer>
+    <span class="slide-number">27 / 48</span>
+</section>
+
+<!-- SLIDE 28: NEUROIMAGEN -->
+<section class="slide">
+    <h1>Neuroimagen en el Delirium</h1>
+    <div class="content">
+        <div class="content-text">
+            <div class="highlight-box">
+                <h4 style="color: var(--accent-cyan);">RMN Convencional</h4>
+                <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                    A menudo <strong>normal</strong>. Puede mostrar hiperintensidades T2/FLAIR 
+                    en tálamo, ganglios basales, sustancia blanca profunda.
+                </p>
+            </div>
+            
+            <div class="highlight-box orange">
+                <h4 style="color: var(--accent-orange);">RMN Secuencias Avanzadas</h4>
+                <ul style="margin-top: 10px;">
+                    <li><strong>DWI:</strong> Lesiones restrictivas (encefalopatía isquémica/inflamatoria)</li>
+                    <li><strong>MRS:</strong> Pico de lactato elevado</li>
+                    <li><strong>ASL:</strong> Perfusión cerebral alterada</li>
+                </ul>
+            </div>
+            
+            <div class="highlight-box green">
+                <h4>PET Cerebral (Investigación)</h4>
+                <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                    Hipometabolismo global o regional (corteza prefrontal)
+                </p>
+            </div>
+        </div>
+        <div class="content-text">
+            <div class="highlight-box" style="margin-bottom: 20px;">
+                <h4>Indicaciones en UCI</h4>
+                <ul style="margin-top: 10px;">
+                    <li>Inicio muy agudo</li>
+                    <li>Focalidad neurológica</li>
+                    <li>No responde a tratamiento</li>
+                    <li>Descartar causas estructurales</li>
+                </ul>
+            </div>
+            
+            <div class="placeholder" style="height: 300px;">
+                [IMÁGENES: Comparativa RMN normal vs alteraciones]
+            </div>
+        </div>
+    </div>
+    <span class="slide-number">28 / 48</span>
+</section>
+
+<!-- SLIDE 29: EEG CUANTITATIVO -->
+<section class="slide">
+    <h1>EEG Cuantitativo y Neuromonitores</h1>
+    <div class="content">
+        <div class="content-text">
+            <div class="highlight-box">
+                <h4 style="color: var(--accent-cyan);">EEG Convencional</h4>
+                <ul style="margin-top: 10px;">
+                    <li>Enlentecimiento difuso (actividad theta/delta)</li>
+                    <li>Patrones específicos (actividad epileptiforme)</li>
+                    <li><strong>Útil para descartar estado epiléptico no convulsivo</strong></li>
+                </ul>
+            </div>
+            
+            <div class="highlight-box green">
+                <h4>EEG Cuantitativo (qEEG)</h4>
+                <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                    Analiza potencia de bandas de frecuencia. 
+                    <strong>Biomarcador objetivo de disfunción cerebral.</strong>
+                </p>
+            </div>
+            
+            <ul>
+                <li>Parámetros qEEG <strong>correlacionan con biomarcadores</strong> de lesión cerebral</li>
+                <li>Potencial para monitorización continua</li>
+            </ul>
+        </div>
+        <div class="content-text">
+            <div class="highlight-box orange">
+                <h4 style="color: var(--accent-orange);">Nuevos Neuromonitores de Cabecera</h4>
+                <ul style="margin-top: 15px;">
+                    <li><strong>Neurosteer</strong></li>
+                    <li><strong>SedLine</strong> (EEG reducido)</li>
+                    <li>Sistemas portátiles para monitorización continua</li>
+                </ul>
+            </div>
+            
+            <div class="placeholder" style="height: 320px; margin-top: 20px;">
+                [GRÁFICO: qEEG - Espectro de frecuencias]
+                <br><br>
+                • Delta (&lt;4 Hz): Patológico
+                • Theta (4-8 Hz): Anormal en adultos
+                • Alfa (8-13 Hz): Normal
+                • Beta (&gt;13 Hz): Vigilia activa
+            </div>
+        </div>
+    </div>
+    <footer><strong>Ref:</strong> O'Keeffe F et al. 2025 [2]</footer>
+    <span class="slide-number">29 / 48</span>
+</section>
+
+<!-- SLIDE 30: BUNDLE ABCDEF -->
+<section class="slide">
+    <h1>Tratamiento No Farmacológico: Bundle ABCDEF</h1>
+    <div class="content">
+        <div class="content-full">
+            <div class="highlight-box green" style="text-align: center; margin-bottom: 30px;">
+                <p style="font-size: 22px;">
+                    <strong>Metaanálisis 2025:</strong> El bundle ABCDEF y otras intervenciones multicomponente 
+                    <strong style="color: var(--accent-green);">reducen significativamente la incidencia y duración del delirium</strong> [3]
+                </p>
+            </div>
+            
+            <div class="grid-3">
+                <div class="card">
+                    <h4 style="color: var(--accent-cyan);">A</h4>
+                    <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                        <strong>Assess, Prevent, and Manage Pain</strong>
+                    </p>
+                </div>
+                <div class="card">
+                    <h4 style="color: var(--accent-cyan);">B</h4>
+                    <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                        <strong>Both SAT and SBT</strong>
+                        <br>Spontaneous Awakening and Breathing Trials
+                    </p>
+                </div>
+                <div class="card">
+                    <h4 style="color: var(--accent-cyan);">C</h4>
+                    <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                        <strong>Choice of Analgesia and Sedation</strong>
+                    </p>
+                </div>
+            </div>
+            
+            <div class="grid-3" style="margin-top: 20px;">
+                <div class="card">
+                    <h4 style="color: var(--accent-orange);">D</h4>
+                    <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                        <strong>Delirium: Assess, Prevent, and Manage</strong>
+                    </p>
+                </div>
+                <div class="card">
+                    <h4 style="color: var(--accent-green);">E</h4>
+                    <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                        <strong>Early Mobility and Exercise</strong>
+                    </p>
+                </div>
+                <div class="card">
+                    <h4 style="color: var(--accent-green);">F</h4>
+                    <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                        <strong>Family Engagement and Empowerment</strong>
+                    </p>
+                </div>
+            </div>
+            
+            <div class="placeholder" style="height: 180px; margin-top: 30px;">
+                [DIAGRAMA HEXAGONAL: Bundle ABCDEF con conexiones entre componentes]
+            </div>
+        </div>
+    </div>
+    <footer><strong>Ref:</strong> Kundakci B et al. Crit Care. 2025 [3]</footer>
+    <span class="slide-number">30 / 48</span>
+</section>
+
+<!-- SLIDE 31: INTERVENCIONES ESPECÍFICAS ABCDEF -->
+<section class="slide">
+    <h1>Intervenciones Específicas del Bundle ABCDEF</h1>
+    <div class="content">
+        <div class="content-text">
+            <div class="highlight-box green">
+                <h4 style="color: var(--accent-green);">Movilización Precoz</h4>
+                <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                    <strong>Dentro de las primeras 24-48h</strong> tan pronto como sea clínicamente posible.
+                </p>
+            </div>
+            
+            <div class="highlight-box">
+                <h4>Participación Familiar</h4>
+                <ul style="margin-top: 10px;">
+                    <li>Presencia y participación en cuidados</li>
+                    <li>Reorientación cognitiva</li>
+                    <li>Mensajes grabados (FAVoR 2025) [14]</li>
+                </ul>
+            </div>
+            
+            <div class="highlight-box">
+                <h4>Higiene del Sueño</h4>
+                <ul style="margin-top: 10px;">
+                    <li>Reducir ruido y luz por la noche</li>
+                    <li>Agrupar cuidados</li>
+                    <li>Tapones y antifaces</li>
+                </ul>
+            </div>
+        </div>
+        <div class="content-text">
+            <div class="highlight-box orange">
+                <h4 style="color: var(--accent-orange);">Sedación</h4>
+                <ul style="margin-top: 10px;">
+                    <li>Sedación ligera ("analgosedación")</li>
+                    <li>Desescalada diaria de sedantes</li>
+                    <li>Evitar benzodiazepinas</li>
+                </ul>
+            </div>
+            
+            <div class="highlight-box">
+                <h4>Reorientación</h4>
+                <ul style="margin-top: 10px;">
+                    <li>Relojes y calendarios visibles</li>
+                    <li>Ventana natural</li>
+                    <li>Explicación de procedimientos</li>
+                </ul>
+            </div>
+            
+            <div class="highlight-box green">
+                <p style="font-size: 16px;">
+                    <strong>Evitar restricciones físicas</strong> - Solo cuando absolutamente necesario
+                </p>
+            </div>
+        </div>
+    </div>
+    <footer><strong>Ref:</strong> Kundakci B et al. 2025 [3] | FAVoR 2025 [14]</footer>
+    <span class="slide-number">31 / 48</span>
+</section>
+
+<!-- SLIDE 32: TRATAMIENTO FARMACOLÓGICO - GENERAL -->
+<section class="slide">
+    <h1>Tratamiento Farmacológico: Recomendaciones Generales</h1>
+    <div class="content">
+        <div class="content-full">
+            <div class="highlight-box orange" style="text-align: center; margin-bottom: 30px;">
+                <p style="font-size: 24px;">
+                    <strong style="color: var(--accent-orange);">No usar antipsicóticos de forma rutinaria</strong>
+                    <br><span style="font-size: 18px;">Guías PADIS 2018 y 2025 [15]</span>
+                </p>
+            </div>
+            
+            <div class="grid-2">
+                <div class="card">
+                    <h4>🔵 Principios Generales</h4>
+                    <ul style="margin-top: 15px;">
+                        <li><strong>Identificar y tratar la causa subyacente</strong> (principal)</li>
+                        <li>Revisar y suspender fármacos precipitantes</li>
+                        <li>Usar fármacos solo en situaciones específicas</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4>🟠 Indicaciones para Fármacos</h4>
+                    <ul style="margin-top: 15px;">
+                        <li>Agitación severa que pone en riesgo al paciente/personal</li>
+                        <li>Síntomas psicóticos graves</li>
+                        <li>Puente para intervenciones no farmacológicas</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="highlight-box" style="margin-top: 30px;">
+                <h4>Fármacos a Evitar/Suspender</h4>
+                <div class="grid-3" style="margin-top: 15px;">
+                    <div style="text-align: center;">
+                        <strong>Benzodiazepinas</strong><br>
+                        <span style="font-size: 14px; color: var(--text-muted);">(excepto abstinencia alcohólica)</span>
+                    </div>
+                    <div style="text-align: center;">
+                        <strong>Anticolinérgicos</strong>
+                    </div>
+                    <div style="text-align: center;">
+                        <strong>Opioides altas dosis</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <footer><strong>Ref:</strong> Guías PADIS 2025 [15]</footer>
+    <span class="slide-number">32 / 48</span>
+</section>
+
+<!-- SLIDE 33: DEXMEDETOMIDINA -->
+<section class="slide">
+    <h1>Dexmedetomidina: El Agente más Prometedor</h1>
+    <div class="content">
+        <div class="content-text">
+            <div class="highlight-box green">
+                <h4 style="color: var(--accent-green);">Agonista Alfa-2 Adrenérgico</h4>
+                <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                    <strong>Evidencia más sólida</strong> según meta-revisión SCCM 2025 [4]
+                </p>
+            </div>
+            
+            <div class="highlight-box">
+                <h4>Evidencia Clave</h4>
+                <ul style="margin-top: 10px;">
+                    <li><strong>Metaanálisis 2026 vs Midazolam [5]:</strong></li>
+                    <li style="margin-left: 20px;">RR 0,59 para delirium (IC 95%: 0,52-0,68)</li>
+                    <li style="margin-left: 20px;">↓ Duración ventilación mecánica</li>
+                    <li><strong>Metaanálisis 2025 post-cirugía cardíaca [12]:</strong></li>
+                    <li style="margin-left: 20px;">RR 0,61 (IC 95%: 0,49-0,75)</li>
+                </ul>
+            </div>
+        </div>
+        <div class="content-text">
+            <div class="highlight-box orange">
+                <h4 style="color: var(--accent-orange);">Efectos Adversos</h4>
+                <ul style="margin-top: 10px;">
+                    <li><strong>Bradicardia:</strong> RR 2,05 vs midazolam [5]</li>
+                    <li><strong>Hipotensión</strong></li>
+                </ul>
+            </div>
+            
+            <div class="highlight-box">
+                <h4>Dosis</h4>
+                <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                    0,2-0,7 mcg/kg/h · Titular según respuesta
+                </p>
+            </div>
+            
+            <div class="placeholder" style="height: 200px; margin-top: 20px;">
+                [FOREST PLOT: Dexmedetomidina vs controles]
+            </div>
+        </div>
+    </div>
+    <footer><strong>Ref:</strong> Kundakci B et al. 2025 [4] | Wei Peng et al. 2026 [5] | Da Silva LC et al. 2025 [12]</footer>
+    <span class="slide-number">33 / 48</span>
+</section>
+
+<!-- SLIDE 34: HALOPERIDOL Y ECA NEGATIVOS -->
+<section class="slide">
+    <h1>Haloperidol: Evidencia de Grandes ECA</h1>
+    <div class="content">
+        <div class="content-text">
+            <div class="highlight-box orange">
+                <h4 style="color: var(--accent-orange);">MIND-USA (2018)</h4>
+                <ul style="margin-top: 10px;">
+                    <li>N=566 pacientes con delirium</li>
+                    <li><strong>Sin beneficio:</strong> Días sin delirium, mortalidad, duración VM</li>
+                    <li>Seguimiento 1 año (2025) [8]: Sin diferencias en función cognitiva</li>
+                </ul>
+            </div>
+            
+            <div class="highlight-box orange">
+                <h4 style="color: var(--accent-orange);">AID-ICU (2022)</h4>
+                <ul style="margin-top: 10px;">
+                    <li>Haloperidol no acorta duración del delirium</li>
+                    <li>Seguimiento 1 año (2025): Sin diferencias en cognición o funcionalidad</li>
+                </ul>
+            </div>
+            
+            <div class="highlight-box">
+                <h4>Seguridad Cardíaca</h4>
+                <p style="font-size: 16px; color: var(--text-secondary); margin-top: 10px;">
+                    Análisis secundario MIND-USA 2025 [13]: Haloperidol IV y ziprasidona 
+                    <strong>seguros</strong> con impacto mínimo en QTc.
+                </p>
+            </div>
+        </div>
+        <div class="content-visual">
+            <div class="placeholder" style="height: 550px;">
+                [FOREST PLOT: Resultados ECA MIND-USA y AID-ICU]
+                <br><br>
+                • Días sin delirium: HR 0,96 (NS)
+                • Mortalidad: HR 0,94 (NS)
+                • Resolución delirium: RR 1,02 (NS)
+            </div>
+        </div>
+    </div>
+    <footer><strong>Ref:</strong> MIND-USA 2018/2025 [8] | AID-ICU 2022/2025 | Tampi RR et al. 2025 [13]</footer>
+    <span class="slide-number">34 / 48</span>
+</section>
+
+<!-- SLIDE 35: ANTIPSICÓTICOS ATÍPICOS -->
+<section class="slide">
+    <h1>Antipsicóticos Atípicos: Quetiapina</h1>
+    <div class="content">
+        <div class="content-text">
+            <div class="highlight-box">
+                <h4>Metaanálisis 2025 [7]</h4>
+                <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                    6 ECA, N=491
+                </p>
+            </div>
+            
+            <div class="highlight-box green">
+                <h4 style="color: var(--accent-green);">Resultado Principal</h4>
+                <p style="font-size: 20px; margin-top: 10px;">
+                    Quetiapina a <strong>dosis bajas (12,5-75 mg/día)</strong> redujo significativamente la incidencia de delirium:
+                </p>
+                <p style="font-size: 28px; color: var(--accent-green); margin-top: 15px; text-align: center;">
+                    <strong>RR 0,61</strong> (IC 95%: 0,45-0,83)
+                </p>
+            </div>
+            
+            <div class="highlight-box orange">
+                <h4 style="color: var(--accent-orange);">Limitaciones</h4>
+                <p style="font-size: 16px; color: var(--text-secondary); margin-top: 10px;">
+                    Pequeño número y tamaño de ensayos. Conclusiones limitadas.
+                </p>
+            </div>
+        </div>
+        <div class="content-text">
+            <div class="highlight-box">
+                <h4>Comparación Haloperidol vs Atípicos</h4>
+                <p style="font-size: 16px; color: var(--text-secondary); margin-top: 10px;">
+                    Metaanálisis 2025, 11 ECA, N=1450
+                </p>
+                <ul style="margin-top: 10px; font-size: 16px;">
+                    <li><strong>Sin diferencias</strong> en gravedad del delirium o mortalidad</li>
+                    <li><strong>Haloperidol:</strong> OR 2,72 (IC 95%: 1,26-5,87) para síntomas extrapiramidales</li>
+                </ul>
+            </div>
+            
+            <div class="placeholder" style="height: 320px; margin-top: 20px;">
+                [GRÁFICO: Comparación haloperidol vs atípicos]
+                <br><br>
+                • Eficacia similar
+                • Perfil de seguridad diferente
+                • Preferir atípicos por menos efectos extrapiramidales
+            </div>
+        </div>
+    </div>
+    <footer><strong>Ref:</strong> Donthu RK et al. 2025 [7] | Metaanálisis comparativo 2025</footer>
+    <span class="slide-number">35 / 48</span>
+</section>
+
+<!-- SLIDE 36: MELATONINA -->
+<section class="slide">
+    <h1>Melatonina: NO Reduce la Incidencia de Delirium</h1>
+    <div class="content">
+        <div class="content-text">
+            <div class="highlight-box orange" style="text-align: center;">
+                <h4 style="color: var(--accent-orange);">Metaanálisis 2025 - Lakbar et al.</h4>
+                <p style="font-size: 18px; color: var(--text-secondary); margin: 15px 0;">
+                    13 ECA, 2,830 pacientes
+                </p>
+                <p style="font-size: 32px; color: var(--text-primary); margin: 20px 0;">
+                    <strong>RR 0,86</strong>
+                </p>
+                <p style="font-size: 18px; color: var(--text-secondary);">
+                    IC 95%: 0,70-1,04
+                </p>
+                <p style="font-size: 22px; color: var(--accent-orange); margin-top: 15px;">
+                    <strong>NO SIGNIFICATIVO</strong>
+                </p>
+            </div>
+            
+            <ul>
+                <li><strong>Alta calidad metodológica</strong> del metaanálisis</li>
+                <li><strong>Conclusión:</strong> No debe usarse de forma rutinaria para prevenir delirium</li>
+            </ul>
+        </div>
+        <div class="content-text">
+            <div class="highlight-box">
+                <h4>Ramelteon (Agonista Receptor Melatonina)</h4>
+                <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                    Algunos estudios muestran reducción, pero se necesitan más datos.
+                </p>
+            </div>
+            
+            <div class="placeholder" style="height: 350px; margin-top: 20px;">
+                [FOREST PLOT: Metaanálisis melatonina 13 ECA]
+                <br><br>
+                • Diamond = efecto nulo
+                • IC cruza la línea de nulidad
+                • Heterogeneidad entre estudios
+            </div>
+            
+            <div class="highlight-box green" style="margin-top: 20px;">
+                <p style="font-size: 16px;">
+                    <strong>Alternativa:</strong> Higiene del sueño (ABCDE<strong>F</strong>) sigue siendo la intervención recomendada.
+                </p>
+            </div>
+        </div>
+    </div>
+    <footer><strong>Ref:</strong> Lakbar I et al. Intensive Care Med. 2025 [6]</footer>
+    <span class="slide-number">36 / 48</span>
+</section>
+
+<!-- SLIDE 37: FENOTIPOS CLÍNICOS - MANEJO -->
+<section class="slide">
+    <h1>Fenotipos Clínicos y Manejo Específico</h1>
+    <div class="content">
+        <div class="content-full">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fenotipo</th>
+                        <th>Características</th>
+                        <th>Manejo Prioritario</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong style="color: var(--accent-orange);">🔴 Hiperactivo</strong></td>
+                        <td>Agitación, inquietud, intentos retirar dispositivos, alucinaciones</td>
+                        <td>
+                            • Seguridad paciente/personal<br>
+                            • Dexmedetomidina primera línea<br>
+                            • Antipsicótico acción corta si persiste
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong style="color: var(--accent-cyan);">🔵 Hipoactivo</strong></td>
+                        <td>Letargo, apatía, retraimiento, somnolencia</td>
+                        <td>
+                            • <strong>NO antipsicóticos</strong><br>
+                            • Maximizar intervenciones no farmacológicas<br>
+                            • Identificar causas subyacentes (sepsis, metabólico)
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong style="color: var(--accent-green);">🟠 Mixto</strong></td>
+                        <td>Alternancia entre hiperactivo e hipoactivo</td>
+                        <td>
+                            • Manejo híbrido<br>
+                            • Tratar agitación cuando ocurra<br>
+                            • Evitar sedación excesiva
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <div class="highlight-box orange" style="margin-top: 20px;">
+                <p style="font-size: 18px;">
+                    <strong>Crítico:</strong> El fenotipo hipoactivo <strong style="color: var(--accent-orange);">no debe tratarse con antipsicóticos</strong> 
+                    — no hay evidencia de beneficio y pueden empeorar el letargo.
+                </p>
+            </div>
+        </div>
+    </div>
+    <footer><strong>Ref:</strong> Guías PADIS 2025 [15]</footer>
+    <span class="slide-number">37 / 48</span>
+</section>
+
+<!-- SLIDE 38: ALGORITMO DE TRATAMIENTO -->
+<section class="slide">
+    <h1>Algoritmo de Manejo: Enfoque Práctico</h1>
+    <div class="content">
+        <div class="content-full">
+            <div class="placeholder" style="height: 600px;">
+                [DIAGRAMA DE FLUJO: Algoritmo completo de tratamiento]
+                
+                <br><br>
+                
+                <div style="text-align: left; font-size: 16px; margin: 20px 40px;">
+                    <strong>1. Seguridad</strong> → Evaluar riesgo de autolisis, agitación severa<br><br>
+                    
+                    <strong>2. Manejo no farmacológico (SIEMPRE)</strong> → ABCDEF bundle<br><br>
+                    
+                    <strong>3. Causa subyacente</strong> → Infección, electrolitos, fármacos precipitantes<br><br>
+                    
+                    <strong>4. ¿Agitación severa?</strong><br>
+                    └─ NO → Continuar no farmacológico<br>
+                    └─ SÍ → Dexmedetomidina (1ª línea) o antipsicótico acción corta<br><br>
+                    
+                    <strong>5. Reevaluación diaria</strong> → ¿Resolvió? ¿Efectos adversos?<br><br>
+                    
+                    <strong>6. Seguimiento post-UCI</strong> → Evaluar PICS
+                </div>
+            </div>
+        </div>
+    </div>
+    <footer><strong>Ref:</strong> Adaptado de Guías PADIS 2025 [15]</footer>
+    <span class="slide-number">38 / 48</span>
+</section>
+
+<!-- SLIDE 39: FENOTIPOS INFLAMATORIOS - FUTURO -->
+<section class="slide">
+    <h1>Fenotipos Inflamatorios: Medicina de Precisión</h1>
+    <div class="content">
+        <div class="content-text">
+            <div class="highlight-box">
+                <h4 style="color: var(--accent-cyan);">Endotipificación Mecanística</h4>
+                <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                    Integración de perfiles de biomarcadores multimodales con fenotipos clínicos [2]
+                </p>
+            </div>
+            
+            <h3 style="margin-top: 20px;">Fenotipos Emergentes</h3>
+            
+            <div class="card" style="margin-top: 15px;">
+                <h4 style="color: var(--accent-cyan);">🔵 Fenotipo Neuroinflamatorio</h4>
+                <ul style="margin-top: 10px; font-size: 16px;">
+                    <li>IL-6 ↑, PCR ↑</li>
+                    <li>Posible terapia: Inmunomoduladores</li>
+                </ul>
+            </div>
+            
+            <div class="card" style="margin-top: 15px;">
+                <h4 style="color: var(--accent-orange);">🟠 Fenotipo de Lesión Cerebral</h4>
+                <ul style="margin-top: 10px; font-size: 16px;">
+                    <li>S100β ↑, NfL ↑</li>
+                    <li>Posible terapia: Neuroprotectores</li>
+                </ul>
+            </div>
+        </div>
+        <div class="content-visual">
+            <div class="placeholder" style="height: 550px;">
+                [DIAGRAMA: Endotipos y terapias personalizadas]
+                
+                <br><br>
+                • Fenotipo clínico + Biomarcadores
+                • = Tratamiento dirigido
+                • Medicina de precisión en UCI
+            </div>
+        </div>
+    </div>
+    <footer><strong>Ref:</strong> O'Keeffe F et al. 2025 [2]</footer>
+    <span class="slide-number">39 / 48</span>
+</section>
+
+<!-- SLIDE 40: DELLIRIUM IA -->
+<section class="slide">
+    <h1>DeLLiriuM: IA para Predicción de Delirium</h1>
+    <div class="content">
+        <div class="content-text">
+            <div class="highlight-box green">
+                <h4 style="color: var(--accent-green);">Modelo de Lenguaje Grande (LLM)</h4>
+                <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                    Jiang et al., 2025
+                </p>
+            </div>
+            
+            <div class="highlight-box">
+                <h4>Datos de Entrenamiento</h4>
+                <ul style="margin-top: 10px;">
+                    <li><strong>104,303 pacientes</strong> de 195 hospitales</li>
+                    <li>Datos de HCE primeras <strong>24 horas</strong> de ingreso en UCI</li>
+                </ul>
+            </div>
+            
+            <div class="highlight-box green" style="text-align: center;">
+                <p style="font-size: 20px; color: var(--text-secondary);">Rendimiento</p>
+                <p style="font-size: 48px; color: var(--accent-green); margin: 15px 0;">
+                    <strong>AUROC 82,4%</strong>
+                </p>
+                <p style="font-size: 16px; color: var(--text-secondary);">
+                    Predicción de riesgo de delirium
+                </p>
+            </div>
+            
+            <div class="highlight-box orange">
+                <h4 style="color: var(--accent-orange);">Limitación</h4>
+                <p style="font-size: 16px; color: var(--text-secondary); margin-top: 10px;">
+                    Validación retrospectiva — Necesita estudios prospectivos
+                </p>
+            </div>
+        </div>
+        <div class="content-visual">
+            <div class="placeholder" style="height: 550px;">
+                [DIAGRAMA: Arquitectura DeLLiriuM]
+                
+                <br><br>
+                • HCE → Procesamiento NLP
+                • Modelo LLM
+                • Score de riesgo
+                • Alerta clínica
+            </div>
+        </div>
+    </div>
+    <footer><strong>Ref:</strong> Jiang M et al. Sci Rep. 2025 [9]</footer>
+    <span class="slide-number">40 / 48</span>
+</section>
+
+<!-- SLIDE 41: MODELOS MACHINE LEARNING -->
+<section class="slide">
+    <h1>Machine Learning: Otros Modelos Predictivos</h1>
+    <div class="content">
+        <div class="content-full">
+            <div class="grid-2">
+                <div class="card">
+                    <h4 style="color: var(--accent-cyan);">XGBoost (2025)</h4>
+                    <ul style="margin-top: 15px;">
+                        <li>Predicción delirium postoperatorio en ancianos</li>
+                        <li><strong>AUC 0,848-0,852</strong></li>
+                        <li>Estudio de cohortes retrospectivo [11]</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4 style="color: var(--accent-orange);">Modelos en Desarrollo</h4>
+                    <ul style="margin-top: 15px;">
+                        <li>Redes neuronales profundas</li>
+                        <li>Series temporales de señales fisiológicas</li>
+                        <li>Integración con biomarcadores</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="highlight-box" style="margin-top: 30px;">
+                <h4 style="text-align: center;">Implicaciones Clínicas</h4>
+                <div class="grid-3" style="margin-top: 20px;">
+                    <div style="text-align: center;">
+                        <strong style="font-size: 20px; color: var(--accent-cyan);">🔍 Identificación temprana</strong>
+                        <p style="font-size: 14px; color: var(--text-secondary); margin-top: 5px;">Pacientes de alto riesgo</p>
+                    </div>
+                    <div style="text-align: center;">
+                        <strong style="font-size: 20px; color: var(--accent-green);">🎯 Intervenciones proactivas</strong>
+                        <p style="font-size: 14px; color: var(--text-secondary); margin-top: 5px;">Prevención dirigida</p>
+                    </div>
+                    <div style="text-align: center;">
+                        <strong style="font-size: 20px; color: var(--accent-orange);">📊 Recursos optimizados</strong>
+                        <p style="font-size: 14px; color: var(--text-secondary); margin-top: 5px;">Priorización de cuidados</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="placeholder" style="height: 200px; margin-top: 30px;">
+                [GRÁFICO: Comparativa AUROC de diferentes modelos ML para predicción de delirium]
+            </div>
+        </div>
+    </div>
+    <footer><strong>Ref:</strong> Jiang M et al. 2025 [9] | Li H et al. 2025 [11]</footer>
+    <span class="slide-number">41 / 48</span>
+</section>
+
+<!-- SLIDE 42: NUEVAS TECNOLOGÍAS MONITORIZACIÓN -->
+<section class="slide">
+    <h1>Nuevas Tecnologías de Monitorización</h1>
+    <div class="content">
+        <div class="content-text">
+            <div class="highlight-box">
+                <h4 style="color: var(--accent-cyan);">EEG Cuantitativo Continuo (qEEG)</h4>
+                <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                    Monitorización objetiva y en tiempo real de la función cerebral
+                </p>
+            </div>
+            
+            <div class="highlight-box">
+                <h4>NIRS (Espectroscopia Infrarrojo Cercano)</h4>
+                <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                    Oxigenación cerebral regional
+                </p>
+            </div>
+            
+            <div class="highlight-box green">
+                <h4 style="color: var(--accent-green);">Dispositivos Portátiles</h4>
+                <ul style="margin-top: 10px;">
+                    <li>Acelerómetros: Cuantificar actividad motora</li>
+                    <li>Sensores de luz/ruido: Higiene del sueño</li>
+                    <li>Smartwatches: Patrones de actividad</li>
+                </ul>
+            </div>
+        </div>
+        <div class="content-text">
+            <div class="highlight-box orange">
+                <h4 style="color: var(--accent-orange);">Mensajes Grabados por Familia</h4>
+                <p style="font-size: 18px; color: var(--text-secondary); margin-top: 10px;">
+                    <strong>Intervención FAVoR (2025):</strong> Reducción significativa de días con delirium 
+                    en pacientes con VM mediante mensajes grabados de familiares [14].
+                </p>
+            </div>
+            
+            <div class="placeholder" style="height: 320px; margin-top: 20px;">
+                [ILUSTRACIÓN: Tecnologías emergentes de monitorización]
+                
+                <br><br>
+                • qEEG portátil
+                • NIRS cabecera
+                • Sensores wearables
+                • Telemedicina familiar
+            </div>
+            
+            <div class="highlight-box" style="margin-top: 20px;">
+                <p style="font-size: 16px; text-align: center;">
+                    <strong>Visión 2030:</strong> UCI con monitorización multiescala (cerebro, 
+                    respuesta inflamatoria, actividad motora)
+                </p>
+            </div>
+        </div>
+    </div>
+    <footer><strong>Ref:</strong> O'Keeffe F et al. 2025 [2] | FAVoR 2025 [14]</footer>
+    <span class="slide-number">42 / 48</span>
+</section>
+
+<!-- SLIDE 43: MEJOR EVIDENCIA - TABLA RESUMEN -->
+<section class="slide">
+    <h1>Mejor Evidencia Disponible: Estudios Clave 2025-2026</h1>
+    <div class="content">
+        <div class="content-full">
+            <table style="font-size: 15px;">
+                <thead>
+                    <tr>
+                        <th>Estudio</th>
+                        <th>Tipo</th>
+                        <th>Población</th>
+                        <th>Hallazgo Principal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Leong AY, 2025 [1]</strong></td>
+                        <td>Metaanálisis</td>
+                        <td>183,285 pacientes</td>
+                        <td>Prevalencia 35,7%, Incidencia 28,8%, Hipoactivo más común</td>
+                    </tr>
+                    <tr>
+                        <td><strong>O'Keeffe F, 2025 [2]</strong></td>
+                        <td>Revisión sistemática</td>
+                        <td>28 estudios, 54 biomarcadores</td>
+                        <td>S100β y NfL más consistentes; propone endotipificación</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Kundakci B, 2025 [3,4]</strong></td>
+                        <td>Meta-revisión</td>
+                        <td>32-56 revisiones</td>
+                        <td>ABCDEF reduce delirium; dexmedetomidina probablemente favorable</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Wei Peng, 2026 [5]</strong></td>
+                        <td>Metaanálisis</td>
+                        <td>15 ECA, VM</td>
+                        <td>Dexmedetomidina vs midazolam: RR 0,59</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Lakbar I, 2025 [6]</strong></td>
+                        <td>Metaanálisis</td>
+                        <td>13 ECA, 2,830 pacientes</td>
+                        <td>Melatonina NO reduce delirium (RR 0,86; NS)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Donthu RK, 2025 [7]</strong></td>
+                        <td>Metaanálisis</td>
+                        <td>6 ECA, N=491</td>
+                        <td>Quetiapina dosis bajas: RR 0,61; estudios pequeños</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Mart MF, 2025 [8]</strong></td>
+                        <td>ECA seguimiento</td>
+                        <td>566 pacientes, 1 año</td>
+                        <td>1/3 con deterioro cognitivo; haloperidol/ziprasidona sin beneficio</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Jiang M, 2025 [9]</strong></td>
+                        <td>Cohorte retrospectivo</td>
+                        <td>104,303 pacientes, 195 hospitales</td>
+                        <td>DeLLiriuM: AUROC 82,4% predicción con HCE</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <span class="slide-number">43 / 48</span>
+</section>
+
+<!-- SLIDE 44: NUEVOS FÁRMACOS Y DIANAS -->
+<section class="slide">
+    <h1>Nuevos Fármacos y Dianas Terapéuticas Futuras</h1>
+    <div class="content">
+        <div class="content-full">
+            <div class="grid-2">
+                <div class="card">
+                    <h4 style="color: var(--accent-cyan);">🔵 Antiinflamatorios</h4>
+                    <ul style="margin-top: 15px; font-size: 16px;">
+                        <li>Inhibidores de IL-6</li>
+                        <li>Antagonistas del TNF</li>
+                        <li>¿Útiles en fenotipo neuroinflamatorio?</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4 style="color: var(--accent-orange);">🟠 Neuroprotectores</h4>
+                    <ul style="margin-top: 15px; font-size: 16px;">
+                        <li>Eritropoyetina</li>
+                        <li>N-acetilcisteína</li>
+                        <li>¿Reducir daño neuronal?</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="grid-2" style="margin-top: 20px;">
+                <div class="card">
+                    <h4 style="color: var(--accent-green);">🟢 Moduladores Microglía</h4>
+                    <ul style="margin-top: 15px; font-size: 16px;">
+                        <li>Minociclina</li>
+                        <li>Otros moduladores de activación microglial</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4>💊 Agonistas Colinérgicos</h4>
+                    <ul style="margin-top: 15px; font-size: 16px;">
+                        <li>Rivastigmina: Sin beneficio en ECA previos</li>
+                        <li>Quizás en subgrupos seleccionados</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="highlight-box" style="margin-top: 30px; text-align: center;">
+                <p style="font-size: 20px;">
+                    <strong>El futuro:</strong> Endotipificación → 
+                    <strong style="color: var(--accent-cyan);">Terapia personalizada</strong> según mecanismo subyacente
+                </p>
+            </div>
+        </div>
+    </div>
+    <footer><strong>Ref:</strong> O'Keeffe F et al. 2025 [2]</footer>
+    <span class="slide-number">44 / 48</span>
+</section>
+
+<!-- SLIDE 45: CONCLUSIONES CLAVE -->
+<section class="slide">
+    <h1>Conclusiones Clave</h1>
+    <div class="content">
+        <div class="content-full">
+            <ol style="font-size: 20px; line-height: 1.8;">
+                <li style="margin-bottom: 15px;">
+                    El delirium es muy <strong>frecuente</strong> (35% prevalencia) y se asocia a <strong>mal pronóstico</strong> [1,8]
+                </li>
+                <li style="margin-bottom: 15px;">
+                    El subtipo <strong style="color: var(--accent-orange);">hipoactivo</strong> es el más común y <strong>infradiagnosticado</strong>, con peor pronóstico [1]
+                </li>
+                <li style="margin-bottom: 15px;">
+                    La fisiopatología es <strong>multifactorial</strong>: neuroinflamación, BHE, neurotransmisores, estrés oxidativo [2]
+                </li>
+                <li style="margin-bottom: 15px;">
+                    El pilar del manejo es <strong style="color: var(--accent-green);">no farmacológico</strong> (bundle ABCDEF) [3,15]
+                </li>
+                <li style="margin-bottom: 15px;">
+                    <strong style="color: var(--accent-orange);">No usar antipsicóticos de forma rutinaria</strong> — sin evidencia de beneficio [4,8,15]
+                </li>
+                <li style="margin-bottom: 15px;">
+                    La <strong style="color: var(--accent-cyan);">dexmedetomidina</strong> es el agente farmacológico más prometedor [4,5,12]
+                </li>
+                <li>
+                    El futuro: <strong>inteligencia artificial</strong> y <strong>medicina de precisión</strong> (fenotipos) [2,9,11]
+                </li>
+            </ol>
+        </div>
+    </div>
+    <span class="slide-number">45 / 48</span>
+</section>
+
+<!-- SLIDE 46: BIBLIOGRAFÍA PRINCIPAL -->
+<section class="slide">
+    <h1>Bibliografía Principal</h1>
+    <div class="content">
+        <div class="content-full">
+            <div class="grid-2" style="font-size: 14px; line-height: 1.5;">
+                <div>
+                    <p style="margin-bottom: 10px;"><strong>[1]</strong> Leong AY, et al. Prevalence and incidence of ICU delirium and pain: a systematic review and meta-analysis. <em>Intensive Care Med</em>. 2025;51(11):2079-2092.</p>
+                    
+                    <p style="margin-bottom: 10px;"><strong>[2]</strong> O'Keeffe F, Cervoni I, Ganau M, Prisco L. Serum biomarkers of delirium in critical illness: a systematic review. <em>Intensive Care Med Exp</em>. 2025;13(2):100143.</p>
+                    
+                    <p style="margin-bottom: 10px;"><strong>[3]</strong> Kundakci B, et al. A systematic meta-review of interventions to prevent and manage delirium: Part 2 - Non-pharmacological. <em>Crit Care</em>. 2025;29(1):501.</p>
+                    
+                    <p style="margin-bottom: 10px;"><strong>[4]</strong> Kundakci B, et al. A systematic meta-review of interventions: Part 1 – Pharmacological. <em>Crit Care</em>. 2025;29(1):540.</p>
+                    
+                    <p style="margin-bottom: 10px;"><strong>[5]</strong> Wei Peng, et al. Efficacy of midazolam versus dexmedetomidine in mechanically ventilated ICU patients: meta-analysis. <em>Front Pharmacol</em>. 2026;17:1733161.</p>
+                    
+                    <p style="margin-bottom: 10px;"><strong>[6]</strong> Lakbar I, et al. Melatonin and delirium in the ICU: systematic review and meta-analysis. <em>Intensive Care Med</em>. 2025;51(11):2079-2092.</p>
+                    
+                    <p style="margin-bottom: 10px;"><strong>[7]</strong> Donthu RK, et al. Quetiapine prophylaxis for delirium: systematic review and meta-analysis. <em>Gen Hosp Psychiatry</em>. 2025;97:192-195.</p>
+                    
+                    <p style="margin-bottom: 10px;"><strong>[8]</strong> Mart MF, et al. Long-term outcomes after treatment of delirium with antipsychotics (MIND-USA). <em>Lancet Respir Med</em>. 2025.</p>
+                </div>
+                <div>
+                    <p style="margin-bottom: 10px;"><strong>[9]</strong> Jiang M, et al. A large language model for delirium prediction in the ICU using EHR. <em>Sci Rep</em>. 2025;15:38890.</p>
+                    
+                    <p style="margin-bottom: 10px;"><strong>[10]</strong> Pham AT, et al. Association of CNS Biomarkers With Incident Delirium. <em>Am J Respir Crit Care Med</em>. 2025;211(Supplement_1):A1171.</p>
+                    
+                    <p style="margin-bottom: 10px;"><strong>[11]</strong> Li H, et al. Machine Learning-Based Predictive Model for Postoperative Delirium. <em>J Med Internet Res</em>. 2025;27:e67258.</p>
+                    
+                    <p style="margin-bottom: 10px;"><strong>[12]</strong> Da Silva LC, et al. Dexmedetomidine for delirium prevention after cardiac surgery: meta-analysis. <em>Anaesth Crit Care Pain Med</em>. 2025;44(5):101578.</p>
+                    
+                    <p style="margin-bottom: 10px;"><strong>[13]</strong> Tampi RR, et al. Antipsychotics and the QTc Interval During Delirium: Secondary Analysis of MIND-USA. <em>Psychiatr Times</em>. 2025;42(5).</p>
+                    
+                    <p style="margin-bottom: 10px;"><strong>[14]</strong> Banerdt J, et al. Post-Intensive Care Syndrome Linked to Long-Term Deficits. <em>American Thoracic Society International Conference</em>. 2025.</p>
+                    
+                    <p style="margin-bottom: 10px;"><strong>[15]</strong> Stollings JL, et al. Focused Update to the PADIS Guidelines. <em>Crit Care Med</em>. 2025 (en prensa).</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <span class="slide-number">46 / 48</span>
+</section>
+
+<!-- SLIDE 47: MENSAJES CLÍNICOS -->
+<section class="slide">
+    <h1>Mensajes para la Práctica Clínica</h1>
+    <div class="content">
+        <div class="content-full">
+            <div class="grid-2">
+                <div class="card" style="border-left: 4px solid var(--accent-cyan);">
+                    <h4 style="color: var(--accent-cyan);">🔍 Diagnóstico</h4>
+                    <ul style="margin-top: 15px;">
+                        <li>Usar <strong>CAM-ICU</strong> al menos una vez por turno</li>
+                        <li>No olvidar el fenotipo <strong>hipoactivo</strong></li>
+                        <li>Biomarcadores aún experimentales</li>
+                    </ul>
+                </div>
+                <div class="card" style="border-left: 4px solid var(--accent-green);">
+                    <h4 style="color: var(--accent-green);">🛡️ Prevención</h4>
+                    <ul style="margin-top: 15px;">
+                        <li>Implementar <strong>bundle ABCDEF</strong></li>
+                        <li>Movilización precoz (24-48h)</li>
+                        <li>Higiene del sueño</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="grid-2" style="margin-top: 20px;">
+                <div class="card" style="border-left: 4px solid var(--accent-orange);">
+                    <h4 style="color: var(--accent-orange);">💊 Tratamiento</h4>
+                    <ul style="margin-top: 15px;">
+                        <li><strong>No antipsicóticos rutinarios</strong></li>
+                        <li>Dexmedetomidina como primera línea</li>
+                        <li>Según fenotipo clínico</li>
+                    </ul>
+                </div>
+                <div class="card" style="border-left: 4px solid var(--accent-cyan);">
+                    <h4 style="color: var(--accent-cyan);">👁️ Seguimiento</h4>
+                    <ul style="margin-top: 15px;">
+                        <li>Evaluar <strong>PICS</strong> al alta</li>
+                        <li>Programas de rehabilitación</li>
+                        <li>Clínicas post-UCI</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="highlight-box" style="margin-top: 30px; text-align: center;">
+                <p style="font-size: 22px;">
+                    <strong>"El delirium es prevenible, tratable y merece nuestra atención"</strong>
+                </p>
+            </div>
+        </div>
+    </div>
+    <span class="slide-number">47 / 48</span>
+</section>
+
+<!-- SLIDE 48: GRACIAS -->
+<section class="slide slide-cover">
+    <h1 style="font-size: 64px;">Gracias</h1>
+    <div class="subtitle" style="margin-bottom: 40px;">Preguntas y Discusión</div>
+    
+    <div style="margin-top: 60px; text-align: center;">
+        <p style="font-size: 20px; color: var(--text-secondary); margin-bottom: 20px;">
+            <strong>Referencias principales:</strong>
+        </p>
+        <p style="font-size: 16px; color: var(--text-muted); line-height: 1.8;">
+            Leong AY, et al. Intensive Care Med. 2025 [1]<br>
+            Kundakci B, et al. Crit Care. 2025 [3,4]<br>
+            Guías PADIS 2025 [15]
+        </p>
+    </div>
+    
+    <span class="slide-number">48 / 48</span>
+</section>
+
+</body>
+</html>

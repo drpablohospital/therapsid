@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Notas Clínicas - {{ patient.nombre_completo }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h2>📋 Notas Clínicas</h2>
+                <p style="color: var(--text-secondary); margin-top: 5px;">
+                    Paciente: <strong>{{ patient.nombre_completo }}</strong> | 
+                    Expediente: <strong>{{ patient.expediente or 'N/A' }}</strong>
+                </p>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <a href="/patient/{{ patient.id }}" class="btn btn-secondary">← Volver al Paciente</a>
+                <a href="/patient/{{ patient.id }}/evolution" class="btn">📝 Nueva Evolución</a>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        {% if notes %}
+        <div class="table-responsive">
+            <table class="table" style="width: 100%;">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Tipo</th>
+                        <th>Título</th>
+                        <th class="text-end">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for note in notes %}
+                    <tr>
+                        <td>{{ note.created_at if note.created_at else 'N/A' }}</td>
+                        <td>
+                            <span class="badge" style="background: var(--accent); color: white;">
+                                {{ note.template_type }}
+                            </span>
+                        </td>
+                        <td>{{ note.title }}</td>
+                        <td class="text-end">
+                            <a href="/note/{{ note.id }}/view" class="btn btn-sm" title="Ver completa">
+                                👁️ Ver
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+            <p style="font-size: 1.2rem;">📝 No hay notas registradas</p>
+            <p>El paciente aún no tiene notas clínicas guardadas.</p>
+            <a href="/patient/{{ patient.id }}/evolution" class="btn" style="margin-top: 20px;">
+                Crear Primera Evolución
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+</content>
+</invoke>

@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header" onclick="toggleSection('activos')" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h2>📋 Pacientes Ingresados <span id="toggle-icon-activos">▼</span></h2>
+        </div>
+        <a href="/patient/new" class="btn" onclick="event.stopPropagation();">➕ Nuevo Ingreso</a>
+    </div>
+    <div id="section-activos" class="card-body">
+        {% if active_patients %}
+        <div style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                <button id="btnToggleActivos" onclick="toggleActivos()" class="btn btn-secondary" style="padding: 5px 15px; font-size: 0.8rem;">
+                    ✅ Solo activos
+                </button>
+                <select id="filtroProcedencia" onchange="aplicarFiltros()" class="theme-input" style="padding: 5px 10px; font-size: 0.85rem; border-radius: 6px;">
+                    <option value="">🏥 Todas las procedencias</option>
+                    <option value="HGSJR">HGSJR</option>
+                    <option value="IMSS">IMSS</option>
+                    <option value="SSA">SSA</option>
+                    <option value="Privado">Privado</option>
+                </select>
+                <select id="filtroServicio" onchange="aplicarFiltros()" class="theme-input" style="padding: 5px 10px; font-size: 0.85rem; border-radius: 6px;">
+                    <option value="">🏥 Todos los servicios</option>
+                    <option value="UCIA">UCIA</option>
+                    <option value="UCIP">UCIP</option>
+                    <option value="UCIN">UCIN</option>
+                    <option value="UCI">UCI General</option>
+                </select>
+            </div>
+            <span id="contadorPacientes" style="font-size: 0.85rem; color: var(--text-secondary);"></span>
+        </div>
+        
+        <div style="overflow-x: auto;">
+            <table id="tablaPacientes">
+                <thead>
+                    <tr>
+                        <th style="text-align: center;">🛏️ Cama</th>
+                        <th>Nombre</th>
+                        <th>Edad</th>
+                        <th>Sexo</th>
+                        <th>Procedencia</th>
+                        <th>Servicio</th>
+                        <th>Acciones</th>
+                        <th>Activo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for patient in active_patients %}
+                    <tr class="fila-paciente" data-activo="true" data-procedencia="{{ patient.procedencia or '' }}">
+                        <td style="text-align: center; font-weight: bold; font-size: 1.1rem;">{{ patient.cama or '-' }}</td>
+                        <td><strong>{{ patient.nombre_completo }}</strong></td>
+                        <td>{{ patient.edad or '-' }} años</td>
+                        <td>{{ patient.sexo or '-' }}</td>
+                        <td>{{ patient.procedencia or '-' }}</td>
+                        <td>{{ patient.servicio_tratante or '-' }}</td>
+                        <td style="white-space: nowrap;">
+                            <a href="/patient/{{ patient.id }}" title="Ver" style="text-decoration: none; margin-right: 4px;">👁️</a>
+                            <a href="/patient/{{ patient.id }}/edit" title="Editar" style="text-decoration: none; margin-right: 4px;">✏️</a>
+                            <a href="/patient/{{ patient.id }}/evolution" title="Evolución" style="text-decoration: none; margin-right: 4px;">🌱</a>
+                            <a href="/analysis?patient_id={{ patient.id }}" title="Tendencias" style="text-decoration: none; margin-right: 4px;">📈</a>
+                            <button onclick="confirmarEliminar({{ patient.id }}, '{{ patient.nombre_completo|replace("'", "\'") }}')" title="Eliminar" style="background: none; border: none; cursor: pointer; font-size: 1rem; padding: 0; margin: 0;">🗑️</button>
+                        </td>
+                        <td>
+                            <input type="checkbox" checked onchange="toggleFila(this)" style="cursor: pointer;">
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <script>
+        let soloActivos = true;
+        
+        function toggleActivos() {
+            soloActivos = !soloActivos;
+            const btn = document.getElementById('btnToggleActivos');
+            if (soloActivos) {
+                btn.innerHTML = '✅ Solo activos';
+                btn.classList.add('btn-secondary');
+            } else {
+                btn.innerHTML = '📋 Ver todos';
+                btn.classList.remove('btn-secondary');
+            }
+            aplicarFiltros();
+        }
+        
+        function aplicarFiltros() {
+            const filas = document.querySelectorAll('.fila-paciente');
+            const procedencia = document.getElementById('filtroProcedencia').value;
+            const servicio = document.getElementById('filtroServicio').value;
+            let visibles = 0;
+            
+            filas.forEach(fila => {
+                let mostrar = true;
+                
+                // Filtro de activos
+                const activo = fila.querySelector('td:last-child input[type="checkbox"]').checked;
+                if (soloActivos && !activo) {
+                    mostrar = false;
+                }
+                
+                // Filtro de procedencia (columna 6)
+                if (mostrar && procedencia) {
+                    const procData = fila.getAttribute('data-procedencia') || '';
+                    if (!procData.includes(procedencia)) {
+                        mostrar = false;
+                    }
+                }
+                
+                // Filtro de servicio (columna 7)
+                if (mostrar && servicio) {
+                    const servCelda = fila.querySelector('td:nth-child(7)');
+                    const servTexto = servCelda ? servCelda.textContent.trim() : '';
+                    if (!servTexto.includes(servicio)) {
+                        mostrar = false;
+                    }
+                }
+                
+                fila.style.display = mostrar ? '' : 'none';
+                if (mostrar) visibles++;
+            });
+            
+            document.getElementById('contadorPacientes').textContent = visibles + ' paciente(s)';
+        }
+        
+        function toggleFila(checkbox) {
+            const fila = checkbox.closest('tr');
+            const patientId = fila.querySelector('button[onclick*="confirmarEliminar"]')?.getAttribute('onclick')?.match(/confirmarEliminar\((\d+)/)?.[1];
+            
+            fila.setAttribute('data-activo', checkbox.checked);
+            
+            // Guardar estado en localStorage
+            if (patientId) {
+                localStorage.setItem(`paciente_activo_${patientId}`, checkbox.checked);
+            }
+            
+            aplicarFiltros();
+        }
+        
+        function cargarEstadosActivos() {
+            const filas = document.querySelectorAll('.fila-paciente');
+            filas.forEach(fila => {
+                const btn = fila.querySelector('button[onclick*="confirmarEliminar"]');
+                if (btn) {
+                    const match = btn.getAttribute('onclick').match(/confirmarEliminar\((\d+)/);
+                    if (match) {
+                        const patientId = match[1];
+                        const guardado = localStorage.getItem(`paciente_activo_${patientId}`);
+                        if (guardado !== null) {
+                            const checkbox = fila.querySelector('td:last-child input[type="checkbox"]');
+                            if (checkbox) {
+                                checkbox.checked = guardado === 'true';
+                                fila.setAttribute('data-activo', checkbox.checked);
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function confirmarEliminar(id, nombre) {
+            const confirmacion = prompt(`Para eliminar a "${nombre}", escriba ELIMINAR:`);
+            if (confirmacion === 'ELIMINAR') {
+                fetch(`/api/patient/${id}/delete`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        const fila = document.querySelector(`button[onclick*="${id}"]`).closest('tr');
+                        fila.remove();
+                        aplicarFiltros();
+                        alert('Paciente eliminado correctamente');
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                })
+                .catch(err => {
+                    alert('Error al eliminar: ' + err.message);
+                });
+            } else if (confirmacion !== null) {
+                alert('Confirmación incorrecta. El paciente no fue eliminado.');
+            }
+        }
+        
+        // Inicializar contador y cargar estados guardados
+        document.addEventListener('DOMContentLoaded', function() {
+            cargarEstadosActivos();
+            aplicarFiltros();
+        });
+        </script>
+        {% else %}
+        <div class="alert">
+            <p>No hay pacientes ingresados.</p>
+            <a href="/patient/new" class="btn" style="margin-top: 15px;">Registrar primer paciente</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if discharged_patients %}
+<div class="card" style="margin-top: 30px; opacity: 0.8;">
+    <div class="card-header" onclick="toggleSection('egresos')" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+        <h2>📁 Pacientes de Alta <span id="toggle-icon-egresos">▼</span></h2>
+    </div>
+    <div id="section-egresos" class="card-body">
+        <div style="overflow-x: auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Expediente</th>
+                        <th>Nombre</th>
+                        <th>Servicio</th>
+                        <th>Egreso</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for patient in discharged_patients %}
+                    <tr>
+                        <td>{{ patient.expediente or '-' }}</td>
+                        <td><strong>{{ patient.nombre_completo }}</strong></td>
+                        <td>{{ patient.servicio_tratante or '-' }}</td>
+                        <td>{{ patient.fecha_egreso_uci or '-' }}</td>
+                        <td>
+                            <a href="/patient/{{ patient.id }}" class="btn" style="padding: 5px 10px; font-size: 0.75rem;">👁️ Ver</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<script>
+function toggleSection(section) {
+    const body = document.getElementById('section-' + section);
+    const icon = document.getElementById('toggle-icon-' + section);
+    
+    if (body.style.display === 'none') {
+        body.style.display = '';
+        icon.textContent = '▼';
+    } else {
+        body.style.display = 'none';
+        icon.textContent = '▶';
+    }
+}
+</script>
+{% endblock %}

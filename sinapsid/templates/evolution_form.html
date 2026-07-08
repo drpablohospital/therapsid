@@ -1,0 +1,293 @@
+{% extends "base.html" %}
+
+{% set cache_buster = "v1779825801" %}
+{% block title %}Nueva Evolución - {{ patient.nombre_completo }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h2>📝 Nueva Evolución Clínica</h2>
+                <p style="color: var(--text-secondary); margin-top: 5px;">
+                    Paciente: <strong>{{ patient.nombre_completo }}</strong> | 
+                    Expediente: <strong>{{ patient.expediente or 'N/A' }}</strong> | 
+                    Cama: <strong>{{ patient.cama or 'N/A' }}</strong>
+                </p>
+            </div>
+            <a href="/patient/{{ patient.id }}" class="btn btn-secondary">← Volver al Paciente</a>
+        </div>
+    </div>
+    
+    <div class="card-body">
+        <form method="POST" action="/patient/{{ patient.id }}/evolution" id="evolutionForm">
+            <input type="hidden" id="pesoPaciente" value="{{ patient.peso_estimado or patient.peso or 70 }}">
+            
+            <!-- Fecha y Hora -->
+            <div class="card" style="margin-bottom: 20px;">
+                <div class="card-header">
+                    <h3>📅 Fecha y Hora</h3>
+                </div>
+                <div class="card-body">
+                    <div class="section-grid">
+                        <div class="form-group">
+                            <label>Fecha *</label>
+                            <input type="date" name="fecha" id="evoFecha" required 
+                                   value="{{ today }}">
+                        </div>
+                        <div class="form-group">
+                            <label>Hora *</label>
+                            <input type="time" name="hora" id="evoHora" required
+                                   value="{{ now }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Signos Vitales -->
+            <div class="card" style="margin-bottom: 20px;">
+                <div class="card-header">
+                    <h3>🩺 Signos Vitales</h3>
+                </div>
+                <div class="card-body">
+                    <div class="section-grid">
+                        <div class="form-group"><label>FC (lpm)</label><input type="number" name="fc" id="evoFc" min="30" max="200"></div>
+                        <div class="form-group"><label>FR (rpm)</label><input type="number" name="fr" id="evoFr" min="8" max="40"></div>
+                        <div class="form-group"><label>TAS (mmHg)</label><input type="number" name="tas" id="evoTas" min="60" max="220"></div>
+                        <div class="form-group"><label>TAD (mmHg)</label><input type="number" name="tad" id="evoTad" min="40" max="140"></div>
+                        <div class="form-group"><label>TAM (mmHg)</label><input type="number" name="tam" id="evoTam" step="0.1"></div>
+                        <div class="form-group"><label>Temperatura (°C)</label><input type="number" name="temperatura" id="evoTemp" step="0.1" min="32" max="42"></div>
+                        <div class="form-group"><label>SpO2 (%)</label><input type="number" name="spo2" id="evoSpo2" min="50" max="100"></div>
+                        <div class="form-group"><label>FiO2 (%)</label><input type="number" name="fio2" id="evoFio2" min="21" max="100"></div>
+                        <div class="form-group"><label>SA/FiO2 (auto) <span class="calculated-badge">⚡</span></label><input type="number" name="safi" id="evoSafi" step="0.1" class="form-control calculated-field" readonly></div>
+                        <div class="form-group"><label>Glasgow (3-15)</label><input type="number" name="glasgow" id="evoGlasgow" min="3" max="15"></div>
+                        <div class="form-group"><label>RASS (-5 a +4)</label><input type="number" name="rass" id="evoRass" min="-5" max="4"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ventilatorio -->
+            <div class="card" style="margin-bottom: 20px;">
+                <div class="card-header">
+                    <h3>🫁 Parámetros Ventilatorios</h3>
+                </div>
+                <div class="card-body">
+                    <div class="section-grid">
+                        <div class="form-group">
+                            <label>Modo Ventilatorio</label>
+                            <select name="modo_ventilatorio" id="evoModoVent">
+                                <option value="">No ventilado</option>
+                                <option value="VMI">VMI</option>
+                                <option value="VCV">VCV</option>
+                                <option value="PCV">PCV</option>
+                                <option value="SIMV">SIMV</option>
+                                <option value="PSV">PSV</option>
+                                <option value="CPAP">CPAP</option>
+                                <option value="BiPAP">BiPAP</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label>VT/PS/NP (ml)</label><input type="number" name="vt_psinp" id="evoVt"></div>
+                        <div class="form-group"><label>PEEP (cmH2O)</label><input type="number" name="peep" id="evoPeep"></div>
+                        <div class="form-group"><label>Ppico (cmH2O)</label><input type="number" name="ppico" id="evoPpico"></div>
+                        <div class="form-group"><label>Pplat (cmH2O)</label><input type="number" name="pplat" id="evoPplat"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Laboratorios -->
+            <div class="card" style="margin-bottom: 20px;">
+                <div class="card-header">
+                    <h3>🧪 Laboratorios</h3>
+                </div>
+                <div class="card-body">
+                    <div class="section-grid">
+                        <div class="form-group"><label>Glucosa (mg/dL)</label><input type="number" name="glucosa" id="evoGlucosa" step="0.1"></div>
+                        <div class="form-group"><label>Sodio (mEq/L)</label><input type="number" name="sodio" step="0.1"></div>
+                        <div class="form-group"><label>Potasio (mEq/L)</label><input type="number" name="potasio" step="0.1"></div>
+                        <div class="form-group"><label>Creatinina (mg/dL)</label><input type="number" name="creatinina" id="evoCreatinina" step="0.01"></div>
+                        <div class="form-group"><label>Urea (mg/dL)</label><input type="number" name="urea" step="0.1"></div>
+                        <div class="form-group"><label>Hemoglobina (g/dL)</label><input type="number" name="hemoglobina" id="evoHb" step="0.1"></div>
+                        <div class="form-group"><label>Leucocitos (x10³/μL)</label><input type="number" name="leucocitos" id="evoLeuco" step="0.1"></div>
+                        <div class="form-group"><label>Plaquetas (x10³/μL)</label><input type="number" name="plaquetas" id="evoPlaq" step="1"></div>
+                        <div class="form-group"><label>PCR (mg/L)</label><input type="number" name="pcr" id="evoPcr" step="0.1"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Balance Hídrico -->
+            <div class="card" style="margin-bottom: 20px;">
+                <div class="card-header">
+                    <h3>💧 Balance Hídrico</h3>
+                </div>
+                <div class="card-body">
+                    <div class="section-grid">
+                        <div class="form-group"><label>Ingresos (mL)</label><input type="number" name="ingresos" id="evoIngresos"></div>
+                        <div class="form-group"><label>Egresos (mL)</label><input type="number" name="egresos" id="evoEgresos"></div>
+                        <div class="form-group"><label>Diuresis (mL)</label><input type="number" name="diuresis" id="evoDiuresis"></div>
+                        <div class="form-group"><label>Índice Urinario (ml/kg/h) <span class="calculated-badge">⚡</span></label><input type="number" name="indice_urinario" id="evoIndiceUrinario" step="0.01" class="form-control calculated-field" readonly><small class="calculated-hint">Diuresis ÷ (Peso × Horas)</small></div>
+                        <div class="form-group"><label>Drenajes (mL)</label><input type="number" name="drenajes" id="evoDrenajes"></div>
+                        <div class="form-group"><label>Balance (mL)</label><input type="number" name="balance" id="evoBalance"></div>
+                        <div class="form-group"><label>Balance Global (mL) <span class="calculated-badge">⚡</span></label><input type="number" name="balance_global" id="evoBalanceGlobal" step="0.1" class="form-control calculated-field" readonly></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Nota de Evolución -->
+            <div class="card" style="margin-bottom: 20px;">
+                <div class="card-header">
+                    <h3>📝 Nota de Evolución</h3>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label>Descripción de la evolución clínica *</label>
+                        <textarea name="nota" id="evoNota" rows="8" required
+                                  placeholder="Describa la evolución del paciente..."
+                                  style="font-family: inherit; font-size: 0.95rem;"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Plan -->
+            <div class="card" style="margin-bottom: 20px;">
+                <div class="card-header">
+                    <h3>📋 Plan</h3>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label>Plan de manejo y órdenes médicas</label>
+                        <textarea name="plan" id="evoPlan" rows="6" 
+                                  placeholder="Indique ajustes en el tratamiento..."
+                                  style="font-family: inherit; font-size: 0.95rem;"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- GENERADOR DE NOTAS -->
+            <div class="card" style="margin-bottom: 20px; border: 3px solid var(--accent);">
+                <div class="card-header" style="background: rgba(255, 107, 53, 0.1);">
+                    <h3>✨ Generador de Notas Médicas</h3>
+                </div>
+                <div class="card-body">
+                    <div style="margin-bottom: 20px;">
+                        <label style="font-weight: 600; display: block; margin-bottom: 8px;">Tipo de Nota:</label>
+                        <select id="tipoNotaSelect" style="width: 100%; padding: 10px; font-size: 1rem; border: 2px solid var(--border); border-radius: 8px; background: var(--bg-tertiary); color: var(--text-primary);">
+                            <option value="">-- Selecciona tipo de nota --</option>
+                            <option value="ingreso">📋 Nota de Ingreso a UCI</option>
+                            <option value="psoap">📝 Nota de Evolución PSOAP</option>
+                            <option value="egreso">🏥 Nota de Egreso UCI</option>
+                            <option value="simple">🩺 Nota Médica Simple</option>
+                        </select>
+                    </div>
+                    
+                    <button type="button" id="btnGenerarNota" data-patient-id="{{ patient.id }}"
+                            style="width: 100%; padding: 15px; font-size: 1.1rem; background: var(--accent); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">
+                        🚀 GENERAR NOTA
+                    </button>
+                    
+                    <div id="previewContainer" style="display: none; margin-top: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <label style="font-weight: 600; font-size: 1.1rem;">✅ Nota Generada (editable):</label>
+                            <button type="button" onclick="copiarNotaGenerada()" class="btn btn-secondary" style="padding: 8px 20px;">
+                                📋 Copiar
+                            </button>
+                        </div>
+                        <textarea id="notaGenerada" rows="25" 
+                                  style="font-family: 'Courier New', monospace; font-size: 0.85rem; width: 100%; padding: 15px; border: 2px solid var(--border); border-radius: 8px; background: var(--bg-tertiary); color: var(--text-primary); resize: vertical;">
+                        </textarea>
+                        <div style="margin-top: 15px; display: flex; gap: 10px;">
+                            <button type="button" onclick="ponerNotaEnEvolucion()" class="btn" style="flex: 1; background: var(--success);">
+                                ✅ USAR EN NOTA DE EVOLUCIÓN
+                            </button>
+                            <button type="button" onclick="guardarNotaGenerada()" class="btn btn-success" style="flex: 1;">
+                                💾 GUARDAR NOTA
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div style="display: flex; gap: 10px; justify-content: flex-end; padding-top: 20px; border-top: 1px solid var(--border);">
+                <a href="/patient/{{ patient.id }}" class="btn btn-secondary">Cancelar</a>
+                <button type="reset" class="btn btn-secondary">Limpiar</button>
+                <button type="submit" class="btn">💾 Guardar Evolución</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// ==========================================
+// AUTO-CÁLCULOS BÁSICOS (SOLO ESTOS PERMANECEN)
+// ==========================================
+function calcularTAM() {
+    var tas = parseFloat(document.getElementById('evoTas').value) || 0;
+    var tad = parseFloat(document.getElementById('evoTad').value) || 0;
+    if (tas > 0 && tad > 0) {
+        var tam = ((tas - tad) / 3) + tad;
+        document.getElementById('evoTam').value = tam.toFixed(1);
+    }
+}
+
+function calcularSaFi() {
+    var spo2 = parseFloat(document.getElementById('evoSpo2').value) || 0;
+    var fio2 = parseFloat(document.getElementById('evoFio2').value) || 0;
+    if (spo2 > 0 && fio2 > 0) {
+        var safi = spo2 * (fio2 / 100);
+        document.getElementById('evoSafi').value = safi.toFixed(1);
+    }
+}
+
+document.getElementById('evoTas').addEventListener('input', calcularTAM);
+document.getElementById('evoTad').addEventListener('input', calcularTAM);
+document.getElementById('evoSpo2').addEventListener('input', calcularSaFi);
+document.getElementById('evoFio2').addEventListener('input', calcularSaFi);
+
+// Calcular Balance Global
+document.getElementById('evoBalance').addEventListener('input', function() {
+    var balanceActual = parseFloat(this.value) || 0;
+    // Balance Global será calculado en el servidor con historial
+    document.getElementById('evoBalanceGlobal').value = balanceActual.toFixed(1);
+});
+
+// Calcular Índice Urinario
+document.getElementById('evoDiuresis').addEventListener('input', calcularIndiceUrinario);
+
+function calcularIndiceUrinario() {
+    var diuresis = parseFloat(document.getElementById('evoDiuresis').value) || 0;
+    var peso = parseFloat(document.getElementById('pesoPaciente').value) || 70;
+    if (diuresis > 0 && peso > 0) {
+        var indice = diuresis / (peso * 24); // 24 horas
+        document.getElementById('evoIndiceUrinario').value = indice.toFixed(2);
+    }
+}
+
+// Set fecha/hora por defecto
+document.addEventListener('DOMContentLoaded', function() {
+    var fechaInput = document.getElementById('evoFecha');
+    var horaInput = document.getElementById('evoHora');
+    if (fechaInput && !fechaInput.value) {
+        fechaInput.value = new Date().toISOString().split('T')[0];
+    }
+    if (horaInput && !horaInput.value) {
+        horaInput.value = new Date().toTimeString().slice(0, 5);
+    }
+});
+
+// Validación del formulario
+document.getElementById('evolutionForm').addEventListener('submit', function(e) {
+    var fecha = document.getElementById('evoFecha').value;
+    var hora = document.getElementById('evoHora').value;
+    var nota = document.getElementById('evoNota').value;
+    if (!fecha || !hora || !nota.trim()) {
+        e.preventDefault();
+        alert('Por favor completa: Fecha, Hora y Nota de Evolución');
+        return false;
+    }
+});
+
+</script>
+
+<!-- Sistema Unificado de Notas - Carga JS externo -->
+<script src="{{ url_for('static', filename='js/evolution-notes.js') }}"></script>
+{% endblock %}

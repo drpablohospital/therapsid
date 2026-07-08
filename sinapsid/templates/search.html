@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Buscar{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h2>🔍 Buscar en Biblioteca</h2>
+        <a href="/" class="btn btn-secondary">← Volver</a>
+    </div>
+    <div class="card-body">
+        <form action="/search" method="GET" style="margin-bottom: 30px;">
+            <div style="display: flex; gap: 10px;">
+                <input type="text" name="q" value="{{ query }}" placeholder="Buscar artículos..." style="flex: 1; background: var(--bg-tertiary); border: 1px solid var(--border); color: var(--text-primary); padding: 12px; font-family: inherit;">
+                <button type="submit" class="btn">Buscar</button>
+            </div>
+        </form>
+
+        {% if query %}
+        <p style="color: var(--text-secondary); margin-bottom: 20px;">Resultados para: "{{ query }}"</p>
+        {% endif %}
+
+        {% if articles %}
+        <div class="article-list" style="display: grid; gap: 15px;">
+            {% for article in articles %}
+            <a href="{{ article.url or '#' }}" target="_blank" class="article-card" style="background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 4px; padding: 20px; text-decoration: none; color: inherit; display: block;">
+                <h4 style="color: var(--accent); margin-bottom: 10px;">{{ article.title }}</h4>
+                <div style="color: var(--text-secondary); font-size: 0.8rem; display: flex; gap: 15px; flex-wrap: wrap;">
+                    <span>📅 {{ article.date or 'Sin fecha' }}</span>
+                    {% if article.journal %}
+                    <span>📚 {{ article.journal }}</span>
+                    {% endif %}
+                    {% if article.pmid %}
+                    <span>🔬 PMID: {{ article.pmid }}</span>
+                    {% endif %}
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 40px; color: var(--text-secondary);">
+            <p>No se encontraron resultados.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

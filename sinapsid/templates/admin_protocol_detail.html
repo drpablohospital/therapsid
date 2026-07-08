@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Protocolo {{ protocol.name }} — Admin{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+    <div class="mb-3">
+        <a href="/admin" class="btn btn-sm">← Volver al Dashboard</a>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+        <div>
+            <h1 style="font-size:1.6rem; margin-bottom:0.3rem;">📋 {{ protocol.name }}</h1>
+            <p class="text-muted" style="font-size:0.85rem;"><code>{{ protocol.slug }}</code> | v{{ protocol.version }} | 
+                <span class="badge badge-{{ protocol.status }}">{{ protocol.status }}</span>
+            </p>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+            <a href="/admin/protocol/{{ protocol.id }}/export" class="btn">📤 Exportar Cohorte</a>
+            {% if protocol.status == 'active' %}
+            <button class="btn btn-danger" onclick="closeProtocol({{ protocol.id }})">🔒 Cerrar Protocolo</button>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Info del protocolo -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h2>Información del Protocolo</h2>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Objetivo:</strong> {{ protocol.objective or '—' }}</p>
+                    <p><strong>Descripción:</strong> {{ protocol.description or '—' }}</p>
+                    <p><strong>Investigador Principal:</strong> {{ protocol.pi_name or '—' }} 
+                        {% if protocol.pi_email %}({{ protocol.pi_email }}){% endif %}
+                    </p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Creado por:</strong> {{ protocol.created_by_name or '—' }}</p>
+                    <p><strong>Revisado por:</u003c/strong> {{ protocol.reviewed_by_name or 'Pendiente' }}</p>
+                    <p><strong>Fecha de creación:</u003c/strong> {{ protocol.created_at.strftime('%Y-%m-%d') if protocol.created_at else '—' }}</p>
+                </div>
+            </div>
+            
+            {% if protocol.inclusion_criteria %}
+            <p><strong>Criterios de inclusión:</strong></p>
+            <ul>
+                {% for c in protocol.inclusion_criteria %}
+                <li>{{ c }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+            
+            {% if protocol.exclusion_criteria %}
+            <p><strong>Criterios de exclusión:</strong></p>
+            <ul>
+                {% for c in protocol.exclusion_criteria %}
+                <li>{{ c }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Resumen de inscripciones -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h2>Resumen de Reclutamiento</h2>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3 text-center">
+                    <div style="font-size: 2rem; font-weight: bold; color: var(--accent);">{{ summary.total_enrolled }}</div>
+                    <div style="font-size: 0.85rem; color: var(--text-secondary);">Total inscritos</div>
+                </div>
+                <div class="col-md-3 text-center">
+                    <div style="font-size: 2rem; font-weight: bold; color: #4ADE80;">{{ summary.active }}</div>
+                    <div style="font-size: 0.85rem; color: var(--text-secondary);">Activos</div>
+                </div>
+                <div class="col-md-3 text-center">
+                    <div style="font-size: 2rem; font-weight: bold; color: #FBBF24;">{{ summary.completed }}</div>
+                    <div style="font-size: 0.85rem; color: var(--text-secondary);">Completados</div>
+                </div>
+                <div class="col-md-3 text-center">
+                    <div style="font-size: 2rem; font-weight: bold; color: var(--text-secondary);">{{ summary.institutions }}</div>
+                    <div style="font-size: 0.85rem; color: var(--text-secondary);">Centros participantes</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de inscripciones -->
+    <div class="card">
+        <div class="card-header">
+            <h2>Pacientes Inscritos</h2>
+        </div>
+        <div class="card-body" style="padding: 0; overflow-x: auto;">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Paciente</th>
+                        <th>Expediente</th>
+                        <th>Estado del paciente</th>
+                        <th>Estado inscripción</th>
+                        <th>Inscrito</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for e in enrollments %}
+                    <tr>
+                        <td>{{ e.id }}</td>
+                        <td><strong>{{ e.patient_name }}</strong></td>
+                        <td>{{ e.expediente or '—' }}</td>
+                        <td><span class="badge badge-{{ e.estado or 'ingreso' }}">{{ e.estado or 'N/A' }}</span></td>
+                        <td><span class="badge badge-{{ e.status }}">{{ e.status }}</span></td>
+                        <td>{{ e.enrolled_at.strftime('%Y-%m-%d') if e.enrolled_at else '—' }}</td>
+                        <td>
+                            <a href="/patient/{{ e.patient_id }}" class="btn btn-sm">Ver paciente</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+function closeProtocol(protocolId) {
+    if (!confirm('¿Cerrar este protocolo? No se podrán hacer nuevas inscripciones.')) return;
+    
+    fetch(`/admin/api/protocols/${protocolId}/close`, {
+        method: 'POST',
+        credentials: 'include'
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error: ' + (data.error || 'Desconocido'));
+        }
+    });
+}
+</script>
+{% endblock %}
+{% endblock %}
