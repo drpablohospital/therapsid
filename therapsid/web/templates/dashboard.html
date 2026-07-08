@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Therapsid Node - Red Federada Latinoamericana</title>
+    <title>Therapsid v2.1 - Red Federada Latinoamericana</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -33,10 +33,156 @@
             min-height: 100vh;
         }
 
+        /* === LOGIN SCREEN === */
+        .login-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #12121a 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            transition: opacity 0.5s, visibility 0.5s;
+        }
+
+        .login-overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .login-box {
+            background: var(--bg-card);
+            border: 2px solid var(--accent);
+            border-radius: 24px;
+            padding: 50px 40px;
+            width: 100%;
+            max-width: 440px;
+            text-align: center;
+            box-shadow: 0 0 60px var(--accent-glow), 0 20px 60px rgba(0,0,0,0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-box::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--gradient-1), var(--gradient-2));
+        }
+
+        .login-logo {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2.2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--gradient-1), var(--gradient-2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        .login-subtitle {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-bottom: 35px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-group label {
+            display: block;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group input {
+            width: 100%;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px 18px;
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            transition: all 0.3s;
+            outline: none;
+        }
+
+        .form-group input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        .btn-login {
+            width: 100%;
+            background: linear-gradient(135deg, var(--gradient-1), var(--gradient-2));
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            margin-top: 10px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 20px var(--accent-glow);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-login:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px var(--accent-glow);
+        }
+
+        .btn-login:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .login-demo {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0, 255, 136, 0.05);
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            border-radius: 12px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .login-demo strong {
+            color: var(--success);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .login-error {
+            color: var(--danger);
+            font-size: 0.9rem;
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(255, 51, 102, 0.1);
+            border-radius: 8px;
+            display: none;
+        }
+
+        .login-error.visible { display: block; }
+
+        /* === MAIN DASHBOARD === */
         .header {
             background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-card) 100%);
             border-bottom: 2px solid var(--accent);
-            padding: 20px 30px;
+            padding: 15px 30px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -49,15 +195,15 @@
         }
 
         .header-logo img {
-            width: 45px;
-            height: 45px;
+            width: 40px;
+            height: 40px;
             border-radius: 10px;
             box-shadow: 0 0 20px var(--accent-glow);
         }
 
         .header-title h1 {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 1.4rem;
+            font-size: 1.3rem;
             font-weight: 700;
             color: var(--accent);
             margin: 0;
@@ -65,9 +211,79 @@
         }
 
         .header-title p {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             color: var(--text-secondary);
             margin: 0;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-badge {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 16px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 25px;
+            font-size: 0.85rem;
+        }
+
+        .user-badge .name {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .user-badge .role {
+            color: var(--accent);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+        }
+
+        .btn-logout {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.85rem;
+            transition: all 0.3s;
+        }
+
+        .btn-logout:hover {
+            border-color: var(--danger);
+            color: var(--danger);
+            background: rgba(255, 51, 102, 0.1);
+        }
+
+        .btn-sinapsid {
+            background: linear-gradient(135deg, var(--success), #00cc6a);
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 700;
+            transition: all 0.3s;
+            box-shadow: 0 0 20px var(--success-glow);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-sinapsid:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 30px var(--success-glow);
         }
 
         .btn-exit {
@@ -181,9 +397,7 @@
         .stat-card::before {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
+            top: 0; left: 0; right: 0;
             height: 3px;
             background: linear-gradient(90deg, var(--gradient-1), var(--gradient-2));
             opacity: 0;
@@ -247,255 +461,501 @@
         th {
             background: var(--bg-secondary);
             color: var(--accent);
-            padding: 14px;
+            padding: 12px 15px;
             text-align: left;
             font-weight: 600;
-            border-bottom: 2px solid var(--accent);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
+        th:first-child { border-radius: 10px 0 0 10px; }
+        th:last-child { border-radius: 0 10px 10px 0; }
+
         td {
-            padding: 14px;
+            padding: 12px 15px;
             border-bottom: 1px solid var(--border);
-            color: var(--text-primary);
+            color: var(--text-secondary);
         }
 
         tr:hover td {
-            background: rgba(255, 0, 110, 0.05);
+            color: var(--text-primary);
+            background: rgba(255, 0, 110, 0.02);
         }
 
-        .resource-bar {
-            width: 100%;
-            height: 8px;
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        .progress-bar {
             background: var(--bg-secondary);
-            border-radius: 4px;
+            border-radius: 10px;
+            height: 8px;
             overflow: hidden;
-            margin-top: 5px;
+            margin-top: 8px;
         }
 
-        .resource-bar-fill {
+        .progress-fill {
             height: 100%;
-            background: linear-gradient(90deg, var(--gradient-1), var(--gradient-2));
-            border-radius: 4px;
+            border-radius: 10px;
             transition: width 0.5s;
+            background: linear-gradient(90deg, var(--gradient-1), var(--gradient-2));
         }
 
-        .btn {
-            background: linear-gradient(135deg, var(--gradient-1), var(--gradient-2));
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 25px;
-            cursor: pointer;
-            font-family: 'Inter', sans-serif;
-            font-size: 0.9rem;
-            font-weight: 600;
-            transition: all 0.3s;
-            text-decoration: none;
-            display: inline-block;
-            box-shadow: 0 0 15px var(--accent-glow);
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px var(--accent-glow);
-        }
-
-        .footer {
-            text-align: center;
-            padding: 30px;
-            color: var(--text-secondary);
-            font-size: 0.85rem;
-            border-top: 1px solid var(--border);
-            margin-top: 40px;
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
         }
 
         @media (max-width: 768px) {
-            .header { flex-direction: column; gap: 15px; text-align: center; }
-            .tabs { flex-wrap: wrap; }
+            .grid-2 { grid-template-columns: 1fr; }
             .stats-grid { grid-template-columns: 1fr; }
-            .container { padding: 15px; }
+            .header { flex-direction: column; gap: 15px; padding: 15px; }
+            .header-actions { flex-wrap: wrap; justify-content: center; }
+            .login-box { padding: 30px 20px; }
         }
     </style>
 </head>
 <body>
-    <header class="header">
+
+<!-- === LOGIN SCREEN === -->
+<div class="login-overlay" id="loginOverlay">
+    <div class="login-box">
+        <div class="login-logo">🦊 THERAPSID</div>
+        <p class="login-subtitle">Red Federada Latinoamericana<br>Datos Críticos Sin Centralizar</p>
+        
+        <form id="loginForm" onsubmit="handleLogin(event)">
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="loginEmail" placeholder="tu@hospital.com" required>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="loginPassword" placeholder="••••••••" required>
+            </div>
+            <button type="submit" class="btn-login" id="loginBtn">ENTRAR →</button>
+        </form>
+        
+        <div class="login-error" id="loginError"></div>
+        
+        <div class="login-demo">
+            <strong>Demo:</strong> demo@therapsid.org / ***<br>
+            <span style="opacity:0.7">Cada nodo autentica independientemente</span>
+        </div>
+    </div>
+</div>
+
+<!-- === MAIN DASHBOARD === -->
+<div id="mainDashboard" style="display:none;">
+    <div class="header">
         <div class="header-logo">
-            <div style="width: 45px; height: 45px; background: linear-gradient(135deg, #ff006e, #8338ec); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.2rem;">T</div>
+            <div style="width:40px;height:40px;background:linear-gradient(135deg,#ff006e,#8338ec);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;">🦊</div>
             <div class="header-title">
                 <h1>THERAPSID</h1>
-                <p>Red Federada Latinoamericana · Datos Críticos</p>
+                <p>Red Federada Latinoamericana v2.1</p>
             </div>
         </div>
-        <div style="display: flex; gap: 10px; align-items: center;">
-            <span id="admin-status" class="status-indicator status-offline">● Admin Offline</span>
-            <button class="btn-exit" onclick="shutdownNode()">🛑 Salir</button>
+        <div class="header-actions">
+            <div class="user-badge" id="userBadge" style="display:none;">
+                <span class="name" id="userName">Usuario</span>
+                <span class="role" id="userRole">demo</span>
+            </div>
+            <a href="http://100.127.123.55:5002" target="_blank" class="btn-sinapsid" id="btnSinapsid">🏥 SINAPSID</a>
+            <button class="btn-logout" onclick="handleLogout()" id="btnLogout">Salir</button>
+            <button class="btn-exit" onclick="shutdownNode()">⏹ Detener</button>
         </div>
-    </header>
-    
-    <div class="tabs">
-        <button class="tab-btn active" onclick="showTab('overview', this)">📊 Recursos</button>
-        <button class="tab-btn" onclick="showTab('network', this)">🌐 Red</button>
-        <button class="tab-btn" onclick="showTab('governance', this)">⚖️ Gobernanza</button>
     </div>
-    
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="showTab('overview')">📊 Overview</button>
+        <button class="tab-btn" onclick="showTab('network')">🌐 Red</button>
+        <button class="tab-btn" onclick="showTab('governance')">⚖️ Gobernanza</button>
+        <button class="tab-btn" onclick="showTab('resources')">💻 Recursos</button>
+    </div>
+
     <div class="container">
-        <!-- TAB: RESOURCES -->
-        <div id="tab-overview" class="tab-content" style="display: block;">
+        <!-- OVERVIEW -->
+        <div class="tab-panel active" id="tab-overview">
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="number" id="cpu-percent">--%</div>
-                    <div class="label">CPU Usada</div>
-                    <div class="resource-bar"><div class="resource-bar-fill" id="cpu-bar" style="width: 0%"></div></div>
+                    <div class="number" id="node-uptime">0s</div>
+                    <div class="label">⏱ Uptime</div>
                 </div>
                 <div class="stat-card">
-                    <div class="number" id="ram-percent">--%</div>
-                    <div class="label">RAM Usada</div>
-                    <div class="resource-bar"><div class="resource-bar-fill" id="ram-bar" style="width: 0%"></div></div>
+                    <div class="number" id="patients-count">0</div>
+                    <div class="label">🏥 Pacientes (Admin)</div>
                 </div>
                 <div class="stat-card">
-                    <div class="number" id="disk-percent">--%</div>
-                    <div class="label">Disco Usado</div>
-                    <div class="resource-bar"><div class="resource-bar-fill" id="disk-bar" style="width: 0%"></div></div>
+                    <div class="number" id="nodes-count">1</div>
+                    <div class="label">🌐 Nodos Activos</div>
                 </div>
                 <div class="stat-card">
-                    <div class="number" id="network-rx">-- MB</div>
-                    <div class="label">Red Recibida</div>
+                    <div class="number" id="cpu-percent">0%</div>
+                    <div class="label">💻 CPU Local</div>
                 </div>
             </div>
             
             <div class="card">
-                <h3>📡 Informacion del Nodo</h3>
+                <h3>🔗 Conexión Administrador</h3>
+                <div style="display:flex;align-items:center;gap:15px;margin-bottom:15px;">
+                    <span class="status-indicator status-online" id="admin-status">● Admin Online</span>
+                    <span style="color:var(--text-secondary);font-size:0.9rem;">http://100.127.123.55:5002</span>
+                </div>
                 <table>
-                    <tr><td><strong>ID</strong></td><td id="node-id">Cargando...</td></tr>
-                    <tr><td><strong>Region</strong></td><td id="node-region">Cargando...</td></tr>
-                    <tr><td><strong>Tipo</strong></td><td id="node-type">Cargando...</td></tr>
-                    <tr><td><strong>Puerto HTTP</strong></td><td>8767</td></tr>
-                    <tr><td><strong>Admin Conectado</strong></td><td id="admin-connected">Cargando...</td></tr>
+                    <tr><th>Metrica</th><th>Valor</th></tr>
+                    <tr><td>Estado</td><td id="admin-connected">✅ Conectado</td></tr>
+                    <tr><td>Pacientes</td><td id="admin-patients">-</td></tr>
+                    <tr><td>Evoluciones</td><td id="admin-evolutions">-</td></tr>
+                    <tr><td>Peso del nodo</td><td id="admin-weight">-</td></tr>
                 </table>
             </div>
             
             <div class="card">
-                <h3>🏥 Sinapsid Federado</h3>
+                <h3>📡 Estado de Autenticación</h3>
                 <table>
-                    <tr><td><strong>URL</strong></td><td><a href="http://100.127.123.55:5002" target="_blank" style="color: var(--accent);">100.127.123.55:5002</a></td></tr>
-                    <tr><td><strong>Pacientes</strong></td><td id="patients-count">-</td></tr>
-                    <tr><td><strong>Evoluciones</strong></td><td id="evolutions-count">-</td></tr>
-                    <tr><td><strong>Peso en Red</strong></td><td id="node-weight">-</td></tr>
-                </table>
-                <div style="margin-top: 1rem;">
-                    <a href="http://100.127.123.55:5002" class="btn" target="_blank">Abrir Sinapsid →</a>
-                </div>
-            </div>
-        </div>
-        
-        <!-- TAB: NETWORK -->
-        <div id="tab-network" class="tab-content" style="display: none;">
-            <div class="card">
-                <h3>🌐 Estado de la Red</h3>
-                <div id="network-status">
-                    <p style="text-align: center; color: var(--text-secondary); padding: 2rem;">Cargando estado de red...</p>
-                </div>
-            </div>
-        </div>
-        
-        <!-- TAB: GOVERNANCE -->
-        <div id="tab-governance" class="tab-content" style="display: none;">
-            <div class="card">
-                <h3>⚖️ Gobernanza PoP</h3>
-                <table>
-                    <tr><td><strong>Lider Actual</strong></td><td id="leader-id">Cargando...</td></tr>
-                    <tr><td><strong>Eres Lider</strong></td><td id="is-leader">No</td></tr>
-                    <tr><td><strong>Nodos en Red</strong></td><td id="nodes-count">1</td></tr>
-                    <tr><td><strong>Ultima Eleccion</strong></td><td id="last-election">Nunca</td></tr>
+                    <tr><th>Propiedad</th><th>Valor</th></tr>
+                    <tr><td>Usuario</td><td id="auth-user">-</td></tr>
+                    <tr><td>Rol</td><td id="auth-role">-</td></tr>
+                    <tr><td>Hospital</td><td id="auth-hospital">-</td></tr>
+                    <tr><td>Token Expira</td><td id="auth-expires">-</td></tr>
+                    <tr><td>Node ID</td><td id="auth-node">-</td></tr>
                 </table>
             </div>
         </div>
-        
-        <div class="footer">
-            <p><strong>THERAPSID v2.0</strong> · Red Federada de Datos Críticos · AGPL-3.0</p>
-            <p style="font-size: 0.8rem; margin-top: 0.5rem;">
-                <a href="https://github.com/drpablohospital/therapsid">GitHub</a> · 
-                Admin: 100.127.123.55:5002
-            </p>
+
+        <!-- NETWORK -->
+        <div class="tab-panel" id="tab-network">
+            <div class="card">
+                <h3>🌐 Topología de Red</h3>
+                <table>
+                    <tr><th>Nodo</th><th>URL</th><th>Estado</th><th>Peso</th><th>Pacientes</th></tr>
+                    <tr>
+                        <td><strong>xiu-HOME</strong></td>
+                        <td>http://100.127.123.55:5002</td>
+                        <td><span class="status-indicator status-online">● Online</span></td>
+                        <td id="network-weight">-</td>
+                        <td id="network-patients">-</td>
+                    </tr>
+                    <tr>
+                        <td><strong id="local-node-id">Este nodo</strong></td>
+                        <td id="local-node-url">http://localhost:8767</td>
+                        <td><span class="status-indicator status-online">● Online</span></td>
+                        <td>-</td>
+                        <td>-</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- GOVERNANCE -->
+        <div class="tab-panel" id="tab-governance">
+            <div class="card">
+                <h3>⚖️ Estado de Gobernanza</h3>
+                <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr);">
+                    <div class="stat-card">
+                        <div class="number" id="gov-leader">xiu-home</div>
+                        <div class="label">👑 Lider Actual</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="number" id="gov-is-leader">No</div>
+                        <div class="label">¿Soy Lider?</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="number" id="gov-nodes">1</div>
+                        <div class="label">Nodos Totales</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3>📋 Lista de Nodos</h3>
+                <table>
+                    <tr><th>ID</th><th>Nombre</th><th>Estado</th><th>Peso</th><th>Rol</th></tr>
+                    <tr>
+                        <td>xiu-home</td>
+                        <td>Sinapsid Admin (xiu-HOME)</td>
+                        <td><span class="status-indicator status-online">● Online</span></td>
+                        <td>-</td>
+                        <td>admin</td>
+                    </tr>
+                    <tr>
+                        <td id="local-id">-</td>
+                        <td id="local-name">-</td>
+                        <td><span class="status-indicator status-online">● Online</span></td>
+                        <td>-</td>
+                        <td>peer</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- RESOURCES -->
+        <div class="tab-panel" id="tab-resources">
+            <div class="grid-2">
+                <div class="card">
+                    <h3>💻 Recursos del Nodo</h3>
+                    <p style="color:var(--text-secondary);margin-bottom:15px;">Configuracion actual</p>
+                    <table>
+                        <tr><th>Recurso</th><th>Valor</th></tr>
+                        <tr><td>CPU</td><td id="res-cpu">30%</td></tr>
+                        <tr><td>RAM</td><td id="res-ram">50%</td></tr>
+                        <tr><td>Disco</td><td id="res-disk">5 GB</td></tr>
+                    </table>
+                </div>
+                
+                <div class="card">
+                    <h3>📊 Uso en Tiempo Real</h3>
+                    <p style="color:var(--text-secondary);margin-bottom:15px;">Consumo actual</p>
+                    <div style="margin-bottom:20px;">
+                        <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+                            <span>RAM</span>
+                            <span id="ram-percent">0%</span>
+                        </div>
+                        <div class="progress-bar"><div class="progress-fill" id="ram-bar" style="width:0%"></div></div>
+                    </div>
+                    <div style="margin-bottom:20px;">
+                        <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+                            <span>Disco</span>
+                            <span id="disk-percent">0%</span>
+                        </div>
+                        <div class="progress-bar"><div class="progress-fill" id="disk-bar" style="width:0%"></div></div>
+                    </div>
+                    <div>
+                        <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+                            <span>Red RX</span>
+                            <span id="network-rx">0 MB</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
-    
-    <script>
-        function showTab(tab, btn) {
-            document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
-            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-            document.getElementById('tab-' + tab).style.display = 'block';
-            btn.classList.add('active');
-        }
+</div>
+
+<script>
+    // === AUTH STATE ===
+    let authToken = localStorage.getItem('therapsid_token');
+    let currentUser = null;
+
+    // Check auth on load
+    if (authToken) {
+        validateToken();
+    }
+
+    function showLogin() {
+        document.getElementById('loginOverlay').classList.remove('hidden');
+        document.getElementById('mainDashboard').style.display = 'none';
+    }
+
+    function hideLogin() {
+        document.getElementById('loginOverlay').classList.add('hidden');
+        document.getElementById('mainDashboard').style.display = 'block';
+    }
+
+    async function handleLogin(e) {
+        e.preventDefault();
+        const btn = document.getElementById('loginBtn');
+        const error = document.getElementById('loginError');
         
-        async function updateDashboard() {
+        btn.disabled = true;
+        btn.textContent = 'ENTRANDO...';
+        error.classList.remove('visible');
+        
+        try {
+            const response = await fetch('/api/v1/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: document.getElementById('loginEmail').value,
+                    password: ***'loginPassword').value
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                authToken = data.token;
+                currentUser = data.user;
+                localStorage.setItem('therapsid_token', authToken);
+                
+                updateUserUI();
+                hideLogin();
+                updateDashboard();
+            } else {
+                error.textContent = data.error || 'Login fallido';
+                error.classList.add('visible');
+            }
+        } catch (err) {
+            error.textContent = 'Error de conexion: ' + err.message;
+            error.classList.add('visible');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'ENTRAR →';
+        }
+    }
+
+    async function validateToken() {
+        try {
+            const response = await fetch('/api/v1/auth/me', {
+                headers: { 'Authorization': 'Bearer ' + authToken }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                currentUser = data.user;
+                updateUserUI();
+                hideLogin();
+                updateDashboard();
+            } else {
+                // Token invalido
+                localStorage.removeItem('therapsid_token');
+                authToken = null;
+                showLogin();
+            }
+        } catch (err) {
+            showLogin();
+        }
+    }
+
+    function updateUserUI() {
+        if (!currentUser) return;
+        
+        document.getElementById('userBadge').style.display = 'flex';
+        document.getElementById('userName').textContent = currentUser.name || currentUser.email;
+        document.getElementById('userRole').textContent = currentUser.role || 'user';
+        
+        document.getElementById('auth-user').textContent = currentUser.email;
+        document.getElementById('auth-role').textContent = currentUser.role || 'user';
+        document.getElementById('auth-hospital').textContent = currentUser.hospital || '-';
+        document.getElementById('auth-node').textContent = currentUser.node || '-';
+        
+        // Calcular expiracion (24h desde ahora)
+        const expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+        document.getElementById('auth-expires').textContent = expires.toLocaleString();
+    }
+
+    async function handleLogout() {
+        if (authToken) {
             try {
-                const resp = await fetch('/api/v1/node/info');
-                const data = await resp.json();
-                
-                // Actualizar info del nodo
-                document.getElementById('node-id').textContent = data.node?.id?.substring(0, 20) + '...' || 'N/A';
-                document.getElementById('node-region').textContent = data.node?.region || 'N/A';
-                document.getElementById('node-type').textContent = data.node?.type || 'N/A';
-                
-                // Recursos
-                const res = data.resources || {};
-                const ramPercent = res.ram_total_mb ? Math.round((res.ram_used_mb / res.ram_total_mb) * 100) : 0;
-                const diskPercent = res.disk_total_gb ? Math.round((res.disk_used_gb / res.disk_total_gb) * 100) : 0;
-                
-                document.getElementById('cpu-percent').textContent = (res.cpu_percent || 0).toFixed(1) + '%';
-                document.getElementById('cpu-bar').style.width = (res.cpu_percent || 0) + '%';
-                
-                document.getElementById('ram-percent').textContent = ramPercent + '%';
-                document.getElementById('ram-bar').style.width = ramPercent + '%';
-                
-                document.getElementById('disk-percent').textContent = diskPercent + '%';
-                document.getElementById('disk-bar').style.width = diskPercent + '%';
-                
-                document.getElementById('network-rx').textContent = (res.network_rx_mb || 0) + ' MB';
-                
-                // Admin status
-                const adminConnected = data.network?.connected_to_admin || false;
-                const adminStatus = document.getElementById('admin-status');
-                if (adminConnected) {
-                    adminStatus.className = 'status-indicator status-online';
-                    adminStatus.textContent = '● Admin Online';
-                } else {
-                    adminStatus.className = 'status-indicator status-offline';
-                    adminStatus.textContent = '● Admin Offline';
-                }
-                
-                document.getElementById('admin-connected').textContent = adminConnected ? '✅ Conectado' : '❌ Desconectado';
-                document.getElementById('patients-count').textContent = data.network?.patients_count || 0;
-                document.getElementById('evolutions-count').textContent = data.network?.evolutions_count || 0;
-                document.getElementById('node-weight').textContent = data.network?.node_weight || 0;
-                
-                // Gobernanza
-                const gov = data.governance || {};
-                document.getElementById('leader-id').textContent = gov.leader_id || 'xiu-home';
-                document.getElementById('is-leader').textContent = gov.is_leader ? '✅ Si' : 'No';
-                document.getElementById('nodes-count').textContent = gov.nodes_count || 1;
-                
-            } catch(e) {
-                console.error('Error:', e);
-            }
+                await fetch('/api/v1/auth/logout', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + authToken }
+                });
+            } catch (e) {}
         }
         
-        function shutdownNode() {
-            if (confirm('¿Detener Therapsid? Se cerraran todas las conexiones.')) {
-                fetch('/api/v1/node/shutdown', {method: 'POST'})
-                    .then(() => {
-                        alert('Therapsid detenido.');
-                        window.close();
-                    })
-                    .catch(() => {
-                        alert('Therapsid detenido.');
-                    });
-            }
-        }
+        localStorage.removeItem('therapsid_token');
+        authToken = null;
+        currentUser = null;
         
-        updateDashboard();
-        setInterval(updateDashboard, 5000);
-    </script>
+        document.getElementById('userBadge').style.display = 'none';
+        showLogin();
+    }
+
+    // === DASHBOARD ===
+    function showTab(tab) {
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('tab-' + tab).classList.add('active');
+        event.target.classList.add('active');
+    }
+
+    async function updateDashboard() {
+        try {
+            const headers = authToken ? { 'Authorization': 'Bearer ' + authToken } : {};
+            const response = await fetch('/api/v1/node/info', { headers });
+            const data = await response.json();
+            
+            const node = data.node || {};
+            const res = data.resources || {};
+            
+            document.getElementById('node-uptime').textContent = 
+                Math.floor((Date.now()/1000 - (data.start_time || 0))) + 's';
+            
+            document.getElementById('cpu-percent').textContent = 
+                (res.cpu_percent || 0).toFixed(1) + '%';
+            document.getElementById('ram-percent').textContent = 
+                (res.ram_percent || 0).toFixed(1) + '%';
+            document.getElementById('ram-bar').style.width = 
+                (res.ram_percent || 0) + '%';
+            document.getElementById('disk-percent').textContent = 
+                (res.disk_percent || 0).toFixed(1) + '%';
+            document.getElementById('disk-bar').style.width = 
+                (res.disk_percent || 0) + '%';
+            document.getElementById('network-rx').textContent = 
+                (res.network_rx_mb || 0) + ' MB';
+            
+            // Admin
+            const adminConnected = data.network?.connected_to_admin || false;
+            const adminStatus = document.getElementById('admin-status');
+            if (adminConnected) {
+                adminStatus.className = 'status-indicator status-online';
+                adminStatus.textContent = '● Admin Online';
+            } else {
+                adminStatus.className = 'status-indicator status-offline';
+                adminStatus.textContent = '● Admin Offline';
+            }
+            
+            document.getElementById('admin-connected').textContent = 
+                adminConnected ? '✅ Conectado' : '❌ Desconectado';
+            document.getElementById('admin-patients').textContent = 
+                data.network?.patients_count || '-';
+            document.getElementById('admin-evolutions').textContent = 
+                data.network?.evolutions_count || '-';
+            document.getElementById('admin-weight').textContent = 
+                data.network?.node_weight || '-';
+            
+            // Network
+            document.getElementById('network-weight').textContent = 
+                data.network?.node_weight || '-';
+            document.getElementById('network-patients').textContent = 
+                data.network?.patients_count || '-';
+            document.getElementById('local-node-id').textContent = 
+                node.id || 'Este nodo';
+            document.getElementById('local-node-url').textContent = 
+                'http://localhost:' + (node.port || 8767);
+            
+            // Governance
+            const gov = data.governance || {};
+            document.getElementById('gov-leader').textContent = 
+                gov.leader_id || 'xiu-home';
+            document.getElementById('gov-is-leader').textContent = 
+                gov.is_leader ? '✅ Si' : 'No';
+            document.getElementById('gov-nodes').textContent = 
+                gov.nodes_count || 1;
+            
+            document.getElementById('local-id').textContent = node.id || '-';
+            document.getElementById('local-name').textContent = 
+                node.name || 'Therapsid Node';
+            
+            // Patients count
+            document.getElementById('patients-count').textContent = 
+                data.network?.patients_count || 0;
+            document.getElementById('nodes-count').textContent = 
+                gov.nodes_count || 1;
+            
+        } catch(e) {
+            console.error('Error:', e);
+        }
+    }
+
+    function shutdownNode() {
+        if (confirm('¿Detener Therapsid? Se cerraran todas las conexiones.')) {
+            fetch('/api/v1/node/shutdown', {method: 'POST'})
+                .then(() => {
+                    alert('Therapsid detenido.');
+                    window.close();
+                })
+                .catch(() => {
+                    alert('Therapsid detenido.');
+                });
+        }
+    }
+
+    // Start
+    updateDashboard();
+    setInterval(updateDashboard, 5000);
+</script>
+
 </body>
 </html>
