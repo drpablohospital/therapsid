@@ -4,8 +4,348 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Therapsid Node - SINAPSID Network</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="/static/img/icon.png">
-    <link rel="stylesheet" href="/static/css/sinapsid.css">
+    <style>
+        /* THERAPSID - Estetica SINAPSID Mirror (Colores invertidos) */
+        :root {
+            /* THERAPSID MIRROR - Inverso de Sinapsid */
+            --bg-primary: #f8f9fa;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #e9ecef;
+            --text-primary: #000000;
+            --text-secondary: #333333;
+            --accent: #008fc4;
+            --accent-hover: #007ab0;
+            --border: #cccccc;
+            --success: #b3217f;
+            --warning: #0440db;
+            --danger: #078e8e;
+            --info: #008fc4;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* Header - Identico a Sinapsid */
+        .header {
+            background: linear-gradient(90deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+            border-bottom: 3px solid var(--accent);
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .header-logo img {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+        }
+
+        .header-title h1 {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin: 0;
+        }
+
+        .header-title p {
+            font-size: 0.85rem;
+            font-weight: 400;
+            color: var(--text-secondary);
+            margin: 0;
+            margin-top: 2px;
+        }
+
+        /* Boton Salir */
+        .btn-exit {
+            background: linear-gradient(135deg, var(--danger), #078e8e);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+
+        .btn-exit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(7,142,142,0.3);
+        }
+
+        /* Tabs - Identicos a Sinapsid */
+        .tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 30px;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 0;
+            background: var(--bg-secondary);
+            padding: 0 20px;
+        }
+
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: 12px 24px;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 500;
+            position: relative;
+            transition: all 0.2s;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .tab-btn.active {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--accent);
+        }
+
+        /* Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        /* Cards - Identicos a Sinapsid */
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .card h3 {
+            font-family: 'Inter', sans-serif;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Stats Grid - Identico a Sinapsid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,143,196,0.15);
+        }
+
+        .stat-card .number {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .stat-card .label {
+            font-size: 0.85rem;
+            font-weight: 400;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+
+        /* Status indicators */
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .status-online {
+            background: rgba(179,33,127,0.15);
+            color: var(--success);
+        }
+
+        .status-offline {
+            background: rgba(7,142,142,0.15);
+            color: var(--danger);
+        }
+
+        .status-syncing {
+            background: rgba(4,64,219,0.15);
+            color: var(--warning);
+        }
+
+        /* Tables - Identicas a Sinapsid */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background: var(--bg-tertiary);
+            color: var(--accent);
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid var(--accent);
+            font-family: 'Inter', sans-serif;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+
+        tr:hover td {
+            background: rgba(0,143,196,0.05);
+        }
+
+        /* Buttons - Identicos a Sinapsid */
+        .btn {
+            background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,143,196,0.3);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent);
+            box-shadow: none;
+        }
+
+        /* Update notification */
+        #update-notification {
+            display: none;
+            background: rgba(0,143,196,0.1);
+            border: 1px solid var(--accent);
+            padding: 8px 15px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        /* Sync animation */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .syncing {
+            animation: pulse 2s infinite;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            border-top: 1px solid var(--border);
+            margin-top: 40px;
+        }
+
+        .footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .tabs {
+                flex-wrap: wrap;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
 </head>
 <body>
     <header class="header">
@@ -13,13 +353,13 @@
             <img src="/static/img/icon.png" alt="SINAPSID">
             <div class="header-title">
                 <h1>Therapsid</h1>
-                <p>Red Médica Descentralizada</p>
+                <p>Red Medica Descentralizada</p>
             </div>
         </div>
         <div style="display: flex; gap: 10px; align-items: center;">
-            <div id="update-notification" style="display: none; background: rgba(255,107,53,0.2); border: 1px solid var(--accent); padding: 8px 15px; border-radius: 6px; font-size: 0.85rem;">
-                🔄 Nueva versión disponible: <span id="new-version"></span>
-                <button onclick="updateApp()" style="margin-left: 10px; background: var(--accent); color: white; border: none; padding: 4px 12px; border-radius: 4px; cursor: pointer;">Actualizar</button>
+            <div id="update-notification">
+                🔄 Nueva version disponible: <span id="new-version"></span>
+                <button onclick="updateApp()" style="margin-left: 10px; background: var(--accent); color: white; border: none; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-family: 'Inter', sans-serif;">Actualizar</button>
             </div>
             <button class="btn-exit" onclick="shutdownNode()">
                 🛑 Salir
@@ -28,10 +368,10 @@
     </header>
     
     <div class="tabs">
-        <button class="tab-btn active" onclick="showTab('overview', this)">📊 Visión General</button>
+        <button class="tab-btn active" onclick="showTab('overview', this)">📊 Vision General</button>
         <button class="tab-btn" onclick="showTab('network', this)">🌐 Red P2P</button>
         <button class="tab-btn" onclick="showTab('sinapsid', this)">🏥 Sinapsid</button>
-        <button class="tab-btn" onclick="showTab('sync', this)">🔄 Sincronización</button>
+        <button class="tab-btn" onclick="showTab('sync', this)">🔄 Sincronizacion</button>
     </div>
     
     <div class="container">
@@ -48,7 +388,7 @@
                 </div>
                 <div class="stat-card">
                     <div class="number" id="version-display">{{VERSION}}</div>
-                    <div class="label">Versión</div>
+                    <div class="label">Version</div>
                 </div>
                 <div class="stat-card">
                     <div class="number" id="sync-status">✓</div>
@@ -57,11 +397,11 @@
             </div>
             
             <div class="card">
-                <h3>📡 Información del Nodo</h3>
+                <h3>📡 Informacion del Nodo</h3>
                 <table>
                     <tr><td><strong>ID</strong></td><td id="node-id">Cargando...</td></tr>
                     <tr><td><strong>Nombre</strong></td><td id="node-name">Cargando...</td></tr>
-                    <tr><td><strong>Región</strong></td><td id="node-region">Cargando...</td></tr>
+                    <tr><td><strong>Region</strong></td><td id="node-region">Cargando...</td></tr>
                     <tr><td><strong>Tipo</strong></td><td id="node-type">Cargando...</td></tr>
                     <tr><td><strong>Puerto P2P</strong></td><td id="p2p-port">8765</td></tr>
                     <tr><td><strong>Puerto HTTP</strong></td><td id="http-port">8767</td></tr>
@@ -85,7 +425,7 @@
                 <h3>🏥 Sinapsid Local</h3>
                 <table>
                     <tr><td><strong>Estado</strong></td><td id="sinapsid-status">Cargando...</td></tr>
-                    <tr><td><strong>URL</strong></td><td><a href="http://localhost:8766" target="_blank">localhost:8766</a></td></tr>
+                    <tr><td><strong>URL</strong></td><td><a href="http://localhost:8766" target="_blank" style="color: var(--accent);">localhost:8766</a></td></tr>
                     <tr><td><strong>Pacientes</strong></td><td id="sinapsid-patients">-</td></tr>
                     <tr><td><strong>Evoluciones</strong></td><td id="sinapsid-evolutions">-</td></tr>
                 </table>
@@ -98,22 +438,22 @@
         <!-- TAB: SYNC -->
         <div id="tab-sync" class="tab-content" style="display: none;">
             <div class="card">
-                <h3>🔄 Sincronización</h3>
+                <h3>🔄 Sincronizacion</h3>
                 <table>
                     <tr><td><strong>Estado</strong></td><td><span class="status-indicator status-online">●</span> Activa</td></tr>
                     <tr><td><strong>Paquetes Enviados</strong></td><td id="packets-sent">0</td></tr>
                     <tr><td><strong>Paquetes Recibidos</strong></td><td id="packets-received">0</td></tr>
-                    <tr><td><strong>Último Sync</strong></td><td id="last-sync">Nunca</td></tr>
+                    <tr><td><strong>Ultimo Sync</strong></td><td id="last-sync">Nunca</td></tr>
                 </table>
             </div>
         </div>
         
         <div class="footer">
-            <p><strong>Therapsid</strong> · Nodo P2P para <strong>SINAPSID</strong></p>
+            <p><strong>Therapsid</strong> · Nodo P2P para <strong>SINAPSID</strong> · AGPL-3.0</p>
             <p style="font-size: 0.8rem; margin-top: 0.5rem;">
                 <a href="https://github.com/drpablohospital/therapsid">GitHub</a> · 
                 <a href="https://med.dogma.tools">Demo</a> · 
-                AGPL-3.0
+                v1.0.1
             </p>
         </div>
     </div>
@@ -138,6 +478,7 @@
                 document.getElementById('node-region').textContent = data.node?.region || 'N/A';
                 document.getElementById('node-type').textContent = data.node?.type || 'N/A';
                 document.getElementById('peers-count').textContent = data.network?.peers_count || 0;
+                document.getElementById('version-display').textContent = '{{VERSION}}';
             } catch(e) {
                 console.error('Error:', e);
             }
@@ -158,7 +499,7 @@
         }
         
         function shutdownNode() {
-            if (confirm('¿Detener Therapsid? Se cerrarán todas las conexiones P2P.')) {
+            if (confirm('¿Detener Therapsid? Se cerraran todas las conexiones P2P.')) {
                 fetch('/api/v1/node/shutdown', {method: 'POST'})
                     .then(() => {
                         alert('Therapsid detenido. Puedes cerrar esta ventana.');
@@ -171,7 +512,7 @@
         }
         
         function updateApp() {
-            if (confirm('¿Descargar e instalar actualización?')) {
+            if (confirm('¿Descargar e instalar actualizacion?')) {
                 window.open('https://github.com/drpablohospital/therapsid/releases', '_blank');
             }
         }
@@ -179,7 +520,6 @@
         updateDashboard();
         setInterval(updateDashboard, 5000);
         
-        // Check updates cada 5 minutos
         checkUpdates();
         setInterval(checkUpdates, 300000);
     </script>

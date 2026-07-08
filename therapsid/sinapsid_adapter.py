@@ -178,15 +178,28 @@ class SinapsidAdapter:
         Orden de búsqueda:
         1. Dentro del paquete therapsid (bundle)
         2. En directorios conocidos del sistema
+        3. Ruta de instalación del .deb (/opt/therapsid/sinapsid)
         """
         # Buscar en el paquete therapsid
         import therapsid
         therapsid_dir = Path(therapsid.__file__).parent
+        
+        # 1. Buscar al mismo nivel (hermano) - estructura del .deb
+        sibling = therapsid_dir.parent / "sinapsid"
+        if sibling.exists() and (sibling / "app.py").exists():
+            return sibling
+        
+        # 2. Dentro del paquete (legacy)
         bundled = therapsid_dir / "sinapsid"
         if bundled.exists() and (bundled / "app.py").exists():
             return bundled
         
-        # Buscar en directorios comunes
+        # 3. Ruta de instalación del .deb
+        deb_path = Path("/opt/therapsid/sinapsid")
+        if deb_path.exists() and (deb_path / "app.py").exists():
+            return deb_path
+        
+        # 4. Buscar en directorios comunes
         search_paths = [
             Path.home() / ".openclaw" / "workspace" / "sinapsid-working" / "current",
             Path.home() / ".openclaw" / "workspace" / "sinapsid-dma-auth",
