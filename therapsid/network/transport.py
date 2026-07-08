@@ -41,6 +41,8 @@ class HTTPTransport:
         self.app.router.add_get("/sinapsid/local", self._sinapsid_local_status)
         self.app.router.add_get("/api/v1/node/info", self._node_info)
         self.app.router.add_get("/api/v1/sinapsid/stats", self._sinapsid_stats)
+        self.app.router.add_get("/api/v1/updater/check", self._check_updates)
+        self.app.router.add_post("/api/v1/node/shutdown", self._shutdown)
         
         # Endpoints protegidos (envío/recepción de datos)
         self.app.router.add_post("/api/v1/data/send", self._send_data)
@@ -54,6 +56,29 @@ class HTTPTransport:
         static_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'web', 'static')
         if os.path.exists(static_path):
             self.app.router.add_static('/static/', path=static_path, name='static')
+        
+        # Servir templates
+        templates_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'web', 'templates')
+        if os.path.exists(templates_path):
+            self.app.router.add_static('/templates/', path=templates_path, name='templates')
+    
+    async def _check_updates(self, request):
+        """Chequea si hay actualizaciones disponibles"""
+        try:
+            from ..updater import get_updater
+            updater = get_updater()
+            result = updater.check_for_updates()
+            return web.json_response(result)
+        except Exception as e:
+            return web.json_response({"has_update": False, "error": str(e)})
+    
+    async def _shutdown(self, request):
+        """Apaga el nodo Therapsid"""
+        import asyncio
+        asyncio.create_task(self.stop())
+        if self.gossip:
+            await self.gossip.stop()
+        return web.json_response({"success": True, "message": "Therapsid detenido"})
     
     # Auth handlers
     
@@ -122,8 +147,24 @@ class HTTPTransport:
     
     async def _dashboard(self, request):
         """Dashboard web del nodo Therapsid"""
-        html = self._get_dashboard_html()
+        import os
+        template_path = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)), 
+            'web', 'templates', 'dashboard.html'
+        )
+        
+        if os.path.exists(template_path):
+            with open(template_path, 'r') as f:
+                html = f.read()
+            html = html.replace('{{VERSION}}', '0.1.3')
+        else:
+            html = self._get_fallback_dashboard()
+        
         return web.Response(text=html, content_type="text/html")
+    
+    def _get_fallback_dashboard(self) -> str:
+        """Dashboard fallback si no encuentra template"""
+        return '<!DOCTYPE html><html><head><title>Therapsid</title></head><body><h1>Therapsid Node</h1><p>Cargando dashboard...</p></body></html>'
     
     async def _node_info(self, request):
         """Información completa del nodo (API v1)"""

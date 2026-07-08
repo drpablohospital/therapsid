@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Therapsid Node - SINAPSID Network</title>
+    <link rel="icon" type="image/png" href="/static/img/icon.png">
+    <link rel="stylesheet" href="/static/css/sinapsid.css">
+</head>
+<body>
+    <header class="header">
+        <div class="header-logo">
+            <img src="/static/img/icon.png" alt="SINAPSID">
+            <div class="header-title">
+                <h1>Therapsid</h1>
+                <p>Red Médica Descentralizada</p>
+            </div>
+        </div>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <div id="update-notification" style="display: none; background: rgba(255,107,53,0.2); border: 1px solid var(--accent); padding: 8px 15px; border-radius: 6px; font-size: 0.85rem;">
+                🔄 Nueva versión disponible: <span id="new-version"></span>
+                <button onclick="updateApp()" style="margin-left: 10px; background: var(--accent); color: white; border: none; padding: 4px 12px; border-radius: 4px; cursor: pointer;">Actualizar</button>
+            </div>
+            <button class="btn-exit" onclick="shutdownNode()">
+                🛑 Salir
+            </button>
+        </div>
+    </header>
+    
+    <div class="tabs">
+        <button class="tab-btn active" onclick="showTab('overview', this)">📊 Visión General</button>
+        <button class="tab-btn" onclick="showTab('network', this)">🌐 Red P2P</button>
+        <button class="tab-btn" onclick="showTab('sinapsid', this)">🏥 Sinapsid</button>
+        <button class="tab-btn" onclick="showTab('sync', this)">🔄 Sincronización</button>
+    </div>
+    
+    <div class="container">
+        <!-- TAB: OVERVIEW -->
+        <div id="tab-overview" class="tab-content" style="display: block;">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="number" id="peers-count">0</div>
+                    <div class="label">Peers Conectados</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number" id="node-uptime">0m</div>
+                    <div class="label">Tiempo Activo</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number" id="version-display">{{VERSION}}</div>
+                    <div class="label">Versión</div>
+                </div>
+                <div class="stat-card">
+                    <div class="number" id="sync-status">✓</div>
+                    <div class="label">Estado Sync</div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3>📡 Información del Nodo</h3>
+                <table>
+                    <tr><td><strong>ID</strong></td><td id="node-id">Cargando...</td></tr>
+                    <tr><td><strong>Nombre</strong></td><td id="node-name">Cargando...</td></tr>
+                    <tr><td><strong>Región</strong></td><td id="node-region">Cargando...</td></tr>
+                    <tr><td><strong>Tipo</strong></td><td id="node-type">Cargando...</td></tr>
+                    <tr><td><strong>Puerto P2P</strong></td><td id="p2p-port">8765</td></tr>
+                    <tr><td><strong>Puerto HTTP</strong></td><td id="http-port">8767</td></tr>
+                </table>
+            </div>
+        </div>
+        
+        <!-- TAB: NETWORK -->
+        <div id="tab-network" class="tab-content" style="display: none;">
+            <div class="card">
+                <h3>🌐 Nodos en la Red</h3>
+                <div id="peers-list">
+                    <p style="text-align: center; color: var(--text-secondary); padding: 2rem;">No hay peers conectados</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- TAB: SINAPSID -->
+        <div id="tab-sinapsid" class="tab-content" style="display: none;">
+            <div class="card">
+                <h3>🏥 Sinapsid Local</h3>
+                <table>
+                    <tr><td><strong>Estado</strong></td><td id="sinapsid-status">Cargando...</td></tr>
+                    <tr><td><strong>URL</strong></td><td><a href="http://localhost:8766" target="_blank">localhost:8766</a></td></tr>
+                    <tr><td><strong>Pacientes</strong></td><td id="sinapsid-patients">-</td></tr>
+                    <tr><td><strong>Evoluciones</strong></td><td id="sinapsid-evolutions">-</td></tr>
+                </table>
+                <div style="margin-top: 1rem;">
+                    <a href="http://localhost:8766" class="btn" target="_blank">Abrir Sinapsid →</a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- TAB: SYNC -->
+        <div id="tab-sync" class="tab-content" style="display: none;">
+            <div class="card">
+                <h3>🔄 Sincronización</h3>
+                <table>
+                    <tr><td><strong>Estado</strong></td><td><span class="status-indicator status-online">●</span> Activa</td></tr>
+                    <tr><td><strong>Paquetes Enviados</strong></td><td id="packets-sent">0</td></tr>
+                    <tr><td><strong>Paquetes Recibidos</strong></td><td id="packets-received">0</td></tr>
+                    <tr><td><strong>Último Sync</strong></td><td id="last-sync">Nunca</td></tr>
+                </table>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p><strong>Therapsid</strong> · Nodo P2P para <strong>SINAPSID</strong></p>
+            <p style="font-size: 0.8rem; margin-top: 0.5rem;">
+                <a href="https://github.com/drpablohospital/therapsid">GitHub</a> · 
+                <a href="https://med.dogma.tools">Demo</a> · 
+                AGPL-3.0
+            </p>
+        </div>
+    </div>
+    
+    <script>
+        const CURRENT_VERSION = '{{VERSION}}';
+        
+        function showTab(tab, btn) {
+            document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + tab).style.display = 'block';
+            btn.classList.add('active');
+        }
+        
+        async function updateDashboard() {
+            try {
+                const resp = await fetch('/api/v1/node/info');
+                const data = await resp.json();
+                
+                document.getElementById('node-id').textContent = data.node?.id?.substring(0, 20) + '...' || 'N/A';
+                document.getElementById('node-name').textContent = data.node?.name || 'N/A';
+                document.getElementById('node-region').textContent = data.node?.region || 'N/A';
+                document.getElementById('node-type').textContent = data.node?.type || 'N/A';
+                document.getElementById('peers-count').textContent = data.network?.peers_count || 0;
+            } catch(e) {
+                console.error('Error:', e);
+            }
+        }
+        
+        async function checkUpdates() {
+            try {
+                const resp = await fetch('/api/v1/updater/check');
+                const data = await resp.json();
+                
+                if (data.has_update) {
+                    document.getElementById('new-version').textContent = data.latest_version;
+                    document.getElementById('update-notification').style.display = 'block';
+                }
+            } catch(e) {
+                console.log('Updater check failed:', e);
+            }
+        }
+        
+        function shutdownNode() {
+            if (confirm('¿Detener Therapsid? Se cerrarán todas las conexiones P2P.')) {
+                fetch('/api/v1/node/shutdown', {method: 'POST'})
+                    .then(() => {
+                        alert('Therapsid detenido. Puedes cerrar esta ventana.');
+                        window.close();
+                    })
+                    .catch(() => {
+                        alert('Therapsid detenido. Cierra esta pestaña manualmente.');
+                    });
+            }
+        }
+        
+        function updateApp() {
+            if (confirm('¿Descargar e instalar actualización?')) {
+                window.open('https://github.com/drpablohospital/therapsid/releases', '_blank');
+            }
+        }
+        
+        updateDashboard();
+        setInterval(updateDashboard, 5000);
+        
+        // Check updates cada 5 minutos
+        checkUpdates();
+        setInterval(checkUpdates, 300000);
+    </script>
+</body>
+</html>
