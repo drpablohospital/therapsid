@@ -61,6 +61,35 @@ class ResourceMetrics:
             "timestamp": self.last_update
         }
 
+class ResourceAllocator:
+    """Controla cuantos recursos comparte el nodo con la red"""
+    
+    def __init__(self, config: NodeConfig):
+        self.config = config
+        self.max_ram_percent = 50  # Default: 50% de RAM
+        self.max_cpu_percent = 30  # Default: 30% de CPU
+        self.max_disk_gb = 5       # Default: 5 GB disco
+        self.enabled = True
+    
+    def set_limits(self, ram_percent: int, cpu_percent: int, disk_gb: int):
+        self.max_ram_percent = max(10, min(90, ram_percent))
+        self.max_cpu_percent = max(5, min(80, cpu_percent))
+        self.max_disk_gb = max(1, min(100, disk_gb))
+    
+    def get_available_resources(self) -> Dict[str, Any]:
+        ram = psutil.virtual_memory()
+        disk = psutil.disk_usage('/')
+        
+        return {
+            "ram_limit_mb": (ram.total * self.max_ram_percent // 100) // (1024*1024),
+            "ram_used_mb": ram.used // (1024*1024),
+            "cpu_limit_percent": self.max_cpu_percent,
+            "cpu_current_percent": psutil.cpu_percent(interval=0.5),
+            "disk_limit_gb": self.max_disk_gb,
+            "disk_used_gb": disk.used // (1024**3),
+            "sharing_enabled": self.enabled
+        }
+
 class SinapsidConnector:
     """
     Conector al nodo administrador (xiu-HOME:5002)
@@ -75,6 +104,7 @@ class SinapsidConnector:
         self.patients_count = 0
         self.evolutions_count = 0
         self.node_weight = 0  # PoP weight
+        self.latency_ms = 0
     
     async def connect(self):
         """Conectar a xiu-HOME"""
@@ -222,26 +252,52 @@ class TherapsidNode:
     def setup_routes(self):
         """Configurar rutas HTTP"""
         self.app.router.add_get('/', self._index)
+        self.app.router.add_get('/dashboard', self._index)
         self.app.router.add_get('/api/v1/health', self._health)
         self.app.router.add_get('/api/v1/node/info', self._node_info)
         self.app.router.add_get('/api/v1/node/resources', self._resources)
+        self.app.router.add_post('/api/v1/node/resources/set', self._set_resources)
         self.app.router.add_get('/api/v1/network/status', self._network_status)
+        self.app.router.add_get('/api/v1/network/nodes', self._nodes_list)
+        self.app.router.add_get('/api/v1/sinapsid/auth', self._sinapsid_auth)
+        self.app.router.add_get('/api/v1/sinapsid/iframe', self._sinapsid_iframe)
         self.app.router.add_post('/api/v1/node/shutdown', self._shutdown)
-        self.app.router.add_static('/static/', 
-            path=str(THERAPSID_HOME / 'web' / 'static'), 
-            name='static')
+        
+        # Static files - buscar en múltiples ubicaciones
+        static_paths = [
+            THERAPSID_HOME / 'web' / 'static',
+            Path(__file__).parent / 'web' / 'static',
+            Path('/opt/therapsid/therapsid/web/static'),
+        ]
+        
+        for static_path in static_paths:
+            if static_path.exists():
+                self.app.router.add_static('/static/', 
+                    path=str(static_path), 
+                    name='static')
+                logger.info(f"Static files: {static_path}")
+                break
+        else:
+            logger.warning("No se encontró directorio static")
     
     async def _index(self, request):
-        """Dashboard HTML"""
-        try:
-            dashboard_path = THERAPSID_HOME / 'web' / 'templates' / 'dashboard.html'
-            if dashboard_path.exists():
-                with open(dashboard_path) as f:
-                    html = f.read()
-                return web.Response(text=html, content_type='text/html')
-        except Exception as e:
-            logger.error(f"Error cargando dashboard: {e}")
+        """Dashboard HTML - buscar en múltiples ubicaciones"""
+        template_paths = [
+            THERAPSID_HOME / 'web' / 'templates' / 'dashboard.html',
+            Path(__file__).parent / 'web' / 'templates' / 'dashboard.html',
+            Path('/opt/therapsid/therapsid/web/templates/dashboard.html'),
+        ]
         
+        for dashboard_path in template_paths:
+            try:
+                if dashboard_path.exists():
+                    with open(dashboard_path) as f:
+                        html = f.read()
+                    return web.Response(text=html, content_type='text/html')
+            except Exception as e:
+                logger.error(f"Error cargando dashboard de {dashboard_path}: {e}")
+        
+        # Si no encuentra template, servir fallback
         return web.Response(text=self._get_fallback_dashboard(), content_type='text/html')
     
     def _get_fallback_dashboard(self) -> str:
@@ -294,6 +350,112 @@ class TherapsidNode:
             "is_leader": self.governance.is_leader,
             "nodes": len(self.governance.nodes) + 1
         })
+    
+    async def _sinapsid_iframe(self, request):
+        """Servir Sinapsid dentro de iframe"""
+        html = '''
+        <!DOCTYPE html>
+        <html><head><title>Sinapsid Federado</title>
+        <style>
+            body { margin: 0; padding: 0; background: #0a0a0f; }
+            .header { 
+                background: linear-gradient(135deg, #1a1a2e, #12121a); 
+                padding: 10px 20px; 
+                border-bottom: 2px solid #ff006e;
+                display: flex; align-items: center; justify-content: space-between;
+            }
+            .header h1 { 
+                color: #ff006e; 
+                margin: 0; 
+                font-family: 'JetBrains Mono', monospace;
+                font-size: 1.2rem;
+            }
+            .header p { color: #8892b0; margin: 0; font-size: 0.8rem; }
+            .btn-back { 
+                background: #ff006e; color: white; border: none; 
+                padding: 8px 16px; border-radius: 20px; cursor: pointer;
+                text-decoration: none; font-size: 0.9rem;
+            }
+            iframe { width: 100%; height: calc(100vh - 60px); border: none; }
+        </style>
+        </head>
+        <body>
+            <div class="header">
+                <div>
+                    <h1>🦊 SINAPSID FEDERADO</h1>
+                    <p>Ejecutandose sobre red Therapsid · xiu-HOME:5002</p>
+                </div>
+                <a href="/dashboard" class="btn-back">← Dashboard</a>
+            </div>
+            <iframe src="http://100.127.123.55:5002"></iframe>
+        </body>
+        </html>
+        '''
+        return web.Response(text=html, content_type='text/html')
+    
+    async def _sinapsid_auth(self, request):
+        """Proxy auth para Sinapsid"""
+        return web.json_response({
+            "auth_url": "http://100.127.123.55:5002/login",
+            "note": "Usa tu cuenta Sinapsid existente"
+        })
+    
+    async def _nodes_list(self, request):
+        """Lista de nodos en la red"""
+        return web.json_response({
+            "nodes": [
+                {
+                    "id": "xiu-home",
+                    "name": "Sinapsid Admin (xiu-HOME)",
+                    "url": "http://100.127.123.55:5002",
+                    "status": "online" if self.connector.connected else "offline",
+                    "weight": self.connector.node_weight,
+                    "patients": self.connector.patients_count,
+                    "role": "admin"
+                },
+                {
+                    "id": self.config.node_id,
+                    "name": self.config.node_name,
+                    "url": f"http://localhost:{self.config.web_port}",
+                    "status": "online",
+                    "weight": 0,
+                    "patients": 0,
+                    "role": "peer"
+                }
+            ],
+            "leader": self.governance.leader_id,
+            "total_nodes": 2 if self.connector.connected else 1
+        })
+    
+    async def _set_resources(self, request):
+        """Configurar limites de recursos"""
+        try:
+            data = await request.json()
+            ram = data.get('ram_percent', 50)
+            cpu = data.get('cpu_percent', 30)
+            disk = data.get('disk_gb', 5)
+            
+            ram = max(10, min(90, ram))
+            cpu = max(5, min(80, cpu))
+            disk = max(1, min(100, disk))
+            
+            self.config.resource_limits = {
+                "max_ram_percent": ram,
+                "max_cpu_percent": cpu,
+                "max_disk_gb": disk
+            }
+            self.config.save()
+            
+            return web.json_response({
+                "status": "ok",
+                "limits": {
+                    "ram_percent": ram,
+                    "cpu_percent": cpu,
+                    "disk_gb": disk
+                }
+            })
+        except Exception as e:
+            return web.json_response({"error": str(e)}, status=400)
     
     async def _shutdown(self, request):
         """Detener nodo"""
