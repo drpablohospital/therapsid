@@ -176,30 +176,36 @@ class SinapsidAdapter:
         """
         Busca el código de Sinapsid en ubicaciones conocidas.
         Orden de búsqueda:
-        1. Dentro del paquete therapsid (bundle)
-        2. En directorios conocidos del sistema
-        3. Ruta de instalación del .deb (/opt/therapsid/sinapsid)
+        1. Ruta de instalación del .deb (/opt/therapsid/sinapsid)
+        2. Dentro del paquete therapsid
+        3. En directorios conocidos del sistema
         """
-        # Buscar en el paquete therapsid
-        import therapsid
-        therapsid_dir = Path(therapsid.__file__).parent
-        
-        # 1. Buscar al mismo nivel (hermano) - estructura del .deb
-        sibling = therapsid_dir.parent / "sinapsid"
-        if sibling.exists() and (sibling / "app.py").exists():
-            return sibling
-        
-        # 2. Dentro del paquete (legacy)
-        bundled = therapsid_dir / "sinapsid"
-        if bundled.exists() and (bundled / "app.py").exists():
-            return bundled
-        
-        # 3. Ruta de instalación del .deb
+        # 1. Ruta de instalación del .deb (prioridad máxima)
         deb_path = Path("/opt/therapsid/sinapsid")
         if deb_path.exists() and (deb_path / "app.py").exists():
+            print(f"[Therapsid] Sinapsid encontrado en: {deb_path}")
             return deb_path
         
-        # 4. Buscar en directorios comunes
+        # 2. Buscar en el paquete therapsid
+        try:
+            import therapsid
+            therapsid_dir = Path(therapsid.__file__).parent
+            
+            # Buscar al mismo nivel (hermano)
+            sibling = therapsid_dir.parent / "sinapsid"
+            if sibling.exists() and (sibling / "app.py").exists():
+                print(f"[Therapsid] Sinapsid encontrado en: {sibling}")
+                return sibling
+            
+            # Dentro del paquete (legacy)
+            bundled = therapsid_dir / "sinapsid"
+            if bundled.exists() and (bundled / "app.py").exists():
+                print(f"[Therapsid] Sinapsid encontrado en: {bundled}")
+                return bundled
+        except ImportError:
+            pass
+        
+        # 3. Buscar en directorios comunes
         search_paths = [
             Path.home() / ".openclaw" / "workspace" / "sinapsid-working" / "current",
             Path.home() / ".openclaw" / "workspace" / "sinapsid-dma-auth",
@@ -209,8 +215,10 @@ class SinapsidAdapter:
         
         for path in search_paths:
             if path.exists() and (path / "app.py").exists():
+                print(f"[Therapsid] Sinapsid encontrado en: {path}")
                 return path
         
+        print("[Therapsid] No se encontró Sinapsid en ninguna ubicación conocida")
         return None
     
     def _start_placeholder(self) -> bool:
